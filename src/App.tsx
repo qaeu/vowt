@@ -1,13 +1,8 @@
 import type { Component } from 'solid-js';
-import Comp from './Comp';
+import ScoreboardOCR from './components/ScoreboardOCR';
 
 const App: Component = () => {
-  return (
-    <>
-      <h1>Hello world!!!!</h1>
-      <Comp />
-    </>
-  );
+  return <ScoreboardOCR />;
 };
 
 export default App;
