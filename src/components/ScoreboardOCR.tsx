@@ -35,13 +35,19 @@ const ScoreboardOCR: Component = () => {
       // For this POC, we're demonstrating the preprocessing and JSON extraction
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const mockOcrText = `VICTORY
-Player: JohnDoe
-Eliminations: 25
-Deaths: 8
-Damage: 15420
-Healing: 3250
-Hero: Mercy`;
+      const mockOcrText = `SCOREBOARD
+E A D DMG H MIT
+STARK 27 4 7 17542 0 14872
+BABY 21 0 11 11603 27 1277
+KAPPACAPPER 24 3 10 10362 0 794
+VS
+YAZIO 27 3 10 15675 670 15391
+LBBO7 25 5 11 12736 0 48
+TRIX 14 0 9 7869 1191 278
+VICTORY
+FINAL SCORE: 3 VS 2
+DATE: 09/15/25 - 02:49
+GAME MODE: ESCORT`;
 
       setOcrText(mockOcrText);
       setProgress(80);

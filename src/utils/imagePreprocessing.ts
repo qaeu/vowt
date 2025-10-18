@@ -70,22 +70,71 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
  * @param text - Raw OCR text output
  * @returns Object containing extracted game stats
  */
-export function extractGameStats(text: string): Record<string, string | number> {
-  const stats: Record<string, string | number> = {};
+export function extractGameStats(text: string): Record<string, any> {
+  const stats: Record<string, any> = {
+    players: [],
+    matchInfo: {}
+  };
+  
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   
+  let currentSection = 'header';
+  let columnHeaders: string[] = [];
+  let teamColor: 'blue' | 'red' = 'blue';
+  
   for (const line of lines) {
-    // Look for key-value patterns like "Player: JohnDoe" or "Eliminations: 25"
-    const match = line.match(/^([A-Za-z\s]+):\s*(.+)$/);
-    if (match) {
-      const key = match[1].trim();
-      const value = match[2].trim();
-      
-      // Try to parse as number if possible
-      const numValue = parseFloat(value);
-      stats[key] = isNaN(numValue) ? value : numValue;
-    } else if (line.toUpperCase() === 'VICTORY' || line.toUpperCase() === 'DEFEAT') {
-      stats.result = line.toUpperCase();
+    // Check for result
+    if (line.toUpperCase() === 'VICTORY' || line.toUpperCase() === 'DEFEAT') {
+      stats.matchInfo.result = line.toUpperCase();
+      continue;
+    }
+    
+    // Check for VS separator
+    if (line.toUpperCase() === 'VS') {
+      teamColor = 'red';
+      continue;
+    }
+    
+    // Check for SCOREBOARD header
+    if (line.toUpperCase() === 'SCOREBOARD') {
+      continue;
+    }
+    
+    // Look for column headers (E A D DMG H MIT)
+    if (line.match(/^[A-Z\s]+$/) && line.length < 30 && line.includes('E') && line.includes('D')) {
+      columnHeaders = line.split(/\s+/);
+      currentSection = 'players';
+      continue;
+    }
+    
+    // Look for key-value patterns in match info
+    const kvMatch = line.match(/^([A-Za-z\s]+):\s*(.+)$/);
+    if (kvMatch) {
+      const key = kvMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+      const value = kvMatch[2].trim();
+      stats.matchInfo[key] = value;
+      continue;
+    }
+    
+    // Parse player data (name followed by numbers)
+    if (currentSection === 'players') {
+      const parts = line.split(/\s+/);
+      if (parts.length >= 2 && !isNaN(parseFloat(parts[1]))) {
+        const playerName = parts[0];
+        const playerStats: Record<string, any> = {
+          name: playerName,
+          team: teamColor
+        };
+        
+        // Map stats to column headers
+        for (let i = 1; i < parts.length && i <= columnHeaders.length; i++) {
+          const header = columnHeaders[i - 1] || `stat${i}`;
+          const value = parseFloat(parts[i]);
+          playerStats[header.toLowerCase()] = isNaN(value) ? parts[i] : value;
+        }
+        
+        stats.players.push(playerStats);
+      }
     }
   }
   
