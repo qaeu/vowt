@@ -54,7 +54,7 @@ describe('ScoreboardOCR', () => {
     it('should display POC demo message', () => {
         render(() => <ScoreboardOCR />);
         expect(screen.getByText(/POC Demo:/)).toBeDefined();
-        expect(screen.getByText(/using Tesseract\.js/)).toBeDefined();
+        expect(screen.getByText(/region-based OCR/)).toBeDefined();
     });
 
     it('should render original image section', () => {
