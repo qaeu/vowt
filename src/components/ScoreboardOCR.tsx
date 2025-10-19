@@ -17,7 +17,7 @@ const ScoreboardOCR: Component = () => {
     const [error, setError] = createSignal<string>('');
     const [progress, setProgress] = createSignal<number>(0);
 
-    const hardcodedImagePath = '/scoreboard.png';
+    const hardcodedImagePath = '/scoreboard.jpg';
 
     onMount(async () => {
         await processImage();

@@ -131,6 +131,6 @@ describe('ScoreboardOCR', () => {
         const originalImage = screen.getByAltText(
             'Original scoreboard'
         ) as HTMLImageElement;
-        expect(originalImage.src).toContain('/scoreboard.png');
+        expect(originalImage.src).toContain('/scoreboard.jpg');
     });
 });
