@@ -41,7 +41,7 @@ const ScoreboardOCR: Component = () => {
             setProgress(40);
             let ocrText = '';
             try {
-                const worker = await Tesseract.createWorker('eng', undefined, {
+                const worker = await Tesseract.createWorker('eng', 3, {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
                             setProgress(40 + Math.round(m.progress * 40));
@@ -54,21 +54,7 @@ const ScoreboardOCR: Component = () => {
 
                 ocrText = result.data.text;
             } catch (ocrError) {
-                // Fallback to mock data if OCR fails (e.g., due to network restrictions)
-                console.warn('OCR failed, using mock data:', ocrError);
-                ocrText = `SCOREBOARD
-E A D DMG H MIT
-STARK 27 4 7 17542 0 14872
-BABY 21 0 11 11603 27 1277
-KAPPACAPPER 24 3 10 10362 0 794
-VS
-YAZIO 27 3 10 15675 670 15391
-LBBO7 25 5 11 12736 0 48
-TRIX 14 0 9 7869 1191 278
-VICTORY
-FINAL SCORE: 3 VS 2
-DATE: 09/15/25 - 02:49
-GAME MODE: ESCORT`;
+                throw ocrError;
             }
             setOcrText(ocrText);
             setProgress(80);
