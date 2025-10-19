@@ -2,6 +2,20 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@solidjs/testing-library';
 import ScoreboardOCR from './ScoreboardOCR';
 
+// Mock tesseract.js
+vi.mock('tesseract.js', () => ({
+  default: {
+    createWorker: vi.fn().mockResolvedValue({
+      recognize: vi.fn().mockResolvedValue({
+        data: {
+          text: 'SCOREBOARD\nE A D DMG H MIT\nSTARK 27 4 7 17542 0 14872\nVICTORY'
+        }
+      }),
+      terminate: vi.fn().mockResolvedValue(undefined),
+    }),
+  },
+}));
+
 // Mock the image preprocessing module
 vi.mock('../utils/imagePreprocessing', () => ({
   preprocessImageForOCR: vi.fn().mockResolvedValue('data:image/png;base64,mockdata'),
@@ -36,7 +50,7 @@ describe('ScoreboardOCR', () => {
   it('should display POC demo message', () => {
     render(() => <ScoreboardOCR />);
     expect(screen.getByText(/POC Demo:/)).toBeDefined();
-    expect(screen.getByText(/OCR text is currently mocked/)).toBeDefined();
+    expect(screen.getByText(/using Tesseract\.js/)).toBeDefined();
   });
 
   it('should render original image section', () => {

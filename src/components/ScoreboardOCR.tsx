@@ -1,4 +1,5 @@
 import { Component, createSignal, onMount, Show } from 'solid-js';
+import Tesseract from 'tesseract.js';
 import { preprocessImageForOCR, extractGameStats } from '../utils/imagePreprocessing';
 
 interface GameStats {
@@ -31,29 +32,27 @@ const ScoreboardOCR: Component = () => {
       setPreprocessedImage(preprocessed);
       setProgress(50);
 
-      // Step 2: Simulate OCR (in a real implementation, this would call Tesseract.js)
-      // For this POC, we're demonstrating the preprocessing and JSON extraction
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockOcrText = `SCOREBOARD
-E A D DMG H MIT
-STARK 27 4 7 17542 0 14872
-BABY 21 0 11 11603 27 1277
-KAPPACAPPER 24 3 10 10362 0 794
-VS
-YAZIO 27 3 10 15675 670 15391
-LBBO7 25 5 11 12736 0 48
-TRIX 14 0 9 7869 1191 278
-VICTORY
-FINAL SCORE: 3 VS 2
-DATE: 09/15/25 - 02:49
-GAME MODE: ESCORT`;
+      // Step 2: Perform actual OCR using Tesseract.js
+      setProgress(40);
+      const worker = await Tesseract.createWorker('eng', undefined, {
+        workerPath: '/worker.min.js',
+        langPath: '/',
+        corePath: '/tesseract-core-lstm.wasm.js',
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            setProgress(40 + Math.round(m.progress * 40));
+          }
+        },
+      });
 
-      setOcrText(mockOcrText);
+      const result = await worker.recognize(preprocessed);
+      await worker.terminate();
+
+      setOcrText(result.data.text);
       setProgress(80);
 
       // Step 3: Extract game stats
-      const stats = extractGameStats(mockOcrText);
+      const stats = extractGameStats(result.data.text);
       setExtractedStats(stats);
       setProgress(100);
 
@@ -78,7 +77,7 @@ GAME MODE: ESCORT`;
       }}>
         <p style={{ margin: '0', 'font-size': '14px' }}>
           <strong>POC Demo:</strong> This demonstrates image preprocessing (grayscale + contrast enhancement) 
-          for OCR optimization and JSON extraction from game stats. OCR text is currently mocked for demonstration purposes.
+          for OCR optimization and JSON extraction from game stats using Tesseract.js.
         </p>
       </div>
 
