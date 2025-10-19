@@ -10,7 +10,6 @@
 export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     
     img.onload = () => {
       const canvas = document.createElement('canvas');
