@@ -14,6 +14,40 @@ export interface TextRegion {
     isItalic?: boolean;
 }
 
+const SCOREBOARD = {
+    x: 480,
+    y: 345,
+};
+
+const ROW_H = 82;
+const RED_Y = 880;
+
+const NAME_TAG = {
+    x: SCOREBOARD.x,
+    width: 345,
+    height: 50,
+    isItalic: true,
+};
+
+const EAD = {
+    x: SCOREBOARD.x + NAME_TAG.width + 15,
+    width: 65,
+    height: NAME_TAG.height,
+};
+
+const STATLINE = {
+    x: EAD.x + 3 * EAD.width + 15,
+    width: 128,
+    height: NAME_TAG.height,
+};
+
+const MATCH_INFO = {
+    x: 1555,
+    y: 765,
+    width: 400,
+};
+const INFOLINE_H = 37;
+
 /**
  * Define all text regions on the Overwatch scoreboard
  * Coordinates are for the full 2560x1440 (1440p) scoreboard image.
@@ -24,107 +58,359 @@ export function getScoreboardRegions(): TextRegion[] {
         // Blue team players (rows in table)
         {
             name: 'blue_player1_name',
-            x: 280,
-            y: 195,
-            width: 100,
-            height: 30,
-            isItalic: true,
+            ...SCOREBOARD,
+            ...NAME_TAG,
         },
-        { name: 'blue_player1_e', x: 490, y: 195, width: 40, height: 30 },
-        { name: 'blue_player1_a', x: 535, y: 195, width: 40, height: 30 },
-        { name: 'blue_player1_d', x: 575, y: 195, width: 40, height: 30 },
-        { name: 'blue_player1_dmg', x: 620, y: 195, width: 60, height: 30 },
-        { name: 'blue_player1_h', x: 710, y: 195, width: 40, height: 30 },
-        { name: 'blue_player1_mit', x: 765, y: 195, width: 60, height: 30 },
+        {
+            name: 'blue_player1_e',
+            y: SCOREBOARD.y,
+            ...EAD,
+        },
+        {
+            name: 'blue_player1_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: SCOREBOARD.y,
+        },
+        {
+            name: 'blue_player1_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: SCOREBOARD.y,
+        },
+        { name: 'blue_player1_dmg', ...STATLINE, y: SCOREBOARD.y },
+        {
+            name: 'blue_player1_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: SCOREBOARD.y,
+        },
+        {
+            name: 'blue_player1_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: SCOREBOARD.y,
+        },
 
         {
             name: 'blue_player2_name',
-            x: 280,
-            y: 243,
-            width: 100,
-            height: 30,
-            isItalic: true,
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: SCOREBOARD.y + ROW_H,
         },
-        { name: 'blue_player2_e', x: 490, y: 243, width: 40, height: 30 },
-        { name: 'blue_player2_a', x: 535, y: 243, width: 40, height: 30 },
-        { name: 'blue_player2_d', x: 575, y: 243, width: 40, height: 30 },
-        { name: 'blue_player2_dmg', x: 620, y: 243, width: 60, height: 30 },
-        { name: 'blue_player2_h', x: 710, y: 243, width: 40, height: 30 },
-        { name: 'blue_player2_mit', x: 765, y: 243, width: 60, height: 30 },
+        { name: 'blue_player2_e', ...EAD, y: SCOREBOARD.y + ROW_H },
+        {
+            name: 'blue_player2_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: SCOREBOARD.y + ROW_H,
+        },
+        {
+            name: 'blue_player2_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: SCOREBOARD.y + ROW_H,
+        },
+        { name: 'blue_player2_dmg', ...STATLINE, y: SCOREBOARD.y + ROW_H },
+        {
+            name: 'blue_player2_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: SCOREBOARD.y + ROW_H,
+        },
+        {
+            name: 'blue_player2_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: SCOREBOARD.y + ROW_H,
+        },
 
         {
             name: 'blue_player3_name',
-            x: 280,
-            y: 290,
-            width: 100,
-            height: 30,
-            isItalic: true,
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: SCOREBOARD.y + 2 * ROW_H,
         },
-        { name: 'blue_player3_e', x: 490, y: 290, width: 40, height: 30 },
-        { name: 'blue_player3_a', x: 535, y: 290, width: 40, height: 30 },
-        { name: 'blue_player3_d', x: 575, y: 290, width: 40, height: 30 },
-        { name: 'blue_player3_dmg', x: 620, y: 290, width: 60, height: 30 },
-        { name: 'blue_player3_h', x: 710, y: 290, width: 40, height: 30 },
-        { name: 'blue_player3_mit', x: 765, y: 290, width: 60, height: 30 },
+        { name: 'blue_player3_e', ...EAD, y: SCOREBOARD.y + 2 * ROW_H },
+        {
+            name: 'blue_player3_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: SCOREBOARD.y + 2 * ROW_H,
+        },
+        {
+            name: 'blue_player3_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: SCOREBOARD.y + 2 * ROW_H,
+        },
+        { name: 'blue_player3_dmg', ...STATLINE, y: SCOREBOARD.y + 2 * ROW_H },
+        {
+            name: 'blue_player3_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: SCOREBOARD.y + 2 * ROW_H,
+        },
+        {
+            name: 'blue_player3_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: SCOREBOARD.y + 2 * ROW_H,
+        },
+
+        {
+            name: 'blue_player4_name',
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: SCOREBOARD.y + 3 * ROW_H,
+        },
+        { name: 'blue_player4_e', ...EAD, y: SCOREBOARD.y + 3 * ROW_H },
+        {
+            name: 'blue_player4_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: SCOREBOARD.y + 3 * ROW_H,
+        },
+        {
+            name: 'blue_player4_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: SCOREBOARD.y + 3 * ROW_H,
+        },
+        { name: 'blue_player4_dmg', ...STATLINE, y: SCOREBOARD.y + 3 * ROW_H },
+        {
+            name: 'blue_player4_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: SCOREBOARD.y + 3 * ROW_H,
+        },
+        {
+            name: 'blue_player4_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: SCOREBOARD.y + 3 * ROW_H,
+        },
+
+        {
+            name: 'blue_player5_name',
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: SCOREBOARD.y + 4 * ROW_H,
+        },
+        { name: 'blue_player5_e', ...EAD, y: SCOREBOARD.y + 4 * ROW_H },
+        {
+            name: 'blue_player5_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: SCOREBOARD.y + 4 * ROW_H,
+        },
+        {
+            name: 'blue_player5_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: SCOREBOARD.y + 4 * ROW_H,
+        },
+        { name: 'blue_player5_dmg', ...STATLINE, y: SCOREBOARD.y + 4 * ROW_H },
+        {
+            name: 'blue_player5_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: SCOREBOARD.y + 4 * ROW_H,
+        },
+        {
+            name: 'blue_player5_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: SCOREBOARD.y + 4 * ROW_H,
+        },
 
         // Red team players
         {
             name: 'red_player1_name',
-            x: 280,
-            y: 505,
-            width: 100,
-            height: 30,
-            isItalic: true,
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: RED_Y,
         },
-        { name: 'red_player1_e', x: 490, y: 505, width: 40, height: 30 },
-        { name: 'red_player1_a', x: 535, y: 505, width: 40, height: 30 },
-        { name: 'red_player1_d', x: 575, y: 505, width: 40, height: 30 },
-        { name: 'red_player1_dmg', x: 620, y: 505, width: 60, height: 30 },
-        { name: 'red_player1_h', x: 710, y: 505, width: 40, height: 30 },
-        { name: 'red_player1_mit', x: 765, y: 505, width: 60, height: 30 },
+        { name: 'red_player1_e', ...EAD, y: RED_Y },
+        { name: 'red_player1_a', ...EAD, x: EAD.x + EAD.width, y: RED_Y },
+        { name: 'red_player1_d', ...EAD, x: EAD.x + 2 * EAD.width, y: RED_Y },
+        { name: 'red_player1_dmg', ...STATLINE, y: RED_Y },
+        {
+            name: 'red_player1_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: RED_Y,
+        },
+        {
+            name: 'red_player1_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: RED_Y,
+        },
 
         {
             name: 'red_player2_name',
-            x: 280,
-            y: 553,
-            width: 100,
-            height: 30,
-            isItalic: true,
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: RED_Y + ROW_H,
         },
-        { name: 'red_player2_e', x: 490, y: 553, width: 40, height: 30 },
-        { name: 'red_player2_a', x: 535, y: 553, width: 40, height: 30 },
-        { name: 'red_player2_d', x: 575, y: 553, width: 40, height: 30 },
-        { name: 'red_player2_dmg', x: 620, y: 553, width: 60, height: 30 },
-        { name: 'red_player2_h', x: 710, y: 553, width: 40, height: 30 },
-        { name: 'red_player2_mit', x: 765, y: 553, width: 60, height: 30 },
+        { name: 'red_player2_e', ...EAD, y: RED_Y + ROW_H },
+        {
+            name: 'red_player2_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: RED_Y + ROW_H,
+        },
+        {
+            name: 'red_player2_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: RED_Y + ROW_H,
+        },
+        { name: 'red_player2_dmg', ...STATLINE, y: RED_Y + ROW_H },
+        {
+            name: 'red_player2_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: RED_Y + ROW_H,
+        },
+        {
+            name: 'red_player2_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: RED_Y + ROW_H,
+        },
 
         {
             name: 'red_player3_name',
-            x: 280,
-            y: 600,
-            width: 100,
-            height: 30,
-            isItalic: true,
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: RED_Y + 2 * ROW_H,
         },
-        { name: 'red_player3_e', x: 490, y: 600, width: 40, height: 30 },
-        { name: 'red_player3_a', x: 535, y: 600, width: 40, height: 30 },
-        { name: 'red_player3_d', x: 575, y: 600, width: 40, height: 30 },
-        { name: 'red_player3_dmg', x: 620, y: 600, width: 60, height: 30 },
-        { name: 'red_player3_h', x: 710, y: 600, width: 40, height: 30 },
-        { name: 'red_player3_mit', x: 765, y: 600, width: 60, height: 30 },
+        { name: 'red_player3_e', ...EAD, y: RED_Y + 2 * ROW_H },
+        {
+            name: 'red_player3_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: RED_Y + 2 * ROW_H,
+        },
+        {
+            name: 'red_player3_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: RED_Y + 2 * ROW_H,
+        },
+        { name: 'red_player3_dmg', ...STATLINE, y: RED_Y + 2 * ROW_H },
+        {
+            name: 'red_player3_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: RED_Y + 2 * ROW_H,
+        },
+        {
+            name: 'red_player3_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: RED_Y + 2 * ROW_H,
+        },
+
+        {
+            name: 'red_player4_name',
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: RED_Y + 3 * ROW_H,
+        },
+        { name: 'red_player4_e', ...EAD, y: RED_Y + 3 * ROW_H },
+        {
+            name: 'red_player4_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: RED_Y + 3 * ROW_H,
+        },
+        {
+            name: 'red_player4_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: RED_Y + 3 * ROW_H,
+        },
+        { name: 'red_player4_dmg', ...STATLINE, y: RED_Y + 3 * ROW_H },
+        {
+            name: 'red_player4_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: RED_Y + 3 * ROW_H,
+        },
+        {
+            name: 'red_player4_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: RED_Y + 3 * ROW_H,
+        },
+
+        {
+            name: 'red_player5_name',
+            ...SCOREBOARD,
+            ...NAME_TAG,
+            y: RED_Y + 4 * ROW_H,
+        },
+        { name: 'red_player5_e', ...EAD, y: RED_Y + 4 * ROW_H },
+        {
+            name: 'red_player5_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: RED_Y + 4 * ROW_H,
+        },
+        {
+            name: 'red_player5_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: RED_Y + 4 * ROW_H,
+        },
+        { name: 'red_player5_dmg', ...STATLINE, y: RED_Y + 4 * ROW_H },
+        {
+            name: 'red_player5_h',
+            ...STATLINE,
+            x: STATLINE.x + STATLINE.width,
+            y: RED_Y + 4 * ROW_H,
+        },
+        {
+            name: 'red_player5_mit',
+            ...STATLINE,
+            x: STATLINE.x + 2 * STATLINE.width,
+            y: RED_Y + 4 * ROW_H,
+        },
 
         // Match info (right side)
         {
             name: 'result',
-            x: 890,
-            y: 450,
-            width: 120,
-            height: 40,
+            ...MATCH_INFO,
+            height: 90,
             isItalic: true,
         },
-        { name: 'final_score', x: 890, y: 490, width: 150, height: 25 },
-        { name: 'date', x: 890, y: 515, width: 150, height: 25 },
-        { name: 'game_mode', x: 890, y: 537, width: 150, height: 25 },
+        {
+            name: 'final_score',
+            ...MATCH_INFO,
+            y: MATCH_INFO.y + 90,
+            height: INFOLINE_H,
+        },
+        {
+            name: 'date',
+            ...MATCH_INFO,
+            y: MATCH_INFO.y + 90 + INFOLINE_H,
+            height: INFOLINE_H,
+        },
+        {
+            name: 'game_mode',
+            ...MATCH_INFO,
+            y: MATCH_INFO.y + 90 + 2 * INFOLINE_H,
+            height: INFOLINE_H,
+        },
+        {
+            name: 'game_length',
+            ...MATCH_INFO,
+            y: MATCH_INFO.y + 90 + 3 * INFOLINE_H,
+            height: INFOLINE_H,
+        },
     ];
 }
 
