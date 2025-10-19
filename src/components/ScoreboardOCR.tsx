@@ -43,7 +43,7 @@ const ScoreboardOCR: Component = () => {
             // Step 2: Perform region-based OCR using Tesseract.js
             let ocrTextParts: string[] = [];
             const regionResults = new Map<string, string>();
-            
+
             try {
                 const worker = await Tesseract.createWorker('eng', 3, {
                     logger: (m) => {
@@ -56,55 +56,34 @@ const ScoreboardOCR: Component = () => {
                 // Get all defined regions
                 const regions = getScoreboardRegions();
                 const totalRegions = regions.length;
-                
+
                 // Process each region individually
                 for (let i = 0; i < regions.length; i++) {
                     const region = regions[i];
                     setProgress(20 + Math.round((i / totalRegions) * 50));
-                    
+
                     // Preprocess this specific region
                     const regionImage = await preprocessRegionForOCR(
                         hardcodedImagePath,
                         region
                     );
-                    
+
                     // Recognize text in this region
                     const result = await worker.recognize(regionImage);
                     const text = result.data.text.trim();
-                    
+
                     regionResults.set(region.name, text);
                     ocrTextParts.push(`${region.name}: ${text}`);
                 }
 
                 await worker.terminate();
-                
+
                 // Combine all OCR results for display
                 setOcrText(ocrTextParts.join('\n'));
             } catch (ocrError) {
-                // Fallback to mock data if OCR fails
-                console.warn('OCR failed, using mock data:', ocrError);
-                const mockOcrText = `SCOREBOARD
-E A D DMG H MIT
-STARK 27 4 7 17542 0 14872
-BABY 21 0 11 11603 27 1277
-KAPPACAPPER 24 3 10 10362 0 794
-VS
-YAZIO 27 3 10 15675 670 15391
-LBBO7 25 5 11 12736 0 48
-TRIX 14 0 9 7869 1191 278
-VICTORY
-FINAL SCORE: 3 VS 2
-DATE: 09/15/25 - 02:49
-GAME MODE: ESCORT`;
-                setOcrText(mockOcrText);
-                
-                // Use fallback extraction for mock data
-                const stats = extractGameStats(mockOcrText);
-                setExtractedStats(stats);
-                setProgress(100);
-                return;
+                throw ocrError;
             }
-            
+
             setProgress(70);
 
             // Step 3: Extract game stats from region results
@@ -144,10 +123,11 @@ GAME MODE: ESCORT`;
                 }}
             >
                 <p style={{ margin: '0', 'font-size': '14px' }}>
-                    <strong>POC Demo:</strong> This demonstrates region-based OCR with
-                    image preprocessing. Each text element is recognized individually with
-                    italic text correction applied where needed. Tesseract.js processes
-                    specific rectangles for more accurate extraction.
+                    <strong>POC Demo:</strong> This demonstrates region-based
+                    OCR with image preprocessing. Each text element is
+                    recognized individually with italic text correction applied
+                    where needed. Tesseract.js processes specific rectangles for
+                    more accurate extraction.
                 </p>
             </div>
 
