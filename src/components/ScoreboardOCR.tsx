@@ -6,6 +6,7 @@ import {
     extractGameStats,
     extractGameStatsFromRegions,
     getScoreboardRegions,
+    drawRegionsOnImage,
 } from '../utils/imagePreprocessing';
 
 interface GameStats {
@@ -15,6 +16,8 @@ interface GameStats {
 const ScoreboardOCR: Component = () => {
     const [isProcessing, setIsProcessing] = createSignal(false);
     const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
+    const [preprocessedImageWithRegions, setPreprocessedImageWithRegions] =
+        createSignal<string>('');
     const [ocrText, setOcrText] = createSignal<string>('');
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
     const [error, setError] = createSignal<string>('');
@@ -40,6 +43,13 @@ const ScoreboardOCR: Component = () => {
             setPreprocessedImage(preprocessed);
             setProgress(20);
 
+            // Draw regions on the preprocessed image for visualization
+            const preprocessedWithRegions = await drawRegionsOnImage(
+                preprocessed
+            );
+            setPreprocessedImageWithRegions(preprocessedWithRegions);
+            setProgress(25);
+
             // Step 2: Perform region-based OCR using Tesseract.js
             let ocrTextParts: string[] = [];
             const regionResults = new Map<string, string>();
@@ -48,7 +58,7 @@ const ScoreboardOCR: Component = () => {
                 const worker = await Tesseract.createWorker('eng', 3, {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
-                            setProgress(20 + Math.round(m.progress * 50));
+                            setProgress(25 + Math.round(m.progress * 50));
                         }
                     },
                 });
@@ -60,7 +70,7 @@ const ScoreboardOCR: Component = () => {
                 // Process each region individually
                 for (let i = 0; i < regions.length; i++) {
                     const region = regions[i];
-                    setProgress(20 + Math.round((i / totalRegions) * 50));
+                    setProgress(25 + Math.round((i / totalRegions) * 50));
 
                     // Preprocess this specific region
                     const regionImage = await preprocessRegionForOCR(
@@ -84,7 +94,7 @@ const ScoreboardOCR: Component = () => {
                 throw ocrError;
             }
 
-            setProgress(70);
+            setProgress(75);
 
             // Step 3: Extract game stats from region results
             const stats = extractGameStatsFromRegions(regionResults);
@@ -207,7 +217,7 @@ const ScoreboardOCR: Component = () => {
                     />
                 </div>
 
-                <Show when={preprocessedImage()}>
+                <Show when={preprocessedImageWithRegions()}>
                     <div
                         style={{
                             padding: '20px',
@@ -217,11 +227,11 @@ const ScoreboardOCR: Component = () => {
                         }}
                     >
                         <h2 style={{ 'margin-top': '0', color: '#424242' }}>
-                            Preprocessed (Grayscale + Contrast)
+                            Preprocessed with Region Boxes
                         </h2>
                         <img
-                            src={preprocessedImage()}
-                            alt="Preprocessed scoreboard"
+                            src={preprocessedImageWithRegions()}
+                            alt="Preprocessed scoreboard with regions"
                             style={{
                                 'max-width': '100%',
                                 border: '2px solid #ddd',
@@ -236,8 +246,8 @@ const ScoreboardOCR: Component = () => {
                                 'margin-top': '10px',
                             }}
                         >
-                            Image converted to grayscale and contrast enhanced
-                            for better OCR accuracy
+                            Preprocessed image (grayscale + contrast enhanced)
+                            with red 1px borders showing OCR region boxes
                         </p>
                     </div>
                 </Show>
