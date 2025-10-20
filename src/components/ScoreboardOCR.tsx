@@ -2,11 +2,10 @@ import { Component, createSignal, onMount, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
-    preprocessRegionForOCR,
     extractGameStats,
     extractGameStatsFromRegions,
     getScoreboardRegions,
-    drawUnskewRegionsOnImage,
+    drawRegionsOnImage,
 } from '../utils/imagePreprocessing';
 
 interface GameStats {
@@ -16,7 +15,7 @@ interface GameStats {
 const ScoreboardOCR: Component = () => {
     const [isProcessing, setIsProcessing] = createSignal(false);
     const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
-    const [preprocessedImageWithUnskew, setPreprocessedImageWithUnskew] =
+    const [preprocessedImagePreview, setPreprocessedImagePreview] =
         createSignal<string>('');
     const [ocrText, setOcrText] = createSignal<string>('');
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
@@ -43,13 +42,13 @@ const ScoreboardOCR: Component = () => {
             setPreprocessedImage(preprocessed);
             setProgress(20);
 
-            // Draw regions with unskew visualization
+            // Preview preprocessed image with regions
             setProgress(25);
-            const preprocessedWithUnskew = await drawUnskewRegionsOnImage(
+            const preprocessedPreview = await drawRegionsOnImage(
                 preprocessed,
                 hardcodedImagePath
             );
-            setPreprocessedImageWithUnskew(preprocessedWithUnskew);
+            setPreprocessedImagePreview(preprocessedPreview);
             setProgress(27);
 
             // Step 2: Perform region-based OCR using Tesseract.js
@@ -57,14 +56,7 @@ const ScoreboardOCR: Component = () => {
             const regionResults = new Map<string, string>();
 
             try {
-                const worker = await Tesseract.createWorker('eng', 3, {
-                    logger: (m) => {
-                        if (m.status === 'recognizing text') {
-                            setProgress(27 + Math.round(m.progress * 50));
-                        }
-                    },
-                });
-
+                const worker = await Tesseract.createWorker('eng', 3);
                 await worker.setParameters({
                     tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
                 });
@@ -78,14 +70,15 @@ const ScoreboardOCR: Component = () => {
                     const region = regions[i];
                     setProgress(27 + Math.round((i / totalRegions) * 50));
 
-                    // Preprocess this specific region
-                    const regionImage = await preprocessRegionForOCR(
-                        hardcodedImagePath,
-                        region
-                    );
-
                     // Recognize text in this region
-                    const result = await worker.recognize(regionImage);
+                    const result = await worker.recognize(preprocessed, {
+                        rectangle: {
+                            left: region.x,
+                            top: region.y,
+                            width: region.width,
+                            height: region.height,
+                        },
+                    });
                     const text = result.data.text.trim();
 
                     regionResults.set(region.name, text);
@@ -235,7 +228,7 @@ const ScoreboardOCR: Component = () => {
                         Preprocessed (Regions + Unskew)
                     </h2>
                     <img
-                        src={preprocessedImageWithUnskew()}
+                        src={preprocessedImagePreview()}
                         alt="Preprocessed scoreboard with regions and unskew applied"
                         style={{
                             'max-width': '100%',

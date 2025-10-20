@@ -144,7 +144,11 @@ export function getScoreboardRegions(): TextRegion[] {
             x: EAD.x + 2 * EAD.width,
             y: SCOREBOARD.y + 2 * ROW_H,
         },
-        { name: 'blue_player3_dmg', ...STATLINE, y: SCOREBOARD.y + 2 * ROW_H },
+        {
+            name: 'blue_player3_dmg',
+            ...STATLINE,
+            y: SCOREBOARD.y + 2 * ROW_H,
+        },
         {
             name: 'blue_player3_h',
             ...STATLINE,
@@ -177,7 +181,11 @@ export function getScoreboardRegions(): TextRegion[] {
             x: EAD.x + 2 * EAD.width,
             y: SCOREBOARD.y + 3 * ROW_H,
         },
-        { name: 'blue_player4_dmg', ...STATLINE, y: SCOREBOARD.y + 3 * ROW_H },
+        {
+            name: 'blue_player4_dmg',
+            ...STATLINE,
+            y: SCOREBOARD.y + 3 * ROW_H,
+        },
         {
             name: 'blue_player4_h',
             ...STATLINE,
@@ -210,7 +218,11 @@ export function getScoreboardRegions(): TextRegion[] {
             x: EAD.x + 2 * EAD.width,
             y: SCOREBOARD.y + 4 * ROW_H,
         },
-        { name: 'blue_player5_dmg', ...STATLINE, y: SCOREBOARD.y + 4 * ROW_H },
+        {
+            name: 'blue_player5_dmg',
+            ...STATLINE,
+            y: SCOREBOARD.y + 4 * ROW_H,
+        },
         {
             name: 'blue_player5_h',
             ...STATLINE,
@@ -232,8 +244,18 @@ export function getScoreboardRegions(): TextRegion[] {
             y: RED_Y,
         },
         { name: 'red_player1_e', ...EAD, y: RED_Y },
-        { name: 'red_player1_a', ...EAD, x: EAD.x + EAD.width, y: RED_Y },
-        { name: 'red_player1_d', ...EAD, x: EAD.x + 2 * EAD.width, y: RED_Y },
+        {
+            name: 'red_player1_a',
+            ...EAD,
+            x: EAD.x + EAD.width,
+            y: RED_Y,
+        },
+        {
+            name: 'red_player1_d',
+            ...EAD,
+            x: EAD.x + 2 * EAD.width,
+            y: RED_Y,
+        },
         { name: 'red_player1_dmg', ...STATLINE, y: RED_Y },
         {
             name: 'red_player1_h',
@@ -420,7 +442,7 @@ export function getScoreboardRegions(): TextRegion[] {
  * @param skewAngle - Angle in degrees to unskew (negative for italic correction)
  * @returns Processed image data
  */
-export function unskewItalicText(
+function unskewItalicText(
     imageData: ImageData,
     skewAngle: number = -14
 ): ImageData {
@@ -447,6 +469,10 @@ export function unskewItalicText(
 
     outputCanvas.width = imageData.width;
     outputCanvas.height = imageData.height;
+
+    // Fill background with gray before transformation
+    outputCtx.fillStyle = '#222222';
+    outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
     // Apply skew transformation to counteract italic
     const angleRad = (skewAngle * Math.PI) / 180;
@@ -537,6 +563,22 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 
             // Put the processed image data back
             ctx.putImageData(imageData, 0, 0);
+
+            const regions = getScoreboardRegions();
+            for (const region of regions) {
+                // Extract region image data
+                const regionImageData = ctx.getImageData(
+                    region.x,
+                    region.y,
+                    region.width,
+                    region.height
+                );
+                const imageData = preprocessRegionForOCR(
+                    regionImageData,
+                    region
+                );
+                ctx.putImageData(imageData, region.x, region.y);
+            }
 
             // Convert to data URL
             resolve(canvas.toDataURL('image/png'));
@@ -644,82 +686,36 @@ export function extractGameStats(text: string): Record<string, any> {
 }
 
 /**
- * Extracts a specific region from an image and preprocesses it
- * @param imageUrl - URL of the source image
- * @param region - Region to extract
+ * Preprocesses a specific region of the image for OCR
+ * @param imageData - Region image data
+ * @param region - Region definition
  * @returns Promise resolving to preprocessed region data URL
  */
-export async function preprocessRegionForOCR(
-    imageUrl: string,
+function preprocessRegionForOCR(
+    imageData: ImageData,
     region: TextRegion
-): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
+): ImageData {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+    if (!ctx || !region.isItalic) {
+        return imageData;
+    }
 
-            if (!ctx) {
-                reject(new Error('Failed to get canvas context'));
-                return;
-            }
+    // Set canvas to region size
+    canvas.width = region.width;
+    canvas.height = region.height;
 
-            // Set canvas to region size
-            canvas.width = region.width;
-            canvas.height = region.height;
+    // Put the image data on canvas
+    ctx.putImageData(imageData, 0, 0);
 
-            // Draw the specific region
-            ctx.drawImage(
-                img,
-                region.x,
-                region.y,
-                region.width,
-                region.height,
-                0,
-                0,
-                region.width,
-                region.height
-            );
+    // Apply italic correction if needed
+    if (region.isItalic) {
+        imageData = unskewItalicText(imageData);
+        ctx.putImageData(imageData, 0, 0);
+    }
 
-            // Get image data for the region
-            let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-
-            // Convert to grayscale and enhance contrast
-            for (let i = 0; i < data.length; i += 4) {
-                const gray =
-                    0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const contrast = 2.0; // Higher contrast for small regions
-                const factor =
-                    (259 * (contrast + 255)) / (255 * (259 - contrast));
-                const enhancedGray = factor * (gray - 128) + 128;
-                const finalValue = Math.max(0, Math.min(255, enhancedGray));
-
-                data[i] = finalValue;
-                data[i + 1] = finalValue;
-                data[i + 2] = finalValue;
-            }
-
-            // Apply italic correction if needed
-            if (region.isItalic) {
-                imageData = unskewItalicText(imageData);
-            }
-
-            // Put processed data back
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.putImageData(imageData, 0, 0);
-
-            resolve(canvas.toDataURL('image/png'));
-        };
-
-        img.onerror = () => {
-            reject(new Error('Failed to load image'));
-        };
-
-        img.src = imageUrl;
-    });
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 /**
@@ -801,57 +797,13 @@ export function extractGameStatsFromRegions(
 }
 
 /**
- * Draws red 1px borders around all scoreboard regions on a preprocessed image
- * @param imageUrl - URL of the preprocessed image
- * @returns Promise resolving to data URL with regions drawn
- */
-export async function drawRegionsOnImage(imageUrl: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
-            if (!ctx) {
-                reject(new Error('Failed to get canvas context'));
-                return;
-            }
-
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            // Draw the preprocessed image
-            ctx.drawImage(img, 0, 0);
-
-            // Draw borders for all regions
-            ctx.strokeStyle = '#ff0000'; // Red color
-            ctx.lineWidth = 1;
-
-            const regions = getScoreboardRegions();
-            for (const region of regions) {
-                ctx.strokeRect(region.x, region.y, region.width, region.height);
-            }
-
-            resolve(canvas.toDataURL('image/png'));
-        };
-
-        img.onerror = () => {
-            reject(new Error('Failed to load image'));
-        };
-
-        img.src = imageUrl;
-    });
-}
-
-/**
  * Draws italic regions with unskew visualization on the preprocessed image
  * Uses green overlay for regions to show which ones are being unskewed
  * @param imageUrl - URL of the preprocessed image
  * @param sourceImageUrl - URL of the source image to extract region data
  * @returns Promise resolving to data URL with unskew regions highlighted
  */
-export async function drawUnskewRegionsOnImage(
+export async function drawRegionsOnImage(
     imageUrl: string,
     sourceImageUrl: string
 ): Promise<string> {
@@ -876,97 +828,15 @@ export async function drawUnskewRegionsOnImage(
                 // Draw the preprocessed image with regions
                 ctx.drawImage(img, 0, 0);
 
-                // Draw green borders and unskewed content for italic regions
-                ctx.strokeStyle = '#4caf50'; // Green border
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 1;
 
                 const regions = getScoreboardRegions();
-                const italicRegions = regions.filter((r) => r.isItalic);
-
-                // Create a temporary canvas for unskew transformation
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-
-                if (!tempCtx) {
-                    reject(new Error('Failed to get temporary canvas context'));
-                    return;
-                }
-
-                for (const region of italicRegions) {
-                    // Extract the region from source image
-                    tempCanvas.width = region.width;
-                    tempCanvas.height = region.height;
-
-                    tempCtx.drawImage(
-                        sourceImg,
-                        region.x,
-                        region.y,
-                        region.width,
-                        region.height,
-                        0,
-                        0,
-                        region.width,
-                        region.height
-                    );
-
-                    // Get and preprocess the region data
-                    let regionImageData = tempCtx.getImageData(
-                        0,
-                        0,
-                        tempCanvas.width,
-                        tempCanvas.height
-                    );
-                    const data = regionImageData.data;
-
-                    // Convert to grayscale and enhance contrast
-                    for (let i = 0; i < data.length; i += 4) {
-                        const gray =
-                            0.299 * data[i] +
-                            0.587 * data[i + 1] +
-                            0.114 * data[i + 2];
-                        const contrast = 2.0;
-                        const factor =
-                            (259 * (contrast + 255)) / (255 * (259 - contrast));
-                        const enhancedGray = factor * (gray - 128) + 128;
-                        const finalValue = Math.max(
-                            0,
-                            Math.min(255, enhancedGray)
-                        );
-
-                        data[i] = finalValue;
-                        data[i + 1] = finalValue;
-                        data[i + 2] = finalValue;
+                for (const region of regions) {
+                    if (region.isItalic) {
+                        ctx.strokeStyle = '#4caf50';
+                    } else {
+                        ctx.strokeStyle = '#ff0000';
                     }
-
-                    // Apply unskew transformation
-                    regionImageData = unskewItalicText(regionImageData);
-
-                    // Put the unskewed data back
-                    tempCtx.putImageData(regionImageData, 0, 0);
-
-                    // Clear the region on the main canvas with white background
-                    ctx.fillStyle = '#000000';
-                    ctx.fillRect(
-                        region.x,
-                        region.y,
-                        region.width,
-                        region.height
-                    );
-
-                    // Draw the unskewed region onto the main canvas
-                    ctx.drawImage(
-                        tempCanvas,
-                        0,
-                        0,
-                        tempCanvas.width,
-                        tempCanvas.height,
-                        region.x,
-                        region.y,
-                        region.width,
-                        region.height
-                    );
-
-                    // Draw green border around the region
                     ctx.strokeRect(
                         region.x,
                         region.y,
