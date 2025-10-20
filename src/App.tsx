@@ -107,7 +107,10 @@ const App: Component = () => {
             >
                 {viewMode() !== 'ocr' && (
                     <button
-                        onClick={() => setViewMode('ocr')}
+                        onClick={() => {
+                            setUploadedImage(null);
+                            setViewMode('ocr');
+                        }}
                         style={{
                             padding: '8px 16px',
                             'background-color': '#1976d2',

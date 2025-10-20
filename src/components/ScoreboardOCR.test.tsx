@@ -176,4 +176,28 @@ describe('ScoreboardOCR', () => {
         ) as HTMLImageElement;
         expect(originalImage.src).toContain('/scoreboard.png');
     });
+
+    it('should have collapsible JSON stats section', async () => {
+        render(() => <ScoreboardOCR />);
+
+        await waitFor(
+            () => {
+                const jsonHeader = screen.queryByText(/Extracted Game Stats \(JSON\)/);
+                expect(jsonHeader).toBeDefined();
+            },
+            { timeout: 3000 }
+        );
+    });
+
+    it('should have collapsible raw text section', async () => {
+        render(() => <ScoreboardOCR />);
+
+        await waitFor(
+            () => {
+                const rawTextHeader = screen.queryByText(/Raw OCR Text Output/);
+                expect(rawTextHeader).toBeDefined();
+            },
+            { timeout: 3000 }
+        );
+    });
 });

@@ -28,6 +28,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [progress, setProgress] = createSignal<number>(0);
     const [currentImage, setCurrentImage] =
         createSignal<string>('/scoreboard.png');
+    const [showJsonStats, setShowJsonStats] = createSignal(false);
+    const [showRawText, setShowRawText] = createSignal(false);
 
     const hardcodedImagePath = '/scoreboard.png';
 
@@ -330,36 +332,52 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                         'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
                     }}
                 >
-                    <h2 style={{ 'margin-top': '0', color: '#2e7d32' }}>
-                        Extracted Game Stats (JSON)
-                    </h2>
-                    <pre
-                        style={{
-                            'background-color': '#fff',
-                            padding: '20px',
-                            'border-radius': '4px',
-                            'font-size': '16px',
-                            'white-space': 'pre-wrap',
-                            'word-wrap': 'break-word',
-                            border: '1px solid #a5d6a7',
-                            'font-family': 'monospace',
-                            'line-height': '1.6',
-                        }}
-                    >
-                        {JSON.stringify(extractedStats(), null, 2)}
-                    </pre>
-                    <p
-                        style={{
-                            'font-size': '13px',
+                    <h2 
+                        style={{ 
+                            'margin-top': '0', 
                             color: '#2e7d32',
-                            'margin-top': '15px',
-                            'margin-bottom': '0',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            'align-items': 'center',
+                            'justify-content': 'space-between',
+                            'user-select': 'none',
                         }}
+                        onClick={() => setShowJsonStats(!showJsonStats())}
                     >
-                        ✓ Successfully parsed{' '}
-                        {Object.keys(extractedStats()).length} data fields from
-                        the scoreboard
-                    </p>
+                        <span>Extracted Game Stats (JSON)</span>
+                        <span style={{ 'font-size': '20px' }}>
+                            {showJsonStats() ? '▼' : '▶'}
+                        </span>
+                    </h2>
+                    <Show when={showJsonStats()}>
+                        <pre
+                            style={{
+                                'background-color': '#fff',
+                                padding: '20px',
+                                'border-radius': '4px',
+                                'font-size': '16px',
+                                'white-space': 'pre-wrap',
+                                'word-wrap': 'break-word',
+                                border: '1px solid #a5d6a7',
+                                'font-family': 'monospace',
+                                'line-height': '1.6',
+                            }}
+                        >
+                            {JSON.stringify(extractedStats(), null, 2)}
+                        </pre>
+                        <p
+                            style={{
+                                'font-size': '13px',
+                                color: '#2e7d32',
+                                'margin-top': '15px',
+                                'margin-bottom': '0',
+                            }}
+                        >
+                            ✓ Successfully parsed{' '}
+                            {Object.keys(extractedStats()).length} data fields from
+                            the scoreboard
+                        </p>
+                    </Show>
                 </div>
             </Show>
 
@@ -373,24 +391,40 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                         'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
                     }}
                 >
-                    <h2 style={{ 'margin-top': '0', color: '#424242' }}>
-                        Raw OCR Text Output
-                    </h2>
-                    <pre
-                        style={{
-                            'background-color': '#fff',
-                            padding: '15px',
-                            'border-radius': '4px',
-                            'white-space': 'pre-wrap',
-                            'word-wrap': 'break-word',
-                            border: '1px solid #ddd',
-                            'font-family': 'monospace',
-                            'font-size': '14px',
-                            'line-height': '1.5',
+                    <h2 
+                        style={{ 
+                            'margin-top': '0', 
+                            color: '#424242',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            'align-items': 'center',
+                            'justify-content': 'space-between',
+                            'user-select': 'none',
                         }}
+                        onClick={() => setShowRawText(!showRawText())}
                     >
-                        {ocrText()}
-                    </pre>
+                        <span>Raw OCR Text Output</span>
+                        <span style={{ 'font-size': '20px' }}>
+                            {showRawText() ? '▼' : '▶'}
+                        </span>
+                    </h2>
+                    <Show when={showRawText()}>
+                        <pre
+                            style={{
+                                'background-color': '#fff',
+                                padding: '15px',
+                                'border-radius': '4px',
+                                'white-space': 'pre-wrap',
+                                'word-wrap': 'break-word',
+                                border: '1px solid #ddd',
+                                'font-family': 'monospace',
+                                'font-size': '14px',
+                                'line-height': '1.5',
+                            }}
+                        >
+                            {ocrText()}
+                        </pre>
+                    </Show>
                 </div>
             </Show>
         </div>
