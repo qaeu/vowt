@@ -145,4 +145,35 @@ describe('ScoreboardOCR', () => {
         ) as HTMLImageElement;
         expect(originalImage.src).toContain('/scoreboard.png');
     });
+
+    it('should render upload button', () => {
+        render(() => <ScoreboardOCR />);
+
+        const uploadButton = screen.getByText(/Upload Image/);
+        expect(uploadButton).toBeDefined();
+    });
+
+    it('should accept uploadedImage prop', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
+
+        await waitFor(
+            () => {
+                const originalImage = screen.getByAltText(
+                    'Original scoreboard'
+                ) as HTMLImageElement;
+                expect(originalImage.src).toBe(testImageData);
+            },
+            { timeout: 3000 }
+        );
+    });
+
+    it('should use default image when no uploadedImage prop is provided', () => {
+        render(() => <ScoreboardOCR uploadedImage={null} />);
+
+        const originalImage = screen.getByAltText(
+            'Original scoreboard'
+        ) as HTMLImageElement;
+        expect(originalImage.src).toContain('/scoreboard.png');
+    });
 });
