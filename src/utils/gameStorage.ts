@@ -39,7 +39,7 @@ const SCHEMA_VERSION = 1;
  * Generate a unique ID for a game record
  */
 function generateGameId(): string {
-    return `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
 /**
@@ -126,19 +126,22 @@ export function importGameRecords(jsonData: string): number {
     try {
         const importedRecords = JSON.parse(jsonData) as GameRecord[];
         const existingRecords = loadGameRecords();
-        
+
         // Filter valid records with correct version
         const validRecords = importedRecords.filter(
-            (record) => record.version === SCHEMA_VERSION && record.id && record.timestamp
+            (record) =>
+                record.version === SCHEMA_VERSION &&
+                record.id &&
+                record.timestamp
         );
-        
+
         // Merge with existing records, avoiding duplicates by ID
         const existingIds = new Set(existingRecords.map((r) => r.id));
         const newRecords = validRecords.filter((r) => !existingIds.has(r.id));
-        
+
         const mergedRecords = [...existingRecords, ...newRecords];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedRecords));
-        
+
         return newRecords.length;
     } catch (error) {
         console.error('Error importing game records:', error);
