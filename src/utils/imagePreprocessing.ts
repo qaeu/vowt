@@ -707,6 +707,8 @@ export async function preprocessRegionForOCR(
             }
 
             // Put processed data back
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.putImageData(imageData, 0, 0);
 
             resolve(canvas.toDataURL('image/png'));
@@ -941,6 +943,15 @@ export async function drawUnskewRegionsOnImage(
 
                     // Put the unskewed data back
                     tempCtx.putImageData(regionImageData, 0, 0);
+
+                    // Clear the region on the main canvas with white background
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(
+                        region.x,
+                        region.y,
+                        region.width,
+                        region.height
+                    );
 
                     // Draw the unskewed region onto the main canvas
                     ctx.drawImage(
