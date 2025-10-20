@@ -492,26 +492,6 @@ function unskewItalicText(
 }
 
 /**
- * Converts ImageData to a PNG data URL for display
- * @param imageData - Image data to convert
- * @returns Data URL string
- */
-export function imageDataToDataUrl(imageData: ImageData): string {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) {
-        throw new Error('Failed to get canvas context');
-    }
-
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
-    ctx.putImageData(imageData, 0, 0);
-
-    return canvas.toDataURL('image/png');
-}
-
-/**
  * Converts an image to grayscale and enhances contrast for better OCR results
  * @param imageUrl - URL of the image to preprocess
  * @returns Promise resolving to a data URL of the preprocessed image
@@ -604,7 +584,7 @@ function preprocessRegionForOCR(
  * @param regionResults - Map of region names to OCR text
  * @returns Structured game stats
  */
-export function extractGameStatsFromRegions(
+export function extractGameStats(
     regionResults: Map<string, string>
 ): Record<string, any> {
     const stats: Record<string, any> = {
@@ -678,9 +658,11 @@ export function extractGameStatsFromRegions(
         red: afterVS[0],
     };
     stats.matchInfo.date =
-        regionResults.get('date')?.split(':')[1].trim() || '';
+        regionResults.get('date')?.split('DATE:')[1].trim() || '';
     stats.matchInfo.game_mode =
         regionResults.get('game_mode')?.split(':')[1].trim() || '';
+    stats.matchInfo.game_length =
+        regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '';
 
     return stats;
 }

@@ -2,7 +2,7 @@ import { Component, createSignal, onMount, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
-    extractGameStatsFromRegions,
+    extractGameStats,
     getScoreboardRegions,
     getMatchInfoRegions,
     drawRegionsOnImage,
@@ -125,7 +125,7 @@ const ScoreboardOCR: Component = () => {
             setProgress(75);
 
             // Step 3: Extract game stats from region results
-            const stats = extractGameStatsFromRegions(regionResults);
+            const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
             setProgress(100);
         } catch (err) {
