@@ -17,9 +17,10 @@ export interface TextRegion {
 
 const ZERO_TO_NINE = '0123456789';
 const A_TO_Z = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const SYMBOLS = ': /-';
 
 const SCOREBOARD: Pick<TextRegion, 'x' | 'y'> = {
-    x: 480,
+    x: 500,
     y: 340,
 };
 
@@ -28,30 +29,31 @@ const RED_Y = 880;
 
 const NAME_TAG: Omit<TextRegion, 'name' | 'y'> = {
     x: SCOREBOARD.x,
-    width: 345,
-    height: 50,
+    width: 300,
+    height: 60,
     charSet: A_TO_Z + ZERO_TO_NINE,
     isItalic: true,
 };
 
 const EAD: Omit<TextRegion, 'name' | 'y'> = {
-    x: SCOREBOARD.x + NAME_TAG.width + 15,
-    width: 66,
+    x: SCOREBOARD.x + NAME_TAG.width + 40,
+    width: 67,
     height: NAME_TAG.height,
     charSet: ZERO_TO_NINE,
 };
 
 const STATLINE: Omit<TextRegion, 'name' | 'y'> = {
-    x: EAD.x + 3 * EAD.width + 15,
+    x: EAD.x + 3 * EAD.width + 10,
     width: 128,
     height: NAME_TAG.height,
     charSet: ZERO_TO_NINE,
 };
 
-const MATCH_INFO: Pick<TextRegion, 'x' | 'y' | 'width'> = {
-    x: 1555,
+const MATCH_INFO: Omit<TextRegion, 'name' | 'height'> = {
+    x: 1520,
     y: 765,
     width: 400,
+    charSet: A_TO_Z + ZERO_TO_NINE + SYMBOLS,
 };
 const INFOLINE_H = 37;
 
@@ -658,14 +660,14 @@ export function extractGameStats(
 
     // Extract match info
     const finalRaw =
-        regionResults.get('final_score')?.trim().toUpperCase() || '0VS0';
+        regionResults.get('final_score')?.trim().toUpperCase() || ':?VS?';
     const [beforeVS, afterVS] = finalRaw.split('VS');
 
     stats.matchInfo.result =
         regionResults.get('result')?.trim().toUpperCase() || '';
     stats.matchInfo.final_score = {
-        blue: beforeVS[beforeVS.length - 1],
-        red: afterVS[0],
+        blue: beforeVS.split(':')[1].trim(),
+        red: afterVS.trim(),
     };
     stats.matchInfo.date =
         regionResults.get('date')?.split('DATE:')[1].trim() || '';

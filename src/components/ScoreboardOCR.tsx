@@ -26,7 +26,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
     const [error, setError] = createSignal<string>('');
     const [progress, setProgress] = createSignal<number>(0);
-    const [currentImage, setCurrentImage] = createSignal<string>('/scoreboard.png');
+    const [currentImage, setCurrentImage] =
+        createSignal<string>('/scoreboard.png');
 
     const hardcodedImagePath = '/scoreboard.png';
 
@@ -47,9 +48,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setProgress(0);
 
             // Step 1: Preprocess the full image for display
-            const preprocessed = await preprocessImageForOCR(
-                imageToProcess
-            );
+            const preprocessed = await preprocessImageForOCR(imageToProcess);
             setPreprocessedImage(preprocessed);
             setProgress(20);
 
@@ -69,7 +68,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                 const worker = await Tesseract.createWorker('eng', 1);
 
                 // Get all defined regions
-                const scoreboardRegions = getScoreboardRegions();
+                const scoreboardRegions = [
+                    ...getScoreboardRegions(),
+                    ...getMatchInfoRegions(),
+                ];
                 const totalScoreBoardRegions = scoreboardRegions.length;
                 for (let i = 0; i < totalScoreBoardRegions; i++) {
                     const region = scoreboardRegions[i];
@@ -78,7 +80,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                     );
 
                     await worker.setParameters({
-                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
                         tessedit_char_whitelist: region.charSet,
                     });
 
@@ -97,34 +99,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                     } else {
                         text = result.data.text.trim();
                     }
-
-                    regionResults.set(region.name, text);
-                    ocrTextParts.push(`${region.name}: ${text}`);
-                }
-
-                await worker.setParameters({
-                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
-                    tessedit_char_whitelist: '',
-                });
-
-                const matchInfoRegions = getMatchInfoRegions();
-                const totalMatchInfoRegions = matchInfoRegions.length;
-                for (let i = 0; i < totalMatchInfoRegions; i++) {
-                    const region = matchInfoRegions[i];
-                    setProgress(
-                        60 + Math.round((i / totalMatchInfoRegions) * 15)
-                    );
-
-                    // Recognize text in this region
-                    const result = await worker.recognize(preprocessed, {
-                        rectangle: {
-                            left: region.x,
-                            top: region.y,
-                            width: region.width,
-                            height: region.height,
-                        },
-                    });
-                    const text = result.data.text.trim();
 
                     regionResults.set(region.name, text);
                     ocrTextParts.push(`${region.name}: ${text}`);
