@@ -528,41 +528,8 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
             canvas.width = img.width;
             canvas.height = img.height;
 
-            // Draw the original image
+            ctx.filter = 'contrast(150%) grayscale(100%)';
             ctx.drawImage(img, 0, 0);
-
-            // Get image data
-            const imageData = ctx.getImageData(
-                0,
-                0,
-                canvas.width,
-                canvas.height
-            );
-            const data = imageData.data;
-
-            // Convert to grayscale and enhance contrast
-            for (let i = 0; i < data.length; i += 4) {
-                // Grayscale conversion using luminosity method
-                const gray =
-                    0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-
-                // Enhance contrast
-                const contrast = 1.5; // Contrast factor
-                const factor =
-                    (259 * (contrast + 255)) / (255 * (259 - contrast));
-                const enhancedGray = factor * (gray - 128) + 128;
-
-                // Clamp values
-                const finalValue = Math.max(0, Math.min(255, enhancedGray));
-
-                data[i] = finalValue; // R
-                data[i + 1] = finalValue; // G
-                data[i + 2] = finalValue; // B
-                // data[i + 3] is alpha, leave it unchanged
-            }
-
-            // Put the processed image data back
-            ctx.putImageData(imageData, 0, 0);
 
             const regions = getScoreboardRegions();
             for (const region of regions) {
@@ -732,7 +699,7 @@ export function extractGameStatsFromRegions(
     };
 
     // Extract blue team players
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 5; i++) {
         const player: any = {
             name: regionResults.get(`blue_player${i}_name`)?.trim() || '',
             team: 'blue',
@@ -759,7 +726,7 @@ export function extractGameStatsFromRegions(
     }
 
     // Extract red team players
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 5; i++) {
         const player: any = {
             name: regionResults.get(`red_player${i}_name`)?.trim() || '',
             team: 'red',
@@ -786,10 +753,15 @@ export function extractGameStatsFromRegions(
     }
 
     // Extract match info
+    const finalRaw =
+        regionResults.get('final_score')?.trim().toUpperCase() || '0VS0';
+    const [beforeVS, afterVS] = finalRaw.split('VS');
     stats.matchInfo.result =
         regionResults.get('result')?.trim().toUpperCase() || '';
-    stats.matchInfo.final_score =
-        regionResults.get('final_score')?.trim() || '';
+    stats.matchInfo.final_score = {
+        blue: beforeVS[beforeVS.length - 1],
+        red: afterVS[0],
+    };
     stats.matchInfo.date = regionResults.get('date')?.trim() || '';
     stats.matchInfo.game_mode = regionResults.get('game_mode')?.trim() || '';
 
