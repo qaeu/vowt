@@ -13,7 +13,11 @@ interface GameStats {
     [key: string]: string | number;
 }
 
-const ScoreboardOCR: Component = () => {
+interface ScoreboardOCRProps {
+    uploadedImage?: string | null;
+}
+
+const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [isProcessing, setIsProcessing] = createSignal(false);
     const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
     const [preprocessedImagePreview, setPreprocessedImagePreview] =
@@ -22,14 +26,21 @@ const ScoreboardOCR: Component = () => {
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
     const [error, setError] = createSignal<string>('');
     const [progress, setProgress] = createSignal<number>(0);
+    const [currentImage, setCurrentImage] = createSignal<string>('/scoreboard.png');
 
     const hardcodedImagePath = '/scoreboard.png';
 
     onMount(async () => {
-        await processImage();
+        if (props.uploadedImage) {
+            setCurrentImage(props.uploadedImage);
+            await processImage(props.uploadedImage);
+        } else {
+            await processImage(hardcodedImagePath);
+        }
     });
 
-    const processImage = async () => {
+    const processImage = async (imagePath?: string) => {
+        const imageToProcess = imagePath || currentImage();
         try {
             setIsProcessing(true);
             setError('');
@@ -37,7 +48,7 @@ const ScoreboardOCR: Component = () => {
 
             // Step 1: Preprocess the full image for display
             const preprocessed = await preprocessImageForOCR(
-                hardcodedImagePath
+                imageToProcess
             );
             setPreprocessedImage(preprocessed);
             setProgress(20);
@@ -45,7 +56,7 @@ const ScoreboardOCR: Component = () => {
             // Preview preprocessed image with regions
             const preprocessedPreview = await drawRegionsOnImage(
                 preprocessed,
-                hardcodedImagePath
+                imageToProcess
             );
             setPreprocessedImagePreview(preprocessedPreview);
             setProgress(25);
@@ -152,6 +163,28 @@ const ScoreboardOCR: Component = () => {
         }
     };
 
+    const handleFileUpload = (event: Event) => {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const imageData = e.target?.result as string;
+                setCurrentImage(imageData);
+                await processImage(imageData);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const triggerFileUpload = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = handleFileUpload;
+        input.click();
+    };
+
     return (
         <div
             style={{
@@ -181,6 +214,26 @@ const ScoreboardOCR: Component = () => {
                     where needed. Tesseract.js processes specific rectangles for
                     more accurate extraction.
                 </p>
+            </div>
+
+            <div style={{ 'margin-bottom': '20px' }}>
+                <button
+                    onClick={triggerFileUpload}
+                    disabled={isProcessing()}
+                    style={{
+                        padding: '10px 20px',
+                        'background-color': '#4caf50',
+                        color: 'white',
+                        border: 'none',
+                        'border-radius': '4px',
+                        cursor: isProcessing() ? 'not-allowed' : 'pointer',
+                        'font-size': '14px',
+                        'font-weight': 'bold',
+                        'box-shadow': '0 2px 4px rgba(0,0,0,0.2)',
+                    }}
+                >
+                    📤 Upload Image
+                </button>
             </div>
 
             <Show when={error()}>
@@ -248,7 +301,7 @@ const ScoreboardOCR: Component = () => {
                         Original Image
                     </h2>
                     <img
-                        src={hardcodedImagePath}
+                        src={currentImage()}
                         alt="Original scoreboard"
                         style={{
                             'max-width': '100%',
