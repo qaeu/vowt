@@ -422,7 +422,7 @@ export function getScoreboardRegions(): TextRegion[] {
  */
 export function unskewItalicText(
     imageData: ImageData,
-    skewAngle: number = 15
+    skewAngle: number = -14
 ): ImageData {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -703,7 +703,7 @@ export async function preprocessRegionForOCR(
 
             // Apply italic correction if needed
             if (region.isItalic) {
-                imageData = unskewItalicText(imageData, 12);
+                imageData = unskewItalicText(imageData);
             }
 
             // Put processed data back
@@ -937,7 +937,7 @@ export async function drawUnskewRegionsOnImage(
                     }
 
                     // Apply unskew transformation
-                    regionImageData = unskewItalicText(regionImageData, 12);
+                    regionImageData = unskewItalicText(regionImageData);
 
                     // Put the unskewed data back
                     tempCtx.putImageData(regionImageData, 0, 0);
