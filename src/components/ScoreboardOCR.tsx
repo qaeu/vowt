@@ -63,6 +63,10 @@ const ScoreboardOCR: Component = () => {
                     },
                 });
 
+                await worker.setParameters({
+                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+                });
+
                 // Get all defined regions
                 const regions = getScoreboardRegions();
                 const totalRegions = regions.length;
