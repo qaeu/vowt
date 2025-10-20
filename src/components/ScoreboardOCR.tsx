@@ -7,6 +7,7 @@ import {
     getMatchInfoRegions,
     drawRegionsOnImage,
 } from '../utils/imagePreprocessing';
+import { saveGameRecord } from '../utils/gameStorage';
 
 interface GameStats {
     [key: string]: string | number;
@@ -131,6 +132,16 @@ const ScoreboardOCR: Component = () => {
             const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
             setProgress(100);
+
+            // Step 4: Save to localStorage
+            try {
+                if (stats.players && stats.matchInfo) {
+                    saveGameRecord(stats.players, stats.matchInfo);
+                }
+            } catch (saveError) {
+                console.error('Error saving game record:', saveError);
+                // Don't fail the whole process if save fails
+            }
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Unknown error occurred'
