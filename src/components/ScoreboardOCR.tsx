@@ -2,15 +2,18 @@ import { Component, createSignal, onMount, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
-    extractGameStats,
     extractGameStatsFromRegions,
     getScoreboardRegions,
+    getMatchInfoRegions,
     drawRegionsOnImage,
 } from '../utils/imagePreprocessing';
 
 interface GameStats {
     [key: string]: string | number;
 }
+
+const ZERO_TO_NINE = '0123456789';
+const A_TO_Z = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const ScoreboardOCR: Component = () => {
     const [isProcessing, setIsProcessing] = createSignal(false);
@@ -57,16 +60,45 @@ const ScoreboardOCR: Component = () => {
                 const worker = await Tesseract.createWorker('eng', 3);
                 await worker.setParameters({
                     tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+                    tessedit_char_whitelist: ZERO_TO_NINE + A_TO_Z,
                 });
 
                 // Get all defined regions
-                const regions = getScoreboardRegions();
-                const totalRegions = regions.length;
+                const scoreboardRegions = getScoreboardRegions();
+                const totalScoreBoardRegions = scoreboardRegions.length;
+                for (let i = 0; i < totalScoreBoardRegions; i++) {
+                    const region = scoreboardRegions[i];
+                    setProgress(
+                        25 + Math.round((i / totalScoreBoardRegions) * 35)
+                    );
 
-                // Process each region individually
-                for (let i = 0; i < regions.length; i++) {
-                    const region = regions[i];
-                    setProgress(27 + Math.round((i / totalRegions) * 50));
+                    // Recognize text in this region
+                    const result = await worker.recognize(preprocessed, {
+                        rectangle: {
+                            left: region.x,
+                            top: region.y,
+                            width: region.width,
+                            height: region.height,
+                        },
+                    });
+                    const text = result.data.text.trim();
+
+                    regionResults.set(region.name, text);
+                    ocrTextParts.push(`${region.name}: ${text}`);
+                }
+
+                await worker.setParameters({
+                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+                    tessedit_char_whitelist: '',
+                });
+
+                const matchInfoRegions = getMatchInfoRegions();
+                const totalMatchInfoRegions = matchInfoRegions.length;
+                for (let i = 0; i < totalMatchInfoRegions; i++) {
+                    const region = matchInfoRegions[i];
+                    setProgress(
+                        60 + Math.round((i / totalMatchInfoRegions) * 15)
+                    );
 
                     // Recognize text in this region
                     const result = await worker.recognize(preprocessed, {
@@ -90,7 +122,6 @@ const ScoreboardOCR: Component = () => {
             } catch (ocrError) {
                 throw ocrError;
             }
-
             setProgress(75);
 
             // Step 3: Extract game stats from region results

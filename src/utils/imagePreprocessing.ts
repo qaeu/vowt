@@ -401,7 +401,11 @@ export function getScoreboardRegions(): TextRegion[] {
             x: STATLINE.x + 2 * STATLINE.width,
             y: RED_Y + 4 * ROW_H,
         },
+    ];
+}
 
+export function getMatchInfoRegions(): TextRegion[] {
+    return [
         // Match info (right side)
         {
             name: 'result',
@@ -528,10 +532,13 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
             canvas.width = img.width;
             canvas.height = img.height;
 
-            ctx.filter = 'contrast(150%) grayscale(100%)';
+            ctx.filter = 'contrast(140%) grayscale(100%)';
             ctx.drawImage(img, 0, 0);
 
-            const regions = getScoreboardRegions();
+            const regions = [
+                ...getScoreboardRegions(),
+                ...getMatchInfoRegions(),
+            ];
             for (const region of regions) {
                 // Extract region image data
                 const regionImageData = ctx.getImageData(
@@ -557,99 +564,6 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 
         img.src = imageUrl;
     });
-}
-
-/**
- * Extracts key-value pairs from OCR text
- * @param text - Raw OCR text output
- * @returns Object containing extracted game stats
- */
-export function extractGameStats(text: string): Record<string, any> {
-    const stats: Record<string, any> = {
-        players: [],
-        matchInfo: {},
-    };
-
-    const lines = text
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-
-    let currentSection = 'header';
-    let columnHeaders: string[] = [];
-    let teamColor: 'blue' | 'red' = 'blue';
-
-    for (const line of lines) {
-        // Check for result
-        if (
-            line.toUpperCase() === 'VICTORY' ||
-            line.toUpperCase() === 'DEFEAT'
-        ) {
-            stats.matchInfo.result = line.toUpperCase();
-            continue;
-        }
-
-        // Check for VS separator
-        if (line.toUpperCase() === 'VS') {
-            teamColor = 'red';
-            continue;
-        }
-
-        // Check for SCOREBOARD header
-        if (line.toUpperCase() === 'SCOREBOARD') {
-            continue;
-        }
-
-        // Look for column headers (E A D DMG H MIT)
-        if (
-            line.match(/^[A-Z\s]+$/) &&
-            line.length < 30 &&
-            line.includes('E') &&
-            line.includes('D')
-        ) {
-            columnHeaders = line.split(/\s+/);
-            currentSection = 'players';
-            continue;
-        }
-
-        // Look for key-value patterns in match info
-        const kvMatch = line.match(/^([A-Za-z\s]+):\s*(.+)$/);
-        if (kvMatch) {
-            const key = kvMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
-            const value = kvMatch[2].trim();
-            stats.matchInfo[key] = value;
-            continue;
-        }
-
-        // Parse player data (name followed by numbers)
-        if (currentSection === 'players') {
-            const parts = line.split(/\s+/);
-            if (parts.length >= 2 && !isNaN(parseFloat(parts[1]))) {
-                const playerName = parts[0];
-                const playerStats: Record<string, any> = {
-                    name: playerName,
-                    team: teamColor,
-                };
-
-                // Map stats to column headers
-                for (
-                    let i = 1;
-                    i < parts.length && i <= columnHeaders.length;
-                    i++
-                ) {
-                    const header = columnHeaders[i - 1] || `stat${i}`;
-                    const value = parseFloat(parts[i]);
-                    playerStats[header.toLowerCase()] = isNaN(value)
-                        ? parts[i]
-                        : value;
-                }
-
-                stats.players.push(playerStats);
-            }
-        }
-    }
-
-    return stats;
 }
 
 /**
@@ -756,14 +670,17 @@ export function extractGameStatsFromRegions(
     const finalRaw =
         regionResults.get('final_score')?.trim().toUpperCase() || '0VS0';
     const [beforeVS, afterVS] = finalRaw.split('VS');
+
     stats.matchInfo.result =
         regionResults.get('result')?.trim().toUpperCase() || '';
     stats.matchInfo.final_score = {
         blue: beforeVS[beforeVS.length - 1],
         red: afterVS[0],
     };
-    stats.matchInfo.date = regionResults.get('date')?.trim() || '';
-    stats.matchInfo.game_mode = regionResults.get('game_mode')?.trim() || '';
+    stats.matchInfo.date =
+        regionResults.get('date')?.split(':')[1].trim() || '';
+    stats.matchInfo.game_mode =
+        regionResults.get('game_mode')?.split(':')[1].trim() || '';
 
     return stats;
 }
@@ -802,7 +719,10 @@ export async function drawRegionsOnImage(
 
                 ctx.lineWidth = 1;
 
-                const regions = getScoreboardRegions();
+                const regions = [
+                    ...getScoreboardRegions(),
+                    ...getMatchInfoRegions(),
+                ];
                 for (const region of regions) {
                     if (region.isItalic) {
                         ctx.strokeStyle = '#4caf50';
