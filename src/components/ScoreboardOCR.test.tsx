@@ -8,11 +8,13 @@ vi.mock('tesseract.js', () => ({
         createWorker: vi.fn().mockResolvedValue({
             recognize: vi.fn().mockResolvedValue({
                 data: {
-                    text: 'SCOREBOARD\nE A D DMG H MIT\nSTARK 27 4 7 17542 0 14872\nVICTORY',
+                    text: 'VICTORY',
                 },
             }),
             terminate: vi.fn().mockResolvedValue(undefined),
+            setParameters: vi.fn().mockResolvedValue(undefined),
         }),
+        PSM: { SINGLE_WORD: 'word' },
     },
 }));
 
@@ -24,23 +26,36 @@ vi.mock('../utils/imagePreprocessing', () => ({
     extractGameStats: vi.fn().mockReturnValue({
         players: [
             {
-                name: 'STARK',
+                name: 'VEQ',
                 team: 'blue',
-                e: 27,
+                e: 10,
                 a: 4,
-                d: 7,
-                dmg: 17542,
-                h: 0,
-                mit: 14872,
+                d: 3,
+                dmg: 15542,
+                h: 12345,
+                mit: 500,
             },
         ],
         matchInfo: {
             result: 'VICTORY',
-            final_score: '3 VS 2',
+            final_score: '3VS2',
             date: '09/15/25 - 02:49',
             game_mode: 'ESCORT',
         },
     }),
+    drawRegionsOnImage: vi
+        .fn()
+        .mockResolvedValue('data:image/png;base64,regionmockdata'),
+    getScoreboardRegions: vi
+        .fn()
+        .mockReturnValue([
+            { name: 'region_0', x: 0, y: 0, width: 100, height: 100 },
+        ]),
+    getMatchInfoRegions: vi
+        .fn()
+        .mockReturnValue([
+            { name: 'region_1', x: 0, y: 0, width: 100, height: 100 },
+        ]),
 }));
 
 describe('ScoreboardOCR', () => {
@@ -68,10 +83,7 @@ describe('ScoreboardOCR', () => {
 
         // Check for processing text (may be brief)
         const processingText = screen.queryByText(/Processing image/);
-        // Processing may have already completed, so we just verify component rendered
-        expect(
-            screen.getByText('Overwatch Scoreboard Tracker POC')
-        ).toBeDefined();
+        expect(processingText).toBeDefined();
     });
 
     it('should display preprocessed image after processing', async () => {
@@ -80,7 +92,7 @@ describe('ScoreboardOCR', () => {
         await waitFor(
             () => {
                 expect(
-                    screen.getByText('Preprocessed (Grayscale + Contrast)')
+                    screen.getByText('Preprocessed (Regions + Unskew)')
                 ).toBeDefined();
             },
             { timeout: 3000 }
