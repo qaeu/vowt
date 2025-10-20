@@ -7,7 +7,7 @@ import GameRecordsTable from './components/GameRecordsTable';
 type ViewMode = 'ocr' | 'records' | 'debugger';
 
 const App: Component = () => {
-    const [viewMode, setViewMode] = createSignal<ViewMode>('ocr');
+    const [viewMode, setViewMode] = createSignal<ViewMode>('records');
 
     return (
         <div>
