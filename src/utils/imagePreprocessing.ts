@@ -475,7 +475,7 @@ function unskewItalicText(
     outputCanvas.height = imageData.height;
 
     // Fill background with gray before transformation
-    outputCtx.fillStyle = '#222222';
+    outputCtx.fillStyle = '#444444';
     outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
     // Apply skew transformation to counteract italic
@@ -512,7 +512,6 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
             canvas.width = img.width;
             canvas.height = img.height;
 
-            ctx.filter = 'contrast(140%) grayscale(100%)';
             ctx.drawImage(img, 0, 0);
 
             const regions = [
@@ -533,6 +532,10 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
                 );
                 ctx.putImageData(imageData, region.x, region.y);
             }
+
+            ctx.filter =
+                'brightness(70%) contrast(300%) grayscale(100%) invert(100%)';
+            ctx.drawImage(canvas, 0, 0);
 
             // Convert to data URL
             resolve(canvas.toDataURL('image/png'));
