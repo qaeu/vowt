@@ -35,7 +35,6 @@ const ScoreboardOCR: Component = () => {
             setProgress(0);
 
             // Step 1: Preprocess the full image for display
-            setProgress(10);
             const preprocessed = await preprocessImageForOCR(
                 hardcodedImagePath
             );
@@ -43,13 +42,12 @@ const ScoreboardOCR: Component = () => {
             setProgress(20);
 
             // Preview preprocessed image with regions
-            setProgress(25);
             const preprocessedPreview = await drawRegionsOnImage(
                 preprocessed,
                 hardcodedImagePath
             );
             setPreprocessedImagePreview(preprocessedPreview);
-            setProgress(27);
+            setProgress(25);
 
             // Step 2: Perform region-based OCR using Tesseract.js
             let ocrTextParts: string[] = [];
@@ -251,37 +249,6 @@ const ScoreboardOCR: Component = () => {
                 </div>
             </div>
 
-            <Show when={ocrText()}>
-                <div
-                    style={{
-                        'margin-bottom': '30px',
-                        padding: '20px',
-                        'background-color': '#f5f5f5',
-                        'border-radius': '8px',
-                        'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
-                    }}
-                >
-                    <h2 style={{ 'margin-top': '0', color: '#424242' }}>
-                        Raw OCR Text Output
-                    </h2>
-                    <pre
-                        style={{
-                            'background-color': '#fff',
-                            padding: '15px',
-                            'border-radius': '4px',
-                            'white-space': 'pre-wrap',
-                            'word-wrap': 'break-word',
-                            border: '1px solid #ddd',
-                            'font-family': 'monospace',
-                            'font-size': '14px',
-                            'line-height': '1.5',
-                        }}
-                    >
-                        {ocrText()}
-                    </pre>
-                </div>
-            </Show>
-
             <Show when={Object.keys(extractedStats()).length > 0}>
                 <div
                     style={{
@@ -321,6 +288,37 @@ const ScoreboardOCR: Component = () => {
                         {Object.keys(extractedStats()).length} data fields from
                         the scoreboard
                     </p>
+                </div>
+            </Show>
+
+            <Show when={ocrText()}>
+                <div
+                    style={{
+                        'margin-bottom': '30px',
+                        padding: '20px',
+                        'background-color': '#f5f5f5',
+                        'border-radius': '8px',
+                        'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
+                    }}
+                >
+                    <h2 style={{ 'margin-top': '0', color: '#424242' }}>
+                        Raw OCR Text Output
+                    </h2>
+                    <pre
+                        style={{
+                            'background-color': '#fff',
+                            padding: '15px',
+                            'border-radius': '4px',
+                            'white-space': 'pre-wrap',
+                            'word-wrap': 'break-word',
+                            border: '1px solid #ddd',
+                            'font-family': 'monospace',
+                            'font-size': '14px',
+                            'line-height': '1.5',
+                        }}
+                    >
+                        {ocrText()}
+                    </pre>
                 </div>
             </Show>
         </div>
