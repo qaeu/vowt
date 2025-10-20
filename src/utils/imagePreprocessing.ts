@@ -11,37 +11,44 @@ export interface TextRegion {
     y: number;
     width: number;
     height: number;
+    charSet?: string;
     isItalic?: boolean;
 }
 
-const SCOREBOARD = {
+const ZERO_TO_NINE = '0123456789';
+const A_TO_Z = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+const SCOREBOARD: Pick<TextRegion, 'x' | 'y'> = {
     x: 480,
-    y: 345,
+    y: 340,
 };
 
 const ROW_H = 82;
 const RED_Y = 880;
 
-const NAME_TAG = {
+const NAME_TAG: Omit<TextRegion, 'name' | 'y'> = {
     x: SCOREBOARD.x,
     width: 345,
     height: 50,
+    charSet: A_TO_Z + ZERO_TO_NINE,
     isItalic: true,
 };
 
-const EAD = {
+const EAD: Omit<TextRegion, 'name' | 'y'> = {
     x: SCOREBOARD.x + NAME_TAG.width + 15,
-    width: 65,
+    width: 66,
     height: NAME_TAG.height,
+    charSet: ZERO_TO_NINE,
 };
 
-const STATLINE = {
+const STATLINE: Omit<TextRegion, 'name' | 'y'> = {
     x: EAD.x + 3 * EAD.width + 15,
     width: 128,
     height: NAME_TAG.height,
+    charSet: ZERO_TO_NINE,
 };
 
-const MATCH_INFO = {
+const MATCH_INFO: Pick<TextRegion, 'x' | 'y' | 'width'> = {
     x: 1555,
     y: 765,
     width: 400,

@@ -12,9 +12,6 @@ interface GameStats {
     [key: string]: string | number;
 }
 
-const ZERO_TO_NINE = '0123456789';
-const A_TO_Z = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
 const ScoreboardOCR: Component = () => {
     const [isProcessing, setIsProcessing] = createSignal(false);
     const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
@@ -57,11 +54,7 @@ const ScoreboardOCR: Component = () => {
             const regionResults = new Map<string, string>();
 
             try {
-                const worker = await Tesseract.createWorker('eng', 3);
-                await worker.setParameters({
-                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
-                    tessedit_char_whitelist: ZERO_TO_NINE + A_TO_Z,
-                });
+                const worker = await Tesseract.createWorker('eng', 1);
 
                 // Get all defined regions
                 const scoreboardRegions = getScoreboardRegions();
@@ -72,6 +65,11 @@ const ScoreboardOCR: Component = () => {
                         25 + Math.round((i / totalScoreBoardRegions) * 35)
                     );
 
+                    await worker.setParameters({
+                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+                        tessedit_char_whitelist: region.charSet,
+                    });
+
                     // Recognize text in this region
                     const result = await worker.recognize(preprocessed, {
                         rectangle: {
@@ -81,7 +79,12 @@ const ScoreboardOCR: Component = () => {
                             height: region.height,
                         },
                     });
-                    const text = result.data.text.trim();
+                    let text;
+                    if (result.data.confidence < 6) {
+                        text = '???';
+                    } else {
+                        text = result.data.text.trim();
+                    }
 
                     regionResults.set(region.name, text);
                     ocrTextParts.push(`${region.name}: ${text}`);
