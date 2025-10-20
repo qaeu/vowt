@@ -6,7 +6,7 @@ import {
     extractGameStats,
     extractGameStatsFromRegions,
     getScoreboardRegions,
-    drawRegionsOnImage,
+    drawUnskewRegionsOnImage,
 } from '../utils/imagePreprocessing';
 
 interface GameStats {
@@ -16,7 +16,7 @@ interface GameStats {
 const ScoreboardOCR: Component = () => {
     const [isProcessing, setIsProcessing] = createSignal(false);
     const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
-    const [preprocessedImageWithRegions, setPreprocessedImageWithRegions] =
+    const [preprocessedImageWithUnskew, setPreprocessedImageWithUnskew] =
         createSignal<string>('');
     const [ocrText, setOcrText] = createSignal<string>('');
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
@@ -43,12 +43,14 @@ const ScoreboardOCR: Component = () => {
             setPreprocessedImage(preprocessed);
             setProgress(20);
 
-            // Draw regions on the preprocessed image for visualization
-            const preprocessedWithRegions = await drawRegionsOnImage(
-                preprocessed
-            );
-            setPreprocessedImageWithRegions(preprocessedWithRegions);
+            // Draw regions with unskew visualization
             setProgress(25);
+            const preprocessedWithUnskew = await drawUnskewRegionsOnImage(
+                preprocessed,
+                hardcodedImagePath
+            );
+            setPreprocessedImageWithUnskew(preprocessedWithUnskew);
+            setProgress(27);
 
             // Step 2: Perform region-based OCR using Tesseract.js
             let ocrTextParts: string[] = [];
@@ -58,7 +60,7 @@ const ScoreboardOCR: Component = () => {
                 const worker = await Tesseract.createWorker('eng', 3, {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
-                            setProgress(25 + Math.round(m.progress * 50));
+                            setProgress(27 + Math.round(m.progress * 50));
                         }
                     },
                 });
@@ -74,7 +76,7 @@ const ScoreboardOCR: Component = () => {
                 // Process each region individually
                 for (let i = 0; i < regions.length; i++) {
                     const region = regions[i];
-                    setProgress(25 + Math.round((i / totalRegions) * 50));
+                    setProgress(27 + Math.round((i / totalRegions) * 50));
 
                     // Preprocess this specific region
                     const regionImage = await preprocessRegionForOCR(
@@ -221,40 +223,39 @@ const ScoreboardOCR: Component = () => {
                     />
                 </div>
 
-                <Show when={preprocessedImageWithRegions()}>
-                    <div
+                <div
+                    style={{
+                        padding: '20px',
+                        'background-color': '#f5f5f5',
+                        'border-radius': '8px',
+                        'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
+                    }}
+                >
+                    <h2 style={{ 'margin-top': '0', color: '#424242' }}>
+                        Preprocessed (Regions + Unskew)
+                    </h2>
+                    <img
+                        src={preprocessedImageWithUnskew()}
+                        alt="Preprocessed scoreboard with regions and unskew applied"
                         style={{
-                            padding: '20px',
-                            'background-color': '#f5f5f5',
-                            'border-radius': '8px',
-                            'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
+                            'max-width': '100%',
+                            border: '2px solid #ddd',
+                            'border-radius': '4px',
+                            display: 'block',
+                        }}
+                    />
+                    <p
+                        style={{
+                            'font-size': '13px',
+                            color: '#666',
+                            'margin-top': '10px',
                         }}
                     >
-                        <h2 style={{ 'margin-top': '0', color: '#424242' }}>
-                            Preprocessed with Region Boxes
-                        </h2>
-                        <img
-                            src={preprocessedImageWithRegions()}
-                            alt="Preprocessed scoreboard with regions"
-                            style={{
-                                'max-width': '100%',
-                                border: '2px solid #ddd',
-                                'border-radius': '4px',
-                                display: 'block',
-                            }}
-                        />
-                        <p
-                            style={{
-                                'font-size': '13px',
-                                color: '#666',
-                                'margin-top': '10px',
-                            }}
-                        >
-                            Preprocessed image (grayscale + contrast enhanced)
-                            with red 1px borders showing OCR region boxes
-                        </p>
-                    </div>
-                </Show>
+                        Grayscale + contrast enhanced with red region boxes.
+                        Green borders show italic regions with unskew
+                        transformation applied.
+                    </p>
+                </div>
             </div>
 
             <Show when={ocrText()}>

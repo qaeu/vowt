@@ -420,7 +420,7 @@ export function getScoreboardRegions(): TextRegion[] {
  * @param skewAngle - Angle in degrees to unskew (negative for italic correction)
  * @returns Processed image data
  */
-function unskewItalicText(
+export function unskewItalicText(
     imageData: ImageData,
     skewAngle: number = 15
 ): ImageData {
@@ -459,6 +459,26 @@ function unskewItalicText(
         outputCanvas.width,
         outputCanvas.height
     );
+}
+
+/**
+ * Converts ImageData to a PNG data URL for display
+ * @param imageData - Image data to convert
+ * @returns Data URL string
+ */
+export function imageDataToDataUrl(imageData: ImageData): string {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+        throw new Error('Failed to get canvas context');
+    }
+
+    canvas.width = imageData.width;
+    canvas.height = imageData.height;
+    ctx.putImageData(imageData, 0, 0);
+
+    return canvas.toDataURL('image/png');
 }
 
 /**
@@ -812,6 +832,146 @@ export async function drawRegionsOnImage(imageUrl: string): Promise<string> {
             }
 
             resolve(canvas.toDataURL('image/png'));
+        };
+
+        img.onerror = () => {
+            reject(new Error('Failed to load image'));
+        };
+
+        img.src = imageUrl;
+    });
+}
+
+/**
+ * Draws italic regions with unskew visualization on the preprocessed image
+ * Uses green overlay for regions to show which ones are being unskewed
+ * @param imageUrl - URL of the preprocessed image
+ * @param sourceImageUrl - URL of the source image to extract region data
+ * @returns Promise resolving to data URL with unskew regions highlighted
+ */
+export async function drawUnskewRegionsOnImage(
+    imageUrl: string,
+    sourceImageUrl: string
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+
+        img.onload = () => {
+            const sourceImg = new Image();
+
+            sourceImg.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                if (!ctx) {
+                    reject(new Error('Failed to get canvas context'));
+                    return;
+                }
+
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Draw the preprocessed image with regions
+                ctx.drawImage(img, 0, 0);
+
+                // Draw green borders and unskewed content for italic regions
+                ctx.strokeStyle = '#4caf50'; // Green border
+                ctx.lineWidth = 2;
+
+                const regions = getScoreboardRegions();
+                const italicRegions = regions.filter((r) => r.isItalic);
+
+                // Create a temporary canvas for unskew transformation
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+
+                if (!tempCtx) {
+                    reject(new Error('Failed to get temporary canvas context'));
+                    return;
+                }
+
+                for (const region of italicRegions) {
+                    // Extract the region from source image
+                    tempCanvas.width = region.width;
+                    tempCanvas.height = region.height;
+
+                    tempCtx.drawImage(
+                        sourceImg,
+                        region.x,
+                        region.y,
+                        region.width,
+                        region.height,
+                        0,
+                        0,
+                        region.width,
+                        region.height
+                    );
+
+                    // Get and preprocess the region data
+                    let regionImageData = tempCtx.getImageData(
+                        0,
+                        0,
+                        tempCanvas.width,
+                        tempCanvas.height
+                    );
+                    const data = regionImageData.data;
+
+                    // Convert to grayscale and enhance contrast
+                    for (let i = 0; i < data.length; i += 4) {
+                        const gray =
+                            0.299 * data[i] +
+                            0.587 * data[i + 1] +
+                            0.114 * data[i + 2];
+                        const contrast = 2.0;
+                        const factor =
+                            (259 * (contrast + 255)) / (255 * (259 - contrast));
+                        const enhancedGray = factor * (gray - 128) + 128;
+                        const finalValue = Math.max(
+                            0,
+                            Math.min(255, enhancedGray)
+                        );
+
+                        data[i] = finalValue;
+                        data[i + 1] = finalValue;
+                        data[i + 2] = finalValue;
+                    }
+
+                    // Apply unskew transformation
+                    regionImageData = unskewItalicText(regionImageData, 12);
+
+                    // Put the unskewed data back
+                    tempCtx.putImageData(regionImageData, 0, 0);
+
+                    // Draw the unskewed region onto the main canvas
+                    ctx.drawImage(
+                        tempCanvas,
+                        0,
+                        0,
+                        tempCanvas.width,
+                        tempCanvas.height,
+                        region.x,
+                        region.y,
+                        region.width,
+                        region.height
+                    );
+
+                    // Draw green border around the region
+                    ctx.strokeRect(
+                        region.x,
+                        region.y,
+                        region.width,
+                        region.height
+                    );
+                }
+
+                resolve(canvas.toDataURL('image/png'));
+            };
+
+            sourceImg.onerror = () => {
+                reject(new Error('Failed to load source image'));
+            };
+
+            sourceImg.src = sourceImageUrl;
         };
 
         img.onerror = () => {
