@@ -47,10 +47,6 @@ const GameRecordsTable: Component = () => {
                 setExpandedRecordId(null);
                 setHasUnsavedChanges(false);
             }
-            // If this record is expanded, collapse it
-            if (expandedRecordId() === id) {
-                setExpandedRecordId(null);
-            }
             loadRecords();
         }
     };
@@ -124,9 +120,16 @@ const GameRecordsTable: Component = () => {
     };
 
     const handleCancelEdit = () => {
-        setExpandedRecordId(null);
+        const record = records().find(
+            (r) => r.id === expandedRecordId()
+        ) as GameRecord;
+        if (!record) {
+            setExpandedRecordId(null);
+            return;
+        }
+        setEditablePlayers(structuredClone(record.players));
+        setEditableMatchInfo({ ...record.matchInfo });
         setHasUnsavedChanges(false);
-        setSaveSuccess(false);
     };
 
     const handleSaveEdit = () => {
@@ -139,11 +142,6 @@ const GameRecordsTable: Component = () => {
             setSaveSuccess(true);
             // Reload records to show updated data
             loadRecords();
-            // Clear success message after 3 seconds and close edit mode
-            setTimeout(() => {
-                setSaveSuccess(false);
-                setExpandedRecordId(null);
-            }, 3000);
         } catch (err) {
             alert(
                 err instanceof Error
