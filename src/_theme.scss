@@ -1,36 +1,36 @@
 // Foreground - Primary text and key UI elements
-$foreground: #1976d2;
-$foreground-dark: #424242;
-$foreground-light: #666;
+$foreground: #4a5568;
+$foreground-dark: #2d3748;
+$foreground-light: #718096;
 
 // Background - Container and surface colors
-$background: #f5f5f5;
+$background: #f7fafc;
 $background-light: #fff;
-$background-alt: #f9f9f9;
+$background-alt: #edf2f7;
 
-// Accent1 - Primary brand color (blue)
-$accent1: #1976d2;
-$accent1-light: #42a5f5;
-$accent1-lighter: #e3f2fd;
-$accent1-border: #1976d2;
+// Accent1 - Primary brand color (softer blue)
+$accent1: #5a7fa3;
+$accent1-light: #7fa3c3;
+$accent1-lighter: #e8f0f7;
+$accent1-border: #5a7fa3;
 
 // Accent2 - Secondary action colors (success, warning, error)
-$accent2-success: #4caf50;
-$accent2-success-light: #e8f5e9;
-$accent2-success-border: #a5d6a7;
+$accent2-success: #68a36a;
+$accent2-success-light: #f0f7f0;
+$accent2-success-border: #9dc59f;
 
-$accent2-warning: #ff9800;
+$accent2-warning: #d69a55;
 
-$accent2-error: #f44336;
-$accent2-error-light: #ffebee;
-$accent2-error-dark: #c62828;
-$accent2-error-border: #c62828;
+$accent2-error: #d67373;
+$accent2-error-light: #fdf2f2;
+$accent2-error-dark: #b45555;
+$accent2-error-border: #d67373;
 
 // Neutral colors
-$border-light: #ddd;
-$border-default: #e0e0e0;
-$shadow: rgba(0, 0, 0, 0.1);
-$shadow-subtle: rgba(0, 0, 0, 0.2);
+$border-light: #e2e8f0;
+$border-default: #cbd5e0;
+$shadow: rgba(0, 0, 0, 0.06);
+$shadow-subtle: rgba(0, 0, 0, 0.12);
 
 // Container mixin for main content areas
 @mixin container {

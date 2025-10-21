@@ -18,6 +18,7 @@ import './ScoreboardOCR.scss';
 
 interface ScoreboardOCRProps {
     uploadedImage?: string | null;
+    onClose?: () => void;
 }
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
@@ -233,22 +234,19 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
     return (
         <div class="scoreboard-container">
-            <h1 class="scoreboard-title">Overwatch Scoreboard Tracker POC</h1>
+            <div class="ocr-header">
+                <h1 class="scoreboard-title">Overwatch Scoreboard Tracker POC</h1>
+                <Show when={props.onClose}>
+                    <button onClick={props.onClose} class="close-button">
+                        ✕ Close
+                    </button>
+                </Show>
+            </div>
             <div style={{ 'margin-bottom': '20px' }}>
                 <button
                     onClick={triggerFileUpload}
                     disabled={isProcessing()}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#4caf50',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor: isProcessing() ? 'not-allowed' : 'pointer',
-                        'font-size': '14px',
-                        'font-weight': 'bold',
-                        'box-shadow': '0 2px 4px rgba(0,0,0,0.2)',
-                    }}
+                    class="upload-button"
                 >
                     📤 Upload Image
                 </button>

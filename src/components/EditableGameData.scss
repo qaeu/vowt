@@ -77,14 +77,22 @@
 
                 input {
                     padding: 8px;
-                    border: 1px solid theme.$border-light;
+                    border: 1px solid transparent;
                     border-radius: 4px;
                     font-size: 14px;
+                    background-color: transparent;
+                    transition: all 0.15s ease;
+
+                    &:hover {
+                        background-color: theme.$background-alt;
+                        border-color: theme.$border-light;
+                    }
 
                     &:focus {
                         outline: none;
+                        background-color: theme.$background-light;
                         border-color: theme.$accent1;
-                        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+                        box-shadow: 0 0 0 2px rgba(90, 127, 163, 0.15);
                     }
                 }
             }
@@ -153,20 +161,28 @@
                                     input {
                                         width: 100%;
                                         padding: 6px;
-                                        border: 1px solid theme.$border-light;
+                                        border: 1px solid transparent;
                                         border-radius: 3px;
                                         font-size: 13px;
                                         box-sizing: border-box;
+                                        background-color: transparent;
+                                        transition: all 0.15s ease;
 
                                         &[type='number'] {
                                             text-align: right;
                                         }
 
+                                        &:hover {
+                                            background-color: theme.$background-alt;
+                                            border-color: theme.$border-light;
+                                        }
+
                                         &:focus {
                                             outline: none;
+                                            background-color: theme.$background-light;
                                             border-color: theme.$accent1;
                                             box-shadow: 0 0 0 1px
-                                                rgba(25, 118, 210, 0.2);
+                                                rgba(90, 127, 163, 0.2);
                                         }
                                     }
                                 }

@@ -13,7 +13,11 @@ import {
 import EditableGameData from './EditableGameData';
 import './GameRecordsTable.scss';
 
-const GameRecordsTable: Component = () => {
+interface GameRecordsTableProps {
+    onUploadClick?: () => void;
+}
+
+const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
     const [records, setRecords] = createSignal<GameRecord[]>([]);
     const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(
         null
@@ -188,9 +192,11 @@ const GameRecordsTable: Component = () => {
             <h1 class="records-title">Stored Game Records</h1>
 
             <div class="button-group">
-                <button onClick={loadRecords} class="primary">
-                    🔄 Refresh
-                </button>
+                <Show when={props.onUploadClick}>
+                    <button onClick={props.onUploadClick} class="primary">
+                        📤 Upload Image
+                    </button>
+                </Show>
                 <button
                     onClick={handleExport}
                     class="success"
@@ -229,7 +235,7 @@ const GameRecordsTable: Component = () => {
                                 <th>Score</th>
                                 <th>Mode</th>
                                 <th>Players</th>
-                                <th class="center">Actions</th>
+                                <th class="center"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -284,8 +290,9 @@ const GameRecordsTable: Component = () => {
                                                         handleDelete(record.id);
                                                     }}
                                                     class="delete-button"
+                                                    title="Delete record"
                                                 >
-                                                    Delete
+                                                    ×
                                                 </button>
                                             </td>
                                         </tr>
