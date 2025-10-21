@@ -1,10 +1,4 @@
-import {
-    Component,
-    createSignal,
-    onMount,
-    createEffect,
-    Show,
-} from 'solid-js';
+import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
@@ -28,7 +22,6 @@ interface ScoreboardOCRProps {
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [isProcessing, setIsProcessing] = createSignal(false);
-    const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
     const [preprocessedImagePreview, setPreprocessedImagePreview] =
         createSignal<string>('');
     const [rawOcrText, setRawOcrText] = createSignal<string>('');
@@ -78,9 +71,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setError('');
             setProgress(0);
 
-            // Step 1: Preprocess the full image for display
+            // Step 1: Preprocess the full image
             const preprocessed = await preprocessImageForOCR(imageToProcess);
-            setPreprocessedImage(preprocessed);
             setProgress(20);
 
             // Preview preprocessed image with regions
@@ -147,12 +139,13 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setExtractedStats(stats);
             setProgress(100);
 
-            // Set editable data (no auto-save)
+            // Set editable data
             if (stats.players && stats.matchInfo) {
                 setEditablePlayers(structuredClone(stats.players));
                 setEditableMatchInfo({ ...stats.matchInfo });
-                setHasUnsavedChanges(true);
-                setSaveSuccess(false);
+                saveGameRecord(editablePlayers(), editableMatchInfo());
+                setHasUnsavedChanges(false);
+                setSaveSuccess(true);
             }
         } catch (err) {
             setError(
@@ -191,8 +184,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             saveGameRecord(editablePlayers(), editableMatchInfo());
             setHasUnsavedChanges(false);
             setSaveSuccess(true);
-            // Clear success message after 3 seconds
-            setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             setError(
                 err instanceof Error
