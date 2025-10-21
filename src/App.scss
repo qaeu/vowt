@@ -1,0 +1,33 @@
+@use 'theme';
+
+.nav-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+}
+
+.nav-button {
+    padding: 8px 16px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 2px 4px theme.$shadow-subtle;
+
+    &.ocr-button {
+        background-color: theme.$accent1;
+    }
+
+    &.records-button {
+        background-color: theme.$accent2-success;
+    }
+
+    &.debugger-button {
+        background-color: theme.$accent2-warning;
+    }
+}
