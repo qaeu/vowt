@@ -38,8 +38,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
     const [error, setError] = createSignal<string>('');
     const [progress, setProgress] = createSignal<number>(0);
-    const [currentImage, setCurrentImage] =
-        createSignal<string>('/scoreboard.png');
+    const [currentImage, setCurrentImage] = createSignal<string>();
     const [showJsonStats, setShowJsonStats] = createSignal(false);
     const [showRawText, setShowRawText] = createSignal(false);
 
@@ -56,8 +55,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     });
     const [hasUnsavedChanges, setHasUnsavedChanges] = createSignal(false);
     const [saveSuccess, setSaveSuccess] = createSignal(false);
-
-    const hardcodedImagePath = '/scoreboard.png';
 
     onMount(async () => {
         if (props.uploadedImage) {
@@ -76,7 +73,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     });
 
     const processImage = async (imagePath?: string) => {
-        const imageToProcess = imagePath || currentImage();
+        const imageToProcess = (imagePath || currentImage()) as string;
         try {
             setIsProcessing(true);
             setError('');
@@ -293,23 +290,27 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             </Show>
 
             <div class="image-grid">
-                <div class="image-container">
-                    <h2>Original Image</h2>
-                    <img src={currentImage()} alt="Original scoreboard" />
-                </div>
+                <Show when={currentImage()}>
+                    <div class="image-container">
+                        <h2>Original Image</h2>
+                        <img src={currentImage()} alt="Original scoreboard" />
+                    </div>
+                </Show>
 
-                <div class="image-container">
-                    <h2>Preprocessed (Regions + Unskew)</h2>
-                    <img
-                        src={preprocessedImagePreview()}
-                        alt="Preprocessed scoreboard with regions and unskew applied"
-                    />
-                    <p>
-                        Grayscale + contrast enhanced with red region boxes.
-                        Green borders show italic regions with unskew
-                        transformation applied.
-                    </p>
-                </div>
+                <Show when={preprocessedImagePreview()}>
+                    <div class="image-container">
+                        <h2>Preprocessed (Regions + Unskew)</h2>
+                        <img
+                            src={preprocessedImagePreview()}
+                            alt="Preprocessed scoreboard with regions and unskew applied"
+                        />
+                        <p>
+                            Grayscale + contrast enhanced with red region boxes.
+                            Green borders show italic regions with unskew
+                            transformation applied.
+                        </p>
+                    </div>
+                </Show>
             </div>
 
             <Show when={editablePlayers().length > 0}>
