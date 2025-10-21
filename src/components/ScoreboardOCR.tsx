@@ -238,20 +238,30 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
             <Show when={Object.keys(extractedStats()).length > 0}>
                 <div class="stats-box">
-                    <h2>Extracted Game Stats (JSON)</h2>
-                    <pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
-                    <p class="stats-message">
-                        ✓ Successfully parsed{' '}
-                        {Object.keys(extractedStats()).length} data fields from
-                        the scoreboard
-                    </p>
+                    <h2 onClick={() => setShowJsonStats(!showJsonStats())}>
+                        <span>Extracted Game Stats (JSON)</span>
+                        <span>{showJsonStats() ? '▼' : '▶'}</span>
+                    </h2>
+                    <Show when={showJsonStats()}>
+                        <pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
+                        <p class="stats-message">
+                            ✓ Successfully parsed{' '}
+                            {Object.keys(extractedStats()).length} data fields
+                            from the scoreboard
+                        </p>
+                    </Show>
                 </div>
             </Show>
 
             <Show when={ocrText()}>
                 <div class="ocr-output-box">
-                    <h2>Raw OCR Text Output</h2>
-                    <pre>{ocrText()}</pre>
+                    <h2 onClick={() => setShowRawText(!showRawText())}>
+                        <span>Raw OCR Text Output</span>
+                        <span>{showRawText() ? '▼' : '▶'}</span>
+                    </h2>
+                    <Show when={showRawText()}>
+                        <pre>{ocrText()}</pre>
+                    </Show>
                 </div>
             </Show>
         </div>

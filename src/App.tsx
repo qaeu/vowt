@@ -55,10 +55,23 @@ const App: Component = () => {
 
     return (
         <div>
+            {isDragging() && (
+                <div class="drag-overlay">
+                    <div class="drag-overlay-content">
+                        <div class="drag-overlay-icon">📤</div>
+                        <div class="drag-overlay-text">
+                            Drop image here to analyze
+                        </div>
+                    </div>
+                </div>
+            )}
             <div class="nav-container">
                 {viewMode() !== 'ocr' && (
                     <button
-                        onClick={() => setViewMode('ocr')}
+                        onClick={() => {
+                            setUploadedImage(null);
+                            setViewMode('ocr');
+                        }}
                         class="nav-button ocr-button"
                     >
                         🔍 OCR
@@ -82,7 +95,9 @@ const App: Component = () => {
                 )}
             </div>
 
-            {viewMode() === 'ocr' && <ScoreboardOCR uploadedImage={uploadedImage()} />}
+            {viewMode() === 'ocr' && (
+                <ScoreboardOCR uploadedImage={uploadedImage()} />
+            )}
             {viewMode() === 'records' && <GameRecordsTable />}
             {viewMode() === 'debugger' && <RegionDebugger />}
         </div>
