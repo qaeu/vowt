@@ -2,16 +2,25 @@
  * Storage utilities for managing game data in localStorage
  */
 
-export interface PlayerStats {
+export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
+    'e',
+    'a',
+    'd',
+    'dmg',
+    'h',
+    'mit',
+] as const;
+export type PlayerStatsNumberFields = Record<
+    (typeof PLAYER_STATS_NUMBER_FIELD_NAMES)[number],
+    string
+>;
+type PlayerStatsTextFields = {
     name: string;
     team: 'blue' | 'red';
-    e: number;
-    a: number;
-    d: number;
-    dmg: number;
-    h: number;
-    mit: number;
-}
+};
+export interface PlayerStats
+    extends PlayerStatsTextFields,
+        PlayerStatsNumberFields {}
 
 export interface MatchInfo {
     result: string;

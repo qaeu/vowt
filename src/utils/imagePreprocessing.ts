@@ -2,6 +2,13 @@
  * Image preprocessing utilities for OCR optimization
  */
 
+import {
+    PLAYER_STATS_NUMBER_FIELD_NAMES,
+    type PlayerStatsNumberFields,
+    type PlayerStats,
+    type GameRecord,
+} from './gameStorage';
+
 /**
  * Text element region definition for targeted OCR
  */
@@ -18,6 +25,7 @@ export interface TextRegion {
 const ZERO_TO_NINE = '0123456789';
 const A_TO_Z = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SYMBOLS = ': /-';
+const COMMA = ',';
 
 const SCOREBOARD: Pick<TextRegion, 'x' | 'y'> = {
     x: 500,
@@ -46,7 +54,7 @@ const STATLINE: Omit<TextRegion, 'name' | 'y'> = {
     x: EAD.x + 3 * EAD.width + 10,
     width: 128,
     height: NAME_TAG.height,
-    charSet: ZERO_TO_NINE,
+    charSet: ZERO_TO_NINE + COMMA,
 };
 
 const MATCH_INFO: Omit<TextRegion, 'name' | 'height'> = {
@@ -598,83 +606,29 @@ function preprocessRegionForOCR(
  */
 export function extractGameStats(
     regionResults: Map<string, string>
-): Record<string, any> {
-    const stats: Record<string, any> = {
-        players: [],
-        matchInfo: {},
-    };
-
-    // Extract blue team players
-    for (let i = 1; i <= 5; i++) {
-        const player: any = {
-            name: regionResults.get(`blue_player${i}_name`)?.trim() || '',
-            team: 'blue',
-            e: parseInt(regionResults.get(`blue_player${i}_e`)?.trim() || '0'),
-            a: parseInt(regionResults.get(`blue_player${i}_a`)?.trim() || '0'),
-            d: parseInt(regionResults.get(`blue_player${i}_d`)?.trim() || '0'),
-            dmg: parseInt(
-                regionResults
-                    .get(`blue_player${i}_dmg`)
-                    ?.replace(/,/g, '')
-                    .trim() || '0'
-            ),
-            h: parseInt(regionResults.get(`blue_player${i}_h`)?.trim() || '0'),
-            mit: parseInt(
-                regionResults
-                    .get(`blue_player${i}_mit`)
-                    ?.replace(/,/g, '')
-                    .trim() || '0'
-            ),
-        };
-
-        stats.players.push(player);
-    }
-
-    // Extract red team players
-    for (let i = 1; i <= 5; i++) {
-        const player: any = {
-            name: regionResults.get(`red_player${i}_name`)?.trim() || '',
-            team: 'red',
-            e: parseInt(regionResults.get(`red_player${i}_e`)?.trim() || '0'),
-            a: parseInt(regionResults.get(`red_player${i}_a`)?.trim() || '0'),
-            d: parseInt(regionResults.get(`red_player${i}_d`)?.trim() || '0'),
-            dmg: parseInt(
-                regionResults
-                    .get(`red_player${i}_dmg`)
-                    ?.replace(/,/g, '')
-                    .trim() || '0'
-            ),
-            h: parseInt(regionResults.get(`red_player${i}_h`)?.trim() || '0'),
-            mit: parseInt(
-                regionResults
-                    .get(`red_player${i}_mit`)
-                    ?.replace(/,/g, '')
-                    .trim() || '0'
-            ),
-        };
-
-        stats.players.push(player);
-    }
+): Partial<GameRecord> {
+    const players: GameRecord['players'] = [];
+    players.push(...extractTeamPlayers('blue', regionResults));
+    players.push(...extractTeamPlayers('red', regionResults));
 
     // Extract match info
     const finalRaw =
         regionResults.get('final_score')?.trim().toUpperCase() || ':?VS?';
     const [beforeVS, afterVS] = finalRaw.split('VS');
 
-    stats.matchInfo.result =
-        regionResults.get('result')?.trim().toUpperCase() || '';
-    stats.matchInfo.final_score = {
-        blue: beforeVS.split(':')[1].trim(),
-        red: afterVS.trim(),
+    const matchInfo: GameRecord['matchInfo'] = {
+        result: regionResults.get('result')?.trim().toUpperCase() || '?',
+        final_score: {
+            blue: beforeVS.split(':')[1].trim(),
+            red: afterVS.trim(),
+        },
+        date: regionResults.get('date')?.split('DATE:')[1].trim() || '?',
+        game_mode: regionResults.get('game_mode')?.split(':')[1].trim() || '?',
+        game_length:
+            regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '?',
     };
-    stats.matchInfo.date =
-        regionResults.get('date')?.split('DATE:')[1].trim() || '';
-    stats.matchInfo.game_mode =
-        regionResults.get('game_mode')?.split(':')[1].trim() || '';
-    stats.matchInfo.game_length =
-        regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '';
 
-    return stats;
+    return { players, matchInfo } as Partial<GameRecord>;
 }
 
 /**
@@ -745,4 +699,29 @@ export async function drawRegionsOnImage(
 
         img.src = imageUrl;
     });
+}
+
+function extractTeamPlayers(
+    team: PlayerStats['team'],
+    ocrResults: Map<string, string>
+): PlayerStats[] {
+    const teamPlayers: PlayerStats[] = [];
+    for (let i = 1; i <= 5; i++) {
+        const numberStats: Partial<PlayerStatsNumberFields> = {};
+        for (const field of PLAYER_STATS_NUMBER_FIELD_NAMES) {
+            numberStats[field] =
+                parseInt(
+                    ocrResults.get(`${team}_player${i}_${field}`) || ''
+                ).toString() || '?';
+        }
+
+        const player: PlayerStats = {
+            name: ocrResults.get(`${team}_player${i}_name`)?.trim() || '?',
+            team,
+            ...(numberStats as PlayerStatsNumberFields),
+        };
+
+        teamPlayers.push(player);
+    }
+    return teamPlayers;
 }
