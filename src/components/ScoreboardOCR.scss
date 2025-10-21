@@ -73,6 +73,15 @@
     h2 {
         margin-top: 0;
         color: theme.$accent2-success;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        user-select: none;
+    }
+
+    span {
+        font-size: 20px;
     }
 
     pre {
@@ -99,9 +108,20 @@
     h2 {
         margin-top: 0;
         color: theme.$foreground-dark;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        user-select: none;
+    }
+
+    span {
+        font-size: 20px;
     }
 
     pre {
         @include theme.code-block(theme.$background-light, theme.$border-light);
+
+        font-size: 14px;
     }
 }

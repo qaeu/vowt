@@ -78,16 +78,18 @@ describe('ScoreboardOCR', () => {
         expect(screen.getByAltText('Original scoreboard')).toBeDefined();
     });
 
-    it('should show processing indicator initially', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should show processing indicator when uploadedImage is provided', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         // Check for processing text (may be brief)
         const processingText = screen.queryByText(/Processing image/);
         expect(processingText).toBeDefined();
     });
 
-    it('should display preprocessed image after processing', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display preprocessed image after processing with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -99,8 +101,9 @@ describe('ScoreboardOCR', () => {
         );
     });
 
-    it('should display raw OCR text output', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display raw OCR text output with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -110,8 +113,9 @@ describe('ScoreboardOCR', () => {
         );
     });
 
-    it('should display extracted game stats JSON', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display extracted game stats JSON with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -123,8 +127,9 @@ describe('ScoreboardOCR', () => {
         );
     });
 
-    it('should display success message with count', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display success message with count with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -144,5 +149,62 @@ describe('ScoreboardOCR', () => {
             'Original scoreboard'
         ) as HTMLImageElement;
         expect(originalImage.src).toContain('/scoreboard.png');
+    });
+
+    it('should render upload button', () => {
+        render(() => <ScoreboardOCR />);
+
+        const uploadButton = screen.getByText(/Upload Image/);
+        expect(uploadButton).toBeDefined();
+    });
+
+    it('should accept uploadedImage prop', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
+
+        await waitFor(
+            () => {
+                const originalImage = screen.getByAltText(
+                    'Original scoreboard'
+                ) as HTMLImageElement;
+                expect(originalImage.src).toBe(testImageData);
+            },
+            { timeout: 3000 }
+        );
+    });
+
+    it('should use default image when no uploadedImage prop is provided', () => {
+        render(() => <ScoreboardOCR uploadedImage={null} />);
+
+        const originalImage = screen.getByAltText(
+            'Original scoreboard'
+        ) as HTMLImageElement;
+        expect(originalImage.src).toContain('/scoreboard.png');
+    });
+
+    it('should have collapsible JSON stats section with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
+
+        await waitFor(
+            () => {
+                const jsonHeader = screen.queryByText(/Extracted Game Stats \(JSON\)/);
+                expect(jsonHeader).toBeDefined();
+            },
+            { timeout: 3000 }
+        );
+    });
+
+    it('should have collapsible raw text section with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
+
+        await waitFor(
+            () => {
+                const rawTextHeader = screen.queryByText(/Raw OCR Text Output/);
+                expect(rawTextHeader).toBeDefined();
+            },
+            { timeout: 3000 }
+        );
     });
 });

@@ -1,4 +1,4 @@
-import { Component, createSignal, onMount, Show } from 'solid-js';
+import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
@@ -14,7 +14,11 @@ interface GameStats {
     [key: string]: string | number;
 }
 
-const ScoreboardOCR: Component = () => {
+interface ScoreboardOCRProps {
+    uploadedImage?: string | null;
+}
+
+const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [isProcessing, setIsProcessing] = createSignal(false);
     const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
     const [preprocessedImagePreview, setPreprocessedImagePreview] =
@@ -23,30 +27,45 @@ const ScoreboardOCR: Component = () => {
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
     const [error, setError] = createSignal<string>('');
     const [progress, setProgress] = createSignal<number>(0);
+    const [currentImage, setCurrentImage] =
+        createSignal<string>('/scoreboard.png');
+    const [showJsonStats, setShowJsonStats] = createSignal(false);
+    const [showRawText, setShowRawText] = createSignal(false);
 
     const hardcodedImagePath = '/scoreboard.png';
 
     onMount(async () => {
-        await processImage();
+        if (props.uploadedImage) {
+            setCurrentImage(props.uploadedImage);
+            await processImage(props.uploadedImage);
+        }
     });
 
-    const processImage = async () => {
+    // React to changes in uploadedImage prop (e.g., drag-and-drop while on OCR page)
+    createEffect(async () => {
+        const uploaded = props.uploadedImage;
+        if (uploaded && uploaded !== currentImage()) {
+            setCurrentImage(uploaded);
+            await processImage(uploaded);
+        }
+    });
+
+    const processImage = async (imagePath?: string) => {
+        const imageToProcess = imagePath || currentImage();
         try {
             setIsProcessing(true);
             setError('');
             setProgress(0);
 
             // Step 1: Preprocess the full image for display
-            const preprocessed = await preprocessImageForOCR(
-                hardcodedImagePath
-            );
+            const preprocessed = await preprocessImageForOCR(imageToProcess);
             setPreprocessedImage(preprocessed);
             setProgress(20);
 
             // Preview preprocessed image with regions
             const preprocessedPreview = await drawRegionsOnImage(
                 preprocessed,
-                hardcodedImagePath
+                imageToProcess
             );
             setPreprocessedImagePreview(preprocessedPreview);
             setProgress(25);
@@ -59,7 +78,10 @@ const ScoreboardOCR: Component = () => {
                 const worker = await Tesseract.createWorker('eng', 1);
 
                 // Get all defined regions
-                const scoreboardRegions = getScoreboardRegions();
+                const scoreboardRegions = [
+                    ...getScoreboardRegions(),
+                    ...getMatchInfoRegions(),
+                ];
                 const totalScoreBoardRegions = scoreboardRegions.length;
                 for (let i = 0; i < totalScoreBoardRegions; i++) {
                     const region = scoreboardRegions[i];
@@ -68,7 +90,7 @@ const ScoreboardOCR: Component = () => {
                     );
 
                     await worker.setParameters({
-                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
                         tessedit_char_whitelist: region.charSet,
                     });
 
@@ -87,34 +109,6 @@ const ScoreboardOCR: Component = () => {
                     } else {
                         text = result.data.text.trim();
                     }
-
-                    regionResults.set(region.name, text);
-                    ocrTextParts.push(`${region.name}: ${text}`);
-                }
-
-                await worker.setParameters({
-                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
-                    tessedit_char_whitelist: '',
-                });
-
-                const matchInfoRegions = getMatchInfoRegions();
-                const totalMatchInfoRegions = matchInfoRegions.length;
-                for (let i = 0; i < totalMatchInfoRegions; i++) {
-                    const region = matchInfoRegions[i];
-                    setProgress(
-                        60 + Math.round((i / totalMatchInfoRegions) * 15)
-                    );
-
-                    // Recognize text in this region
-                    const result = await worker.recognize(preprocessed, {
-                        rectangle: {
-                            left: region.x,
-                            top: region.y,
-                            width: region.width,
-                            height: region.height,
-                        },
-                    });
-                    const text = result.data.text.trim();
 
                     regionResults.set(region.name, text);
                     ocrTextParts.push(`${region.name}: ${text}`);
@@ -153,6 +147,28 @@ const ScoreboardOCR: Component = () => {
         }
     };
 
+    const handleFileUpload = (event: Event) => {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const imageData = e.target?.result as string;
+                setCurrentImage(imageData);
+                await processImage(imageData);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const triggerFileUpload = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = handleFileUpload;
+        input.click();
+    };
+
     return (
         <div class="scoreboard-container">
             <h1 class="scoreboard-title">Overwatch Scoreboard Tracker POC</h1>
@@ -165,6 +181,26 @@ const ScoreboardOCR: Component = () => {
                     where needed. Tesseract.js processes specific rectangles for
                     more accurate extraction.
                 </p>
+            </div>
+
+            <div style={{ 'margin-bottom': '20px' }}>
+                <button
+                    onClick={triggerFileUpload}
+                    disabled={isProcessing()}
+                    style={{
+                        padding: '10px 20px',
+                        'background-color': '#4caf50',
+                        color: 'white',
+                        border: 'none',
+                        'border-radius': '4px',
+                        cursor: isProcessing() ? 'not-allowed' : 'pointer',
+                        'font-size': '14px',
+                        'font-weight': 'bold',
+                        'box-shadow': '0 2px 4px rgba(0,0,0,0.2)',
+                    }}
+                >
+                    📤 Upload Image
+                </button>
             </div>
 
             <Show when={error()}>
@@ -190,7 +226,7 @@ const ScoreboardOCR: Component = () => {
             <div class="image-grid">
                 <div class="image-container">
                     <h2>Original Image</h2>
-                    <img src={hardcodedImagePath} alt="Original scoreboard" />
+                    <img src={currentImage()} alt="Original scoreboard" />
                 </div>
 
                 <div class="image-container">
@@ -209,20 +245,30 @@ const ScoreboardOCR: Component = () => {
 
             <Show when={Object.keys(extractedStats()).length > 0}>
                 <div class="stats-box">
-                    <h2>Extracted Game Stats (JSON)</h2>
-                    <pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
-                    <p class="stats-message">
-                        ✓ Successfully parsed{' '}
-                        {Object.keys(extractedStats()).length} data fields from
-                        the scoreboard
-                    </p>
+                    <h2 onClick={() => setShowJsonStats(!showJsonStats())}>
+                        <span>Extracted Game Stats (JSON)</span>
+                        <span>{showJsonStats() ? '▼' : '▶'}</span>
+                    </h2>
+                    <Show when={showJsonStats()}>
+                        <pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
+                        <p class="stats-message">
+                            ✓ Successfully parsed{' '}
+                            {Object.keys(extractedStats()).length} data fields
+                            from the scoreboard
+                        </p>
+                    </Show>
                 </div>
             </Show>
 
             <Show when={ocrText()}>
                 <div class="ocr-output-box">
-                    <h2>Raw OCR Text Output</h2>
-                    <pre>{ocrText()}</pre>
+                    <h2 onClick={() => setShowRawText(!showRawText())}>
+                        <span>Raw OCR Text Output</span>
+                        <span>{showRawText() ? '▼' : '▶'}</span>
+                    </h2>
+                    <Show when={showRawText()}>
+                        <pre>{ocrText()}</pre>
+                    </Show>
                 </div>
             </Show>
         </div>
