@@ -92,6 +92,10 @@
                 &.center {
                     text-align: center;
                 }
+
+                &.expanded-details {
+                    cursor: default;
+                }
             }
 
             button {
