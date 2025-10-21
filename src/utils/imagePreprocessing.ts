@@ -626,9 +626,8 @@ export function extractGameStats(
                     .trim() || '0'
             ),
         };
-        if (player.name) {
-            stats.players.push(player);
-        }
+
+        stats.players.push(player);
     }
 
     // Extract red team players
@@ -653,9 +652,8 @@ export function extractGameStats(
                     .trim() || '0'
             ),
         };
-        if (player.name) {
-            stats.players.push(player);
-        }
+
+        stats.players.push(player);
     }
 
     // Extract match info
