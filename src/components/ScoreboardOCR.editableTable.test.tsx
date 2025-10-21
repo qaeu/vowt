@@ -141,7 +141,8 @@ describe('ScoreboardOCR - Editable Table', () => {
 
         await vi.waitFor(
             () => {
-                const matchInfoHeading = screen.queryByText('Match Information');
+                const matchInfoHeading =
+                    screen.queryByText('Match Information');
                 expect(matchInfoHeading).toBeTruthy();
             },
             { timeout: 5000 }

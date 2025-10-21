@@ -1,4 +1,11 @@
-import { Component, createSignal, onMount, createEffect, Show, For } from 'solid-js';
+import {
+    Component,
+    createSignal,
+    onMount,
+    createEffect,
+    Show,
+    For,
+} from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
@@ -7,7 +14,11 @@ import {
     getMatchInfoRegions,
     drawRegionsOnImage,
 } from '../utils/imagePreprocessing';
-import { saveGameRecord, type PlayerStats, type MatchInfo } from '../utils/gameStorage';
+import {
+    saveGameRecord,
+    type PlayerStats,
+    type MatchInfo,
+} from '../utils/gameStorage';
 import './ScoreboardOCR.scss';
 
 interface GameStats {
@@ -31,9 +42,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         createSignal<string>('/scoreboard.png');
     const [showJsonStats, setShowJsonStats] = createSignal(false);
     const [showRawText, setShowRawText] = createSignal(false);
-    
+
     // Editable data states
-    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>([]);
+    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
+        []
+    );
     const [editableMatchInfo, setEditableMatchInfo] = createSignal<MatchInfo>({
         result: '',
         final_score: { blue: '', red: '' },
@@ -188,7 +201,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : 'Failed to save game record'
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to save game record'
             );
         }
     };
@@ -202,7 +217,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         }
     };
 
-    const updatePlayerField = (index: number, field: keyof PlayerStats, value: string | number) => {
+    const updatePlayerField = (
+        index: number,
+        field: keyof PlayerStats,
+        value: string | number
+    ) => {
         const players = [...editablePlayers()];
         if (players[index]) {
             players[index] = { ...players[index], [field]: value };
@@ -212,7 +231,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         }
     };
 
-    const updateMatchInfoField = (field: keyof MatchInfo, value: string | { blue: string; red: string }) => {
+    const updateMatchInfoField = (
+        field: keyof MatchInfo,
+        value: string | { blue: string; red: string }
+    ) => {
         setEditableMatchInfo({ ...editableMatchInfo(), [field]: value });
         setHasUnsavedChanges(true);
         setSaveSuccess(false);
@@ -335,7 +357,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                     type="text"
                                     value={editableMatchInfo().result}
                                     onInput={(e) =>
-                                        updateMatchInfoField('result', e.currentTarget.value)
+                                        updateMatchInfoField(
+                                            'result',
+                                            e.currentTarget.value
+                                        )
                                     }
                                 />
                             </div>
@@ -371,7 +396,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                     type="text"
                                     value={editableMatchInfo().date}
                                     onInput={(e) =>
-                                        updateMatchInfoField('date', e.currentTarget.value)
+                                        updateMatchInfoField(
+                                            'date',
+                                            e.currentTarget.value
+                                        )
                                     }
                                 />
                             </div>
@@ -381,7 +409,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                     type="text"
                                     value={editableMatchInfo().game_mode}
                                     onInput={(e) =>
-                                        updateMatchInfoField('game_mode', e.currentTarget.value)
+                                        updateMatchInfoField(
+                                            'game_mode',
+                                            e.currentTarget.value
+                                        )
                                     }
                                 />
                             </div>
@@ -391,7 +422,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                     type="text"
                                     value={editableMatchInfo().game_length}
                                     onInput={(e) =>
-                                        updateMatchInfoField('game_length', e.currentTarget.value)
+                                        updateMatchInfoField(
+                                            'game_length',
+                                            e.currentTarget.value
+                                        )
                                     }
                                 />
                             </div>
@@ -417,20 +451,33 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <For each={editablePlayers().filter((p) => p.team === 'blue')}>
+                                            <For
+                                                each={editablePlayers().filter(
+                                                    (p) => p.team === 'blue'
+                                                )}
+                                            >
                                                 {(player, index) => {
-                                                    const globalIndex = editablePlayers().indexOf(player);
+                                                    const globalIndex =
+                                                        editablePlayers().indexOf(
+                                                            player
+                                                        );
                                                     return (
                                                         <tr>
                                                             <td>
                                                                 <input
                                                                     type="text"
-                                                                    value={player.name}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.name
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'name',
-                                                                            e.currentTarget.value
+                                                                            e
+                                                                                .currentTarget
+                                                                                .value
                                                                         )
                                                                     }
                                                                 />
@@ -438,12 +485,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.e}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.e
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'e',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -451,12 +507,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.a}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.a
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'a',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -464,12 +529,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.d}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.d
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'd',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -477,12 +551,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.dmg}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.dmg
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'dmg',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -490,12 +573,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.h}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.h
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'h',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -503,12 +595,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.mit}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.mit
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'mit',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -538,20 +639,33 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <For each={editablePlayers().filter((p) => p.team === 'red')}>
+                                            <For
+                                                each={editablePlayers().filter(
+                                                    (p) => p.team === 'red'
+                                                )}
+                                            >
                                                 {(player, index) => {
-                                                    const globalIndex = editablePlayers().indexOf(player);
+                                                    const globalIndex =
+                                                        editablePlayers().indexOf(
+                                                            player
+                                                        );
                                                     return (
                                                         <tr>
                                                             <td>
                                                                 <input
                                                                     type="text"
-                                                                    value={player.name}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.name
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'name',
-                                                                            e.currentTarget.value
+                                                                            e
+                                                                                .currentTarget
+                                                                                .value
                                                                         )
                                                                     }
                                                                 />
@@ -559,12 +673,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.e}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.e
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'e',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -572,12 +695,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.a}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.a
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'a',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -585,12 +717,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.d}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.d
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'd',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -598,12 +739,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.dmg}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.dmg
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'dmg',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -611,12 +761,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.h}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.h
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'h',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
@@ -624,12 +783,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                                                             <td>
                                                                 <input
                                                                     type="number"
-                                                                    value={player.mit}
-                                                                    onInput={(e) =>
+                                                                    value={
+                                                                        player.mit
+                                                                    }
+                                                                    onInput={(
+                                                                        e
+                                                                    ) =>
                                                                         updatePlayerField(
                                                                             globalIndex,
                                                                             'mit',
-                                                                            parseInt(e.currentTarget.value) || 0
+                                                                            parseInt(
+                                                                                e
+                                                                                    .currentTarget
+                                                                                    .value
+                                                                            ) ||
+                                                                                0
                                                                         )
                                                                     }
                                                                 />
