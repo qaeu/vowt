@@ -7,6 +7,7 @@ import {
     importGameRecords,
     type GameRecord,
 } from '../utils/gameStorage';
+import './GameRecordsTable.scss';
 
 const GameRecordsTable: Component = () => {
     const [records, setRecords] = createSignal<GameRecord[]>([]);
@@ -63,10 +64,14 @@ const GameRecordsTable: Component = () => {
                     try {
                         const data = event.target?.result as string;
                         const count = importGameRecords(data);
-                        alert(`Successfully imported ${count} new game record(s)`);
+                        alert(
+                            `Successfully imported ${count} new game record(s)`
+                        );
                         loadRecords();
                     } catch (error) {
-                        alert('Error importing game records. Please check the file format.');
+                        alert(
+                            'Error importing game records. Please check the file format.'
+                        );
                         console.error('Import error:', error);
                     }
                 };
@@ -85,82 +90,26 @@ const GameRecordsTable: Component = () => {
     };
 
     return (
-        <div
-            style={{
-                padding: '20px',
-                'font-family': 'Arial, sans-serif',
-                'max-width': '1400px',
-                margin: '0 auto',
-            }}
-        >
-            <h1 style={{ color: '#1976d2' }}>Stored Game Records</h1>
+        <div class="records-container">
+            <h1 class="records-title">Stored Game Records</h1>
 
-            <div
-                style={{
-                    'margin-bottom': '20px',
-                    display: 'flex',
-                    gap: '10px',
-                    'flex-wrap': 'wrap',
-                }}
-            >
-                <button
-                    onClick={loadRecords}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#1976d2',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor: 'pointer',
-                        'font-size': '14px',
-                        'font-weight': 'bold',
-                    }}
-                >
+            <div class="button-group">
+                <button onClick={loadRecords} class="primary">
                     🔄 Refresh
                 </button>
                 <button
                     onClick={handleExport}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#4caf50',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor: 'pointer',
-                        'font-size': '14px',
-                        'font-weight': 'bold',
-                    }}
+                    class="success"
                     disabled={records().length === 0}
                 >
                     📥 Export
                 </button>
-                <button
-                    onClick={handleImport}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#ff9800',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor: 'pointer',
-                        'font-size': '14px',
-                        'font-weight': 'bold',
-                    }}
-                >
+                <button onClick={handleImport} class="warning">
                     📤 Import
                 </button>
                 <button
                     onClick={handleClearAll}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor: 'pointer',
-                        'font-size': '14px',
-                        'font-weight': 'bold',
-                    }}
+                    class="danger"
                     disabled={records().length === 0}
                 >
                     🗑️ Clear All
@@ -168,98 +117,25 @@ const GameRecordsTable: Component = () => {
             </div>
 
             <Show when={records().length === 0}>
-                <div
-                    style={{
-                        padding: '40px',
-                        'text-align': 'center',
-                        'background-color': '#f5f5f5',
-                        'border-radius': '8px',
-                        color: '#666',
-                    }}
-                >
-                    <p style={{ 'font-size': '18px', margin: '0' }}>
-                        No game records found. Process a scoreboard to create your
-                        first record!
+                <div class="empty-state">
+                    <p>
+                        No game records found. Process a scoreboard to create
+                        your first record!
                     </p>
                 </div>
             </Show>
 
             <Show when={records().length > 0}>
-                <div
-                    style={{
-                        'background-color': '#fff',
-                        'border-radius': '8px',
-                        'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
-                        overflow: 'hidden',
-                    }}
-                >
-                    <table
-                        style={{
-                            width: '100%',
-                            'border-collapse': 'collapse',
-                        }}
-                    >
+                <div class="records-table-wrapper">
+                    <table>
                         <thead>
-                            <tr
-                                style={{
-                                    'background-color': '#1976d2',
-                                    color: 'white',
-                                }}
-                            >
-                                <th
-                                    style={{
-                                        padding: '12px',
-                                        'text-align': 'left',
-                                        'font-weight': 'bold',
-                                    }}
-                                >
-                                    Date/Time
-                                </th>
-                                <th
-                                    style={{
-                                        padding: '12px',
-                                        'text-align': 'left',
-                                        'font-weight': 'bold',
-                                    }}
-                                >
-                                    Result
-                                </th>
-                                <th
-                                    style={{
-                                        padding: '12px',
-                                        'text-align': 'left',
-                                        'font-weight': 'bold',
-                                    }}
-                                >
-                                    Score
-                                </th>
-                                <th
-                                    style={{
-                                        padding: '12px',
-                                        'text-align': 'left',
-                                        'font-weight': 'bold',
-                                    }}
-                                >
-                                    Mode
-                                </th>
-                                <th
-                                    style={{
-                                        padding: '12px',
-                                        'text-align': 'left',
-                                        'font-weight': 'bold',
-                                    }}
-                                >
-                                    Players
-                                </th>
-                                <th
-                                    style={{
-                                        padding: '12px',
-                                        'text-align': 'center',
-                                        'font-weight': 'bold',
-                                    }}
-                                >
-                                    Actions
-                                </th>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Result</th>
+                                <th>Score</th>
+                                <th>Mode</th>
+                                <th>Players</th>
+                                <th class="center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -267,208 +143,110 @@ const GameRecordsTable: Component = () => {
                                 {(record) => (
                                     <>
                                         <tr
-                                            style={{
-                                                'border-bottom': '1px solid #e0e0e0',
-                                                cursor: 'pointer',
-                                                'background-color':
-                                                    expandedRecordId() === record.id
-                                                        ? '#f5f5f5'
-                                                        : 'white',
-                                            }}
-                                            onClick={() => toggleExpanded(record.id)}
+                                            class={
+                                                expandedRecordId() === record.id
+                                                    ? 'expanded'
+                                                    : ''
+                                            }
+                                            onClick={() =>
+                                                toggleExpanded(record.id)
+                                            }
                                         >
-                                            <td style={{ padding: '12px' }}>
+                                            <td>
                                                 {formatDate(record.timestamp)}
                                             </td>
-                                            <td style={{ padding: '12px' }}>
+                                            <td>
                                                 <span
-                                                    style={{
-                                                        padding: '4px 8px',
-                                                        'border-radius': '4px',
-                                                        'background-color':
-                                                            record.matchInfo.result ===
-                                                            'VICTORY'
-                                                                ? '#4caf50'
-                                                                : '#f44336',
-                                                        color: 'white',
-                                                        'font-size': '12px',
-                                                        'font-weight': 'bold',
-                                                    }}
+                                                    class={`result-badge ${
+                                                        record.matchInfo
+                                                            .result ===
+                                                        'VICTORY'
+                                                            ? 'victory'
+                                                            : 'defeat'
+                                                    }`}
                                                 >
                                                     {record.matchInfo.result}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '12px' }}>
-                                                {record.matchInfo.final_score.blue} -{' '}
-                                                {record.matchInfo.final_score.red}
+                                            <td>
+                                                {
+                                                    record.matchInfo.final_score
+                                                        .blue
+                                                }{' '}
+                                                -{' '}
+                                                {
+                                                    record.matchInfo.final_score
+                                                        .red
+                                                }
                                             </td>
-                                            <td style={{ padding: '12px' }}>
+                                            <td>
                                                 {record.matchInfo.game_mode}
                                             </td>
-                                            <td style={{ padding: '12px' }}>
-                                                {record.players.length}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    padding: '12px',
-                                                    'text-align': 'center',
-                                                }}
-                                            >
+                                            <td>{record.players.length}</td>
+                                            <td class="center">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         handleDelete(record.id);
-                                                    }}
-                                                    style={{
-                                                        padding: '6px 12px',
-                                                        'background-color': '#f44336',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        'border-radius': '4px',
-                                                        cursor: 'pointer',
-                                                        'font-size': '12px',
                                                     }}
                                                 >
                                                     Delete
                                                 </button>
                                             </td>
                                         </tr>
-                                        <Show when={expandedRecordId() === record.id}>
-                                            <tr
-                                                style={{
-                                                    'border-bottom':
-                                                        '1px solid #e0e0e0',
-                                                }}
-                                            >
+                                        <Show
+                                            when={
+                                                expandedRecordId() === record.id
+                                            }
+                                        >
+                                            <tr>
                                                 <td
                                                     colspan="6"
-                                                    style={{
-                                                        padding: '20px',
-                                                        'background-color': '#f9f9f9',
-                                                    }}
+                                                    class="expanded-details"
                                                 >
-                                                    <h3
-                                                        style={{
-                                                            'margin-top': '0',
-                                                            color: '#424242',
-                                                        }}
-                                                    >
-                                                        Game Details
-                                                    </h3>
-                                                    <div
-                                                        style={{
-                                                            'margin-bottom': '15px',
-                                                        }}
-                                                    >
-                                                        <strong>Game Date:</strong>{' '}
+                                                    <h3>Game Details</h3>
+                                                    <div class="game-info">
+                                                        <strong>
+                                                            Game Date:
+                                                        </strong>{' '}
                                                         {record.matchInfo.date}
                                                         <br />
-                                                        <strong>Length:</strong>{' '}
-                                                        {record.matchInfo.game_length}
+                                                        <strong>
+                                                            Length:
+                                                        </strong>{' '}
+                                                        {
+                                                            record.matchInfo
+                                                                .game_length
+                                                        }
                                                     </div>
-                                                    <h4
-                                                        style={{
-                                                            color: '#424242',
-                                                            'margin-bottom': '10px',
-                                                        }}
-                                                    >
-                                                        Players
-                                                    </h4>
-                                                    <div
-                                                        style={{
-                                                            display: 'grid',
-                                                            'grid-template-columns':
-                                                                '1fr 1fr',
-                                                            gap: '20px',
-                                                        }}
-                                                    >
+                                                    <h4>Players</h4>
+                                                    <div class="teams-grid">
                                                         <div>
-                                                            <h5
-                                                                style={{
-                                                                    color: '#1976d2',
-                                                                    'margin-bottom':
-                                                                        '10px',
-                                                                }}
-                                                            >
+                                                            <h5 class="blue-team">
                                                                 Blue Team
                                                             </h5>
-                                                            <table
-                                                                style={{
-                                                                    width: '100%',
-                                                                    'font-size':
-                                                                        '13px',
-                                                                }}
-                                                            >
+                                                            <table>
                                                                 <thead>
                                                                     <tr>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'left',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th>
                                                                             Name
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             E
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             A
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             D
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             DMG
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             H
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             MIT
                                                                         </th>
                                                                     </tr>
@@ -476,91 +254,48 @@ const GameRecordsTable: Component = () => {
                                                                 <tbody>
                                                                     <For
                                                                         each={record.players.filter(
-                                                                            (p) =>
+                                                                            (
+                                                                                p
+                                                                            ) =>
                                                                                 p.team ===
                                                                                 'blue'
                                                                         )}
                                                                     >
-                                                                        {(player) => (
+                                                                        {(
+                                                                            player
+                                                                        ) => (
                                                                             <tr>
-                                                                                <td
-                                                                                    style={{
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td>
                                                                                     {
                                                                                         player.name
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.e
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.a
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.d
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.dmg
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.h
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.mit
                                                                                     }
@@ -572,92 +307,31 @@ const GameRecordsTable: Component = () => {
                                                             </table>
                                                         </div>
                                                         <div>
-                                                            <h5
-                                                                style={{
-                                                                    color: '#f44336',
-                                                                    'margin-bottom':
-                                                                        '10px',
-                                                                }}
-                                                            >
+                                                            <h5 class="red-team">
                                                                 Red Team
                                                             </h5>
-                                                            <table
-                                                                style={{
-                                                                    width: '100%',
-                                                                    'font-size':
-                                                                        '13px',
-                                                                }}
-                                                            >
+                                                            <table>
                                                                 <thead>
                                                                     <tr>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'left',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th>
                                                                             Name
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             E
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             A
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             D
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             DMG
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             H
                                                                         </th>
-                                                                        <th
-                                                                            style={{
-                                                                                'text-align':
-                                                                                    'right',
-                                                                                padding:
-                                                                                    '4px',
-                                                                            }}
-                                                                        >
+                                                                        <th class="right">
                                                                             MIT
                                                                         </th>
                                                                     </tr>
@@ -665,91 +339,48 @@ const GameRecordsTable: Component = () => {
                                                                 <tbody>
                                                                     <For
                                                                         each={record.players.filter(
-                                                                            (p) =>
+                                                                            (
+                                                                                p
+                                                                            ) =>
                                                                                 p.team ===
                                                                                 'red'
                                                                         )}
                                                                     >
-                                                                        {(player) => (
+                                                                        {(
+                                                                            player
+                                                                        ) => (
                                                                             <tr>
-                                                                                <td
-                                                                                    style={{
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td>
                                                                                     {
                                                                                         player.name
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.e
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.a
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.d
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.dmg
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.h
                                                                                     }
                                                                                 </td>
-                                                                                <td
-                                                                                    style={{
-                                                                                        'text-align':
-                                                                                            'right',
-                                                                                        padding:
-                                                                                            '4px',
-                                                                                    }}
-                                                                                >
+                                                                                <td class="right">
                                                                                     {
                                                                                         player.mit
                                                                                     }

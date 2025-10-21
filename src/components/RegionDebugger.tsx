@@ -4,6 +4,7 @@ import {
     DrawnRegion,
     formatRegionForCopy,
 } from '../utils/regionEditor';
+import './RegionDebugger.scss';
 
 const RegionDebugger: Component = () => {
     const [regions, setRegions] = createSignal<DrawnRegion[]>([]);
@@ -51,26 +52,11 @@ const RegionDebugger: Component = () => {
     };
 
     return (
-        <div
-            style={{
-                padding: '20px',
-                'font-family': 'Arial, sans-serif',
-                'max-width': '1400px',
-                margin: '0 auto',
-            }}
-        >
+        <div class="region-debugger-container">
             <h1>📍 Region Debugger</h1>
 
-            <div
-                style={{
-                    padding: '15px',
-                    'background-color': '#e3f2fd',
-                    'border-left': '4px solid #1976d2',
-                    'margin-bottom': '20px',
-                    'border-radius': '4px',
-                }}
-            >
-                <p style={{ margin: '0', 'font-size': '14px' }}>
+            <div class="info-box">
+                <p>
                     <strong>Instructions:</strong> Click the "Start Region
                     Editor" button, then click and drag on the image to draw
                     regions. Each region's coordinates will be logged to the
@@ -79,20 +65,11 @@ const RegionDebugger: Component = () => {
                 </p>
             </div>
 
-            <div style={{ 'margin-bottom': '20px' }}>
+            <div class="button-group">
                 <button
                     onClick={startEditor}
                     disabled={isEditing()}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#1976d2',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor: isEditing() ? 'not-allowed' : 'pointer',
-                        'font-size': '14px',
-                        'margin-right': '10px',
-                    }}
+                    class="primary"
                 >
                     {isEditing() ? 'Editing...' : 'Start Region Editor'}
                 </button>
@@ -100,17 +77,7 @@ const RegionDebugger: Component = () => {
                 <button
                     onClick={clearRegions}
                     disabled={regions().length === 0}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor:
-                            regions().length === 0 ? 'not-allowed' : 'pointer',
-                        'font-size': '14px',
-                        'margin-right': '10px',
-                    }}
+                    class="danger"
                 >
                     Clear All
                 </button>
@@ -118,66 +85,20 @@ const RegionDebugger: Component = () => {
                 <button
                     onClick={copyRegionsCode}
                     disabled={regions().length === 0}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#4caf50',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor:
-                            regions().length === 0 ? 'not-allowed' : 'pointer',
-                        'font-size': '14px',
-                    }}
+                    class="success"
                 >
                     Copy Code to Clipboard
                 </button>
             </div>
 
-            <div
-                style={{
-                    'background-color': '#f5f5f5',
-                    padding: '20px',
-                    'border-radius': '8px',
-                    'margin-bottom': '20px',
-                    border: '2px solid #1976d2',
-                }}
-            >
-                <canvas
-                    ref={canvasRef}
-                    style={{
-                        display: 'block',
-                        'max-width': '100%',
-                        border: '1px solid #ddd',
-                        'border-radius': '4px',
-                    }}
-                />
+            <div class="canvas-wrapper">
+                <canvas ref={canvasRef} />
             </div>
 
             {regions().length > 0 && (
-                <div
-                    style={{
-                        padding: '20px',
-                        'background-color': '#e8f5e9',
-                        'border-radius': '8px',
-                        border: '1px solid #a5d6a7',
-                    }}
-                >
-                    <h2 style={{ 'margin-top': '0', color: '#2e7d32' }}>
-                        Drawn Regions ({regions().length})
-                    </h2>
-                    <pre
-                        style={{
-                            'background-color': '#fff',
-                            padding: '15px',
-                            'border-radius': '4px',
-                            'white-space': 'pre-wrap',
-                            'word-wrap': 'break-word',
-                            border: '1px solid #a5d6a7',
-                            'font-family': 'monospace',
-                            'font-size': '12px',
-                            'line-height': '1.5',
-                        }}
-                    >
+                <div class="regions-display">
+                    <h2>Drawn Regions ({regions().length})</h2>
+                    <pre>
                         {regions()
                             .map(
                                 (r, i) =>
@@ -186,20 +107,8 @@ const RegionDebugger: Component = () => {
                             .join('\n\n')}
                     </pre>
 
-                    <h3 style={{ color: '#2e7d32' }}>Copy-Ready Code:</h3>
-                    <pre
-                        style={{
-                            'background-color': '#fff',
-                            padding: '15px',
-                            'border-radius': '4px',
-                            'white-space': 'pre-wrap',
-                            'word-wrap': 'break-word',
-                            border: '1px solid #a5d6a7',
-                            'font-family': 'monospace',
-                            'font-size': '11px',
-                            'line-height': '1.4',
-                        }}
-                    >
+                    <h3>Copy-Ready Code:</h3>
+                    <pre class="code-output">
                         {regions()
                             .map(
                                 (r, i) =>

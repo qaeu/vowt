@@ -1,0 +1,107 @@
+@use '../theme';
+
+.scoreboard-container {
+    @include theme.container;
+}
+
+.scoreboard-title {
+    color: theme.$accent1;
+}
+
+.info-box {
+    @include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
+}
+
+.error-box {
+    @include theme.info-box(
+        theme.$accent2-error-light,
+        theme.$accent2-error-border
+    );
+
+    color: theme.$accent2-error-dark;
+}
+
+.progress-container {
+    margin-bottom: 30px;
+
+    .progress-text {
+        font-weight: bold;
+        color: theme.$accent1;
+    }
+
+    .progress-bar-wrapper {
+        @include theme.progress-bar-wrapper;
+    }
+
+    .progress-bar {
+        @include theme.progress-bar-fill;
+    }
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.image-container {
+    @include theme.card(theme.$background);
+
+    h2 {
+        margin-top: 0;
+        color: theme.$foreground-dark;
+    }
+
+    img {
+        max-width: 100%;
+        border: 2px solid theme.$border-light;
+        border-radius: 4px;
+        display: block;
+    }
+
+    p {
+        font-size: 13px;
+        color: theme.$foreground-light;
+        margin-top: 10px;
+    }
+}
+
+.stats-box {
+    @include theme.card(theme.$accent2-success-light);
+
+    h2 {
+        margin-top: 0;
+        color: theme.$accent2-success;
+    }
+
+    pre {
+        @include theme.code-block(
+            theme.$background-light,
+            theme.$accent2-success-border
+        );
+
+        font-size: 16px;
+        padding: 20px;
+    }
+
+    .stats-message {
+        font-size: 13px;
+        color: theme.$accent2-success;
+        margin-top: 15px;
+        margin-bottom: 0;
+    }
+}
+
+.ocr-output-box {
+    @include theme.card(theme.$background);
+
+    h2 {
+        margin-top: 0;
+        color: theme.$foreground-dark;
+    }
+
+    pre {
+        @include theme.code-block(theme.$background-light, theme.$border-light);
+    }
+}

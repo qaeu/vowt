@@ -1,0 +1,80 @@
+@use '../theme';
+
+.region-debugger-container {
+    @include theme.container;
+}
+
+.info-box {
+    @include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
+}
+
+.button-group {
+    margin-bottom: 20px;
+
+    button {
+        padding: 10px 20px;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 10px;
+
+        &:disabled {
+            cursor: not-allowed;
+        }
+
+        &.primary {
+            @include theme.button(theme.$accent1);
+        }
+
+        &.danger {
+            @include theme.button(theme.$accent2-error);
+        }
+
+        &.success {
+            @include theme.button(theme.$accent2-success);
+        }
+    }
+}
+
+.canvas-wrapper {
+    @include theme.card(theme.$background);
+
+    border: 2px solid theme.$accent1;
+    margin-bottom: 20px;
+
+    canvas {
+        display: block;
+        max-width: 100%;
+        border: 1px solid theme.$border-light;
+        border-radius: 4px;
+    }
+}
+
+.regions-display {
+    @include theme.card(theme.$accent2-success-light);
+
+    border: 1px solid theme.$accent2-success-border;
+
+    h2 {
+        margin-top: 0;
+        color: theme.$accent2-success;
+    }
+
+    h3 {
+        color: theme.$accent2-success;
+    }
+
+    pre {
+        @include theme.code-block(
+            theme.$background-light,
+            theme.$accent2-success-border
+        );
+
+        &.code-output {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+    }
+}
