@@ -8,42 +8,42 @@ describe('EditableGameData', () => {
         {
             name: 'BluePlayer1',
             team: 'blue',
-            e: 10,
-            a: 5,
-            d: 2,
-            dmg: 15000,
-            h: 8000,
-            mit: 12000,
+            e: '10',
+            a: '5',
+            d: '2',
+            dmg: '15000',
+            h: '8000',
+            mit: '12000',
         },
         {
             name: 'BluePlayer2',
             team: 'blue',
-            e: 8,
-            a: 6,
-            d: 3,
-            dmg: 12000,
-            h: 7000,
-            mit: 10000,
+            e: '8',
+            a: '6',
+            d: '3',
+            dmg: '12000',
+            h: '7000',
+            mit: '10000',
         },
         {
             name: 'RedPlayer1',
             team: 'red',
-            e: 7,
-            a: 4,
-            d: 4,
-            dmg: 11000,
-            h: 6000,
-            mit: 9000,
+            e: '7',
+            a: '4',
+            d: '4',
+            dmg: '11000',
+            h: '6000',
+            mit: '9000',
         },
         {
             name: 'RedPlayer2',
             team: 'red',
-            e: 9,
-            a: 7,
-            d: 1,
-            dmg: 13000,
-            h: 5000,
-            mit: 8000,
+            e: '9',
+            a: '7',
+            d: '1',
+            dmg: '13000',
+            h: '5000',
+            mit: '8000',
         },
     ];
 
@@ -291,8 +291,12 @@ describe('EditableGameData', () => {
             />
         ));
 
-        const saveButton = screen.getByText(/Save to Records/) as HTMLButtonElement;
-        const cancelButton = screen.getByText(/Reset Changes/) as HTMLButtonElement;
+        const saveButton = screen.getByText(
+            /Save to Records/
+        ) as HTMLButtonElement;
+        const cancelButton = screen.getByText(
+            /Reset Changes/
+        ) as HTMLButtonElement;
 
         expect(saveButton.disabled).toBe(true);
         expect(cancelButton.disabled).toBe(true);
