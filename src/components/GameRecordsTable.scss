@@ -96,6 +96,15 @@
 
             button {
                 @include theme.button-small(theme.$accent2-error);
+
+                &.edit-button {
+                    @include theme.button-small(theme.$accent1);
+                    margin-right: 5px;
+                }
+
+                &.delete-button {
+                    @include theme.button-small(theme.$accent2-error);
+                }
             }
         }
     }

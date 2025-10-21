@@ -3,6 +3,7 @@ import {
     loadGameRecords,
     saveGameRecord,
     deleteGameRecord,
+    updateGameRecord,
     clearAllGameRecords,
     exportGameRecords,
     importGameRecords,
@@ -72,6 +73,57 @@ describe('gameStorage', () => {
         const records = loadGameRecords();
         expect(records.length).toBe(1);
         expect(records[0].id).toBe(record2.id);
+    });
+
+    it('should update a game record by id', () => {
+        const record = saveGameRecord(mockPlayers, mockMatchInfo);
+
+        const updatedPlayers: PlayerStats[] = [
+            {
+                name: 'UpdatedPlayer1',
+                team: 'blue',
+                e: 20,
+                a: 10,
+                d: 4,
+                dmg: 10000,
+                h: 6000,
+                mit: 2000,
+            },
+        ];
+
+        const updatedMatchInfo: MatchInfo = {
+            result: 'DEFEAT',
+            final_score: { blue: '2', red: '3' },
+            date: '09/16/25 - 03:50',
+            game_mode: 'CONTROL',
+            game_length: '12:30',
+        };
+
+        const updatedRecord = updateGameRecord(
+            record.id,
+            updatedPlayers,
+            updatedMatchInfo
+        );
+
+        expect(updatedRecord).toBeTruthy();
+        expect(updatedRecord?.id).toBe(record.id);
+        expect(updatedRecord?.timestamp).toBe(record.timestamp);
+        expect(updatedRecord?.players).toEqual(updatedPlayers);
+        expect(updatedRecord?.matchInfo).toEqual(updatedMatchInfo);
+
+        const records = loadGameRecords();
+        expect(records.length).toBe(1);
+        expect(records[0].players).toEqual(updatedPlayers);
+        expect(records[0].matchInfo).toEqual(updatedMatchInfo);
+    });
+
+    it('should return null when updating non-existent record', () => {
+        const result = updateGameRecord(
+            'non-existent-id',
+            mockPlayers,
+            mockMatchInfo
+        );
+        expect(result).toBeNull();
     });
 
     it('should clear all game records', () => {
