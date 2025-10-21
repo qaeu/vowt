@@ -18,9 +18,6 @@ const GameRecordsTable: Component = () => {
     const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(
         null
     );
-    const [editingRecordId, setEditingRecordId] = createSignal<string | null>(
-        null
-    );
     const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
         []
     );
@@ -46,8 +43,8 @@ const GameRecordsTable: Component = () => {
         if (confirm('Are you sure you want to delete this game record?')) {
             deleteGameRecord(id);
             // If we're editing this record, stop editing
-            if (editingRecordId() === id) {
-                setEditingRecordId(null);
+            if (expandedRecordId() === id) {
+                setExpandedRecordId(null);
                 setHasUnsavedChanges(false);
             }
             // If this record is expanded, collapse it
@@ -109,17 +106,15 @@ const GameRecordsTable: Component = () => {
         input.click();
     };
 
-    const toggleEdit = (record: GameRecord) => {
+    const toggleExpanded = (record: GameRecord) => {
         const recordId = record.id;
         // If this record is already being edited, close it
-        if (editingRecordId() === recordId) {
-            setEditingRecordId(null);
+        if (expandedRecordId() === recordId) {
             setExpandedRecordId(null);
             setHasUnsavedChanges(false);
             setSaveSuccess(false);
         } else {
             // Otherwise, open it for editing
-            setEditingRecordId(recordId);
             setExpandedRecordId(recordId);
             setEditablePlayers(structuredClone(record.players));
             setEditableMatchInfo({ ...record.matchInfo });
@@ -129,14 +124,13 @@ const GameRecordsTable: Component = () => {
     };
 
     const handleCancelEdit = () => {
-        setEditingRecordId(null);
         setExpandedRecordId(null);
         setHasUnsavedChanges(false);
         setSaveSuccess(false);
     };
 
     const handleSaveEdit = () => {
-        const recordId = editingRecordId();
+        const recordId = expandedRecordId();
         if (!recordId) return;
 
         try {
@@ -148,7 +142,6 @@ const GameRecordsTable: Component = () => {
             // Clear success message after 3 seconds and close edit mode
             setTimeout(() => {
                 setSaveSuccess(false);
-                setEditingRecordId(null);
                 setExpandedRecordId(null);
             }, 3000);
         } catch (err) {
@@ -252,7 +245,7 @@ const GameRecordsTable: Component = () => {
                                                     : ''
                                             }
                                             onClick={() =>
-                                                toggleEdit(record)
+                                                toggleExpanded(record)
                                             }
                                         >
                                             <td>
@@ -319,9 +312,7 @@ const GameRecordsTable: Component = () => {
                                                         onMatchInfoUpdate={
                                                             updateMatchInfoField
                                                         }
-                                                        onSave={
-                                                            handleSaveEdit
-                                                        }
+                                                        onSave={handleSaveEdit}
                                                         onCancel={
                                                             handleCancelEdit
                                                         }
