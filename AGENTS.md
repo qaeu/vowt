@@ -16,6 +16,7 @@ VOWT is a client-side OCR application for extracting and managing video game sco
 | -------------- | --------------------------------- | ------------------------------------------------------- |
 | **Framework**  | SolidJS 1.9+                      | Fine-grained reactivity, minimal overhead               |
 | **Build Tool** | Vite 7.1+                         | Lightning-fast development, optimized production builds |
+| **Styling**    | SASS/SCSS                         | Module-based with theme variables and mixins            |
 | **OCR Engine** | Tesseract.js 6.0.1                | Client-side text recognition; no API calls              |
 | **Testing**    | Vitest + @solidjs/testing-library | Unit and component testing                              |
 | **Language**   | TypeScript 5.7+                   | Strict type safety across codebase                      |
@@ -25,16 +26,25 @@ VOWT is a client-side OCR application for extracting and managing video game sco
 
 ```
 src/
-├── App.tsx                    # Main entry point; layout and debug toggles
-├── index.tsx                 # SolidJS app initialization
-├── setupTests.ts             # Test configuration
+├── App.tsx                      # Main entry point; layout and debug toggles
+├── App.scss                     # App navigation styling
+├── index.tsx                    # SolidJS app initialization
+├── setupTests.ts                # Test configuration
+├── _theme.scss                  # Color variables, typography, and reusable mixins
 ├── components/
-│   ├── ScoreboardOCR.tsx      # Primary OCR processing logic
-│   ├── ScoreboardOCR.test.tsx # Component tests
-│   └── RegionDebugger.tsx     # Development tool for region visualization
+│   ├── ScoreboardOCR.tsx        # Primary OCR processing logic
+│   ├── ScoreboardOCR.scss       # OCR component styling
+│   ├── ScoreboardOCR.test.tsx   # Component tests
+│   ├── RegionDebugger.tsx       # Development tool for region visualization
+│   ├── RegionDebugger.scss      # Region debugger styling
+│   ├── GameRecordsTable.tsx     # Game records display and management
+│   └── GameRecordsTable.scss    # Records table styling
 └── utils/
-    ├── imagePreprocessing.ts   # Image processing, region definitions, OCR utilities
-    └── regionEditor.ts         # Region coordinate management
+    ├── imagePreprocessing.ts    # Image processing, region definitions, OCR utilities
+    ├── imagePreprocessing.test.ts
+    ├── gameStorage.ts           # Game record persistence (localStorage)
+    ├── gameStorage.test.ts
+    └── regionEditor.ts          # Region coordinate management
 ```
 
 ## Development Guidelines
@@ -53,6 +63,16 @@ src/
 -   **Explicit types**: Avoid `any`; use union types and generics instead.
 -   **Component types**: Always specify `Component` return type or generic interface for SolidJS components.
 -   **Interface over type**: Prefer `interface` for object shapes; use `type` only for unions or primitives.
+
+### Styling with SASS/SCSS
+
+-   **Module system**: Use `@use` for importing theme variables and mixins.
+-   **Theme file**: `src/_theme.scss` contains:
+    -   **Color variables**: Organized into logical groups (foreground, background, accent1, accent2, neutral).
+    -   **Reusable mixins**: `container`, `card`, `info-box`, `button`, `badge`, `code-block`, `progress-bar-wrapper/fill`, etc.
+-   **Component stylesheets**: Each component has a corresponding `.scss` file using mixins from `_theme.scss`.
+-   **Class naming**: Use BEM-like convention for nested components (e.g., `.progress-container .progress-bar`).
+-   **No inline styles**: Avoid inline `style` attributes; use CSS classes and mixins instead.
 
 ### Browser Storage Patterns
 
