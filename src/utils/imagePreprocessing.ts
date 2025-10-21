@@ -606,7 +606,7 @@ function preprocessRegionForOCR(
  */
 export function extractGameStats(
     regionResults: Map<string, string>
-): Partial<GameRecord> {
+): Pick<GameRecord, 'players' | 'matchInfo'> {
     const players: GameRecord['players'] = [];
     players.push(...extractTeamPlayers('blue', regionResults));
     players.push(...extractTeamPlayers('red', regionResults));
@@ -628,7 +628,7 @@ export function extractGameStats(
             regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '?',
     };
 
-    return { players, matchInfo } as Partial<GameRecord>;
+    return { players, matchInfo };
 }
 
 /**
