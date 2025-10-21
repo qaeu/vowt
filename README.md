@@ -1,14 +1,12 @@
-## Usage
+# VOWT
 
-Those templates dependencies are maintained via [pnpm](https://pnpm.io) via `pnpm up -Lri`.
+A client-side OCR application for extracting and managing Overwatch scoreboard data. Built with **SolidJS**, **Vite**, and **Tesseract.js**
 
-This is the reason you see a `pnpm-lock.yaml`. That being said, any package manager will work. This file can be safely be removed once you clone a template.
+## Installation
 
 ```bash
-$ npm install # or pnpm install or yarn install
+$ npm install
 ```
-
-### Learn more on the [Solid Website](https://solidjs.com) and come chat with us on our [Discord](https://discord.com/invite/solidjs)
 
 ## Available Scripts
 
@@ -29,8 +27,27 @@ It correctly bundles Solid in production mode and optimizes the build for the be
 The build is minified and the filenames include the hashes.<br>
 Your app is ready to be deployed!
 
+### `npm test`
+
+Runs unit tests with Vitest. See [TESTING.md](./TESTING.md) for more details.
+
 ## Deployment
 
-You can deploy the `dist` folder to any static host provider (netlify, surge, now, etc.)
+You can deploy the `dist` folder to any static host provider (GitHub Pages, Netlify, Vercel, etc.)
+
+### GitHub Pages
+
+Configure your repository to deploy from the `dist` folder via GitHub Actions or Pages settings.
+
+## Documentation
+
+-   [AGENTS.md](./AGENTS.md) - Comprehensive development guidelines and project architecture
+-   [TESTING.md](./TESTING.md) - Testing setup and best practices
+
+## Learn More
+
+-   [SolidJS Documentation](https://solidjs.com)
+-   [Vite Documentation](https://vitejs.dev)
+-   [Tesseract.js Documentation](https://tesseract.projectnaptha.com)
 
 ## This project was created with the [Solid CLI](https://github.com/solidjs-community/solid-cli)

@@ -243,17 +243,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     return (
         <div class="scoreboard-container">
             <h1 class="scoreboard-title">Overwatch Scoreboard Tracker POC</h1>
-
-            <div class="info-box">
-                <p>
-                    <strong>POC Demo:</strong> This demonstrates region-based
-                    OCR with image preprocessing. Each text element is
-                    recognized individually with italic text correction applied
-                    where needed. Tesseract.js processes specific rectangles for
-                    more accurate extraction.
-                </p>
-            </div>
-
             <div style={{ 'margin-bottom': '20px' }}>
                 <button
                     onClick={triggerFileUpload}
