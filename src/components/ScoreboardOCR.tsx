@@ -1,11 +1,4 @@
-import {
-    Component,
-    createSignal,
-    onMount,
-    createEffect,
-    Show,
-    For,
-} from 'solid-js';
+import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
@@ -20,6 +13,7 @@ import {
     type MatchInfo,
     type GameRecord,
 } from '../utils/gameStorage';
+import EditableGameData from './EditableGameData';
 import './ScoreboardOCR.scss';
 
 interface ScoreboardOCRProps {
@@ -28,7 +22,6 @@ interface ScoreboardOCRProps {
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [isProcessing, setIsProcessing] = createSignal(false);
-    const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
     const [preprocessedImagePreview, setPreprocessedImagePreview] =
         createSignal<string>('');
     const [rawOcrText, setRawOcrText] = createSignal<string>('');
@@ -78,9 +71,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setError('');
             setProgress(0);
 
-            // Step 1: Preprocess the full image for display
+            // Step 1: Preprocess the full image
             const preprocessed = await preprocessImageForOCR(imageToProcess);
-            setPreprocessedImage(preprocessed);
             setProgress(20);
 
             // Preview preprocessed image with regions
@@ -147,12 +139,13 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setExtractedStats(stats);
             setProgress(100);
 
-            // Set editable data (no auto-save)
+            // Set editable data
             if (stats.players && stats.matchInfo) {
                 setEditablePlayers(structuredClone(stats.players));
                 setEditableMatchInfo({ ...stats.matchInfo });
-                setHasUnsavedChanges(true);
-                setSaveSuccess(false);
+                saveGameRecord(editablePlayers(), editableMatchInfo());
+                setHasUnsavedChanges(false);
+                setSaveSuccess(true);
             }
         } catch (err) {
             setError(
@@ -191,8 +184,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             saveGameRecord(editablePlayers(), editableMatchInfo());
             setHasUnsavedChanges(false);
             setSaveSuccess(true);
-            // Clear success message after 3 seconds
-            setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             setError(
                 err instanceof Error
@@ -308,468 +299,16 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             </div>
 
             <Show when={editablePlayers().length > 0}>
-                <div class="editable-data-container">
-                    <div class="editable-header">
-                        <h2>Extracted Game Data - Review and Edit</h2>
-                        <div class="action-buttons">
-                            <button
-                                onClick={handleSaveData}
-                                disabled={!hasUnsavedChanges()}
-                                class="save-button"
-                            >
-                                💾 Save to Records
-                            </button>
-                            <button
-                                onClick={handleCancelEdit}
-                                disabled={!hasUnsavedChanges()}
-                                class="cancel-button"
-                            >
-                                ↺ Reset Changes
-                            </button>
-                        </div>
-                    </div>
-
-                    <Show when={saveSuccess()}>
-                        <div class="success-message">
-                            ✓ Game record saved successfully!
-                        </div>
-                    </Show>
-
-                    <Show when={hasUnsavedChanges()}>
-                        <div class="unsaved-message">
-                            ⚠ You have unsaved changes
-                        </div>
-                    </Show>
-
-                    <div class="match-info-edit">
-                        <h3>Match Information</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Result:</label>
-                                <input
-                                    type="text"
-                                    value={editableMatchInfo().result}
-                                    onInput={(e) =>
-                                        updateMatchInfoField(
-                                            'result',
-                                            e.currentTarget.value
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div class="form-group">
-                                <label>Score (Blue):</label>
-                                <input
-                                    type="text"
-                                    value={editableMatchInfo().final_score.blue}
-                                    onInput={(e) =>
-                                        updateMatchInfoField('final_score', {
-                                            ...editableMatchInfo().final_score,
-                                            blue: e.currentTarget.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                            <div class="form-group">
-                                <label>Score (Red):</label>
-                                <input
-                                    type="text"
-                                    value={editableMatchInfo().final_score.red}
-                                    onInput={(e) =>
-                                        updateMatchInfoField('final_score', {
-                                            ...editableMatchInfo().final_score,
-                                            red: e.currentTarget.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                            <div class="form-group">
-                                <label>Date:</label>
-                                <input
-                                    type="text"
-                                    value={editableMatchInfo().date}
-                                    onInput={(e) =>
-                                        updateMatchInfoField(
-                                            'date',
-                                            e.currentTarget.value
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div class="form-group">
-                                <label>Game Mode:</label>
-                                <input
-                                    type="text"
-                                    value={editableMatchInfo().game_mode}
-                                    onInput={(e) =>
-                                        updateMatchInfoField(
-                                            'game_mode',
-                                            e.currentTarget.value
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div class="form-group">
-                                <label>Length:</label>
-                                <input
-                                    type="text"
-                                    value={editableMatchInfo().game_length}
-                                    onInput={(e) =>
-                                        updateMatchInfoField(
-                                            'game_length',
-                                            e.currentTarget.value
-                                        )
-                                    }
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="players-edit">
-                        <h3>Player Statistics</h3>
-                        <div class="teams-container">
-                            <div class="team-section">
-                                <h4 class="blue-team">Blue Team</h4>
-                                <div class="table-wrapper">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>E</th>
-                                                <th>A</th>
-                                                <th>D</th>
-                                                <th>DMG</th>
-                                                <th>H</th>
-                                                <th>MIT</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <For
-                                                each={editablePlayers().filter(
-                                                    (p) => p.team === 'blue'
-                                                )}
-                                            >
-                                                {(player, index) => {
-                                                    const globalIndex =
-                                                        editablePlayers().indexOf(
-                                                            player
-                                                        );
-                                                    return (
-                                                        <tr>
-                                                            <td>
-                                                                <input
-                                                                    type="text"
-                                                                    value={
-                                                                        player.name
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'name',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.e
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'e',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.a
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'a',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.d
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'd',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.dmg
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'dmg',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.h
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'h',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.mit
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'mit',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                }}
-                                            </For>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div class="team-section">
-                                <h4 class="red-team">Red Team</h4>
-                                <div class="table-wrapper">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>E</th>
-                                                <th>A</th>
-                                                <th>D</th>
-                                                <th>DMG</th>
-                                                <th>H</th>
-                                                <th>MIT</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <For
-                                                each={editablePlayers().filter(
-                                                    (p) => p.team === 'red'
-                                                )}
-                                            >
-                                                {(player, index) => {
-                                                    const globalIndex =
-                                                        editablePlayers().indexOf(
-                                                            player
-                                                        );
-                                                    return (
-                                                        <tr>
-                                                            <td>
-                                                                <input
-                                                                    type="text"
-                                                                    value={
-                                                                        player.name
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'name',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.e
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'e',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.a
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'a',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.d
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'd',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.dmg
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'dmg',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.h
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'h',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        player.mit
-                                                                    }
-                                                                    onInput={(
-                                                                        e
-                                                                    ) =>
-                                                                        updatePlayerField(
-                                                                            globalIndex,
-                                                                            'mit',
-                                                                            e
-                                                                                .currentTarget
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                }}
-                                            </For>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <EditableGameData
+                    players={editablePlayers()}
+                    matchInfo={editableMatchInfo()}
+                    hasUnsavedChanges={hasUnsavedChanges()}
+                    saveSuccess={saveSuccess()}
+                    onPlayerUpdate={updatePlayerField}
+                    onMatchInfoUpdate={updateMatchInfoField}
+                    onSave={handleSaveData}
+                    onCancel={handleCancelEdit}
+                />
             </Show>
 
             <Show when={editablePlayers().length > 0}>

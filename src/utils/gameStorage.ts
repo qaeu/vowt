@@ -109,6 +109,37 @@ export function deleteGameRecord(id: string): void {
 }
 
 /**
+ * Update an existing game record
+ */
+export function updateGameRecord(
+    id: string,
+    players: PlayerStats[],
+    matchInfo: MatchInfo
+): GameRecord | null {
+    try {
+        const records = loadGameRecords();
+        const index = records.findIndex((record) => record.id === id);
+        
+        if (index === -1) {
+            return null;
+        }
+
+        // Update the record, preserving id, timestamp, and version
+        records[index] = {
+            ...records[index],
+            players,
+            matchInfo,
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        return records[index];
+    } catch (error) {
+        console.error('Error updating game record:', error);
+        throw error;
+    }
+}
+
+/**
  * Clear all game records
  */
 export function clearAllGameRecords(): void {

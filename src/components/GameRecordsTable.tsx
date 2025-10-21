@@ -2,11 +2,15 @@ import { Component, createSignal, For, Show, onMount } from 'solid-js';
 import {
     loadGameRecords,
     deleteGameRecord,
+    updateGameRecord,
     clearAllGameRecords,
     exportGameRecords,
     importGameRecords,
     type GameRecord,
+    type PlayerStats,
+    type MatchInfo,
 } from '../utils/gameStorage';
+import EditableGameData from './EditableGameData';
 import './GameRecordsTable.scss';
 
 const GameRecordsTable: Component = () => {
@@ -14,6 +18,18 @@ const GameRecordsTable: Component = () => {
     const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(
         null
     );
+    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
+        []
+    );
+    const [editableMatchInfo, setEditableMatchInfo] = createSignal<MatchInfo>({
+        result: '',
+        final_score: { blue: '', red: '' },
+        date: '',
+        game_mode: '',
+        game_length: '',
+    });
+    const [hasUnsavedChanges, setHasUnsavedChanges] = createSignal(false);
+    const [saveSuccess, setSaveSuccess] = createSignal(false);
 
     const loadRecords = () => {
         setRecords(loadGameRecords());
@@ -26,6 +42,11 @@ const GameRecordsTable: Component = () => {
     const handleDelete = (id: string) => {
         if (confirm('Are you sure you want to delete this game record?')) {
             deleteGameRecord(id);
+            // If we're editing this record, stop editing
+            if (expandedRecordId() === id) {
+                setExpandedRecordId(null);
+                setHasUnsavedChanges(false);
+            }
             loadRecords();
         }
     };
@@ -81,8 +102,81 @@ const GameRecordsTable: Component = () => {
         input.click();
     };
 
-    const toggleExpanded = (id: string) => {
-        setExpandedRecordId(expandedRecordId() === id ? null : id);
+    const toggleExpanded = (record: GameRecord) => {
+        const recordId = record.id;
+        // If this record is already being edited, close it
+        if (expandedRecordId() === recordId) {
+            setExpandedRecordId(null);
+            setHasUnsavedChanges(false);
+            setSaveSuccess(false);
+        } else {
+            // Otherwise, open it for editing
+            setExpandedRecordId(recordId);
+            setEditablePlayers(structuredClone(record.players));
+            setEditableMatchInfo({ ...record.matchInfo });
+            setHasUnsavedChanges(false);
+            setSaveSuccess(false);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        const record = records().find(
+            (r) => r.id === expandedRecordId()
+        ) as GameRecord;
+        if (!record) {
+            setExpandedRecordId(null);
+            return;
+        }
+        setEditablePlayers(structuredClone(record.players));
+        setEditableMatchInfo({ ...record.matchInfo });
+        setHasUnsavedChanges(false);
+    };
+
+    const handleSaveEdit = () => {
+        const recordId = expandedRecordId();
+        if (!recordId) return;
+
+        try {
+            updateGameRecord(recordId, editablePlayers(), editableMatchInfo());
+            setHasUnsavedChanges(false);
+            setSaveSuccess(true);
+            // Reload records to show updated data
+            loadRecords();
+        } catch (err) {
+            alert(
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to update game record'
+            );
+        }
+    };
+
+    const updatePlayerField = <K extends keyof PlayerStats>(
+        index: number,
+        field: K,
+        value: PlayerStats[K]
+    ) => {
+        const players = editablePlayers();
+        if (players[index]) {
+            setEditablePlayers((cur) => {
+                cur[index] = { ...cur[index], [field]: value };
+                return cur;
+            });
+            setHasUnsavedChanges(true);
+            setSaveSuccess(false);
+        }
+    };
+
+    const updateMatchInfoField = <K extends keyof MatchInfo>(
+        field: K,
+        value: MatchInfo[K]
+    ) => {
+        setEditableMatchInfo((cur) => {
+            cur[field] = value;
+            return cur;
+        });
+        setHasUnsavedChanges(true);
+        setSaveSuccess(false);
     };
 
     const formatDate = (timestamp: number) => {
@@ -149,7 +243,7 @@ const GameRecordsTable: Component = () => {
                                                     : ''
                                             }
                                             onClick={() =>
-                                                toggleExpanded(record.id)
+                                                toggleExpanded(record)
                                             }
                                         >
                                             <td>
@@ -189,6 +283,7 @@ const GameRecordsTable: Component = () => {
                                                         e.stopPropagation();
                                                         handleDelete(record.id);
                                                     }}
+                                                    class="delete-button"
                                                 >
                                                     Delete
                                                 </button>
@@ -204,194 +299,22 @@ const GameRecordsTable: Component = () => {
                                                     colspan="6"
                                                     class="expanded-details"
                                                 >
-                                                    <h3>Game Details</h3>
-                                                    <div class="game-info">
-                                                        <strong>
-                                                            Game Date:
-                                                        </strong>{' '}
-                                                        {record.matchInfo.date}
-                                                        <br />
-                                                        <strong>
-                                                            Length:
-                                                        </strong>{' '}
-                                                        {
-                                                            record.matchInfo
-                                                                .game_length
+                                                    <EditableGameData
+                                                        players={editablePlayers()}
+                                                        matchInfo={editableMatchInfo()}
+                                                        hasUnsavedChanges={hasUnsavedChanges()}
+                                                        saveSuccess={saveSuccess()}
+                                                        onPlayerUpdate={
+                                                            updatePlayerField
                                                         }
-                                                    </div>
-                                                    <h4>Players</h4>
-                                                    <div class="teams-grid">
-                                                        <div>
-                                                            <h5 class="blue-team">
-                                                                Blue Team
-                                                            </h5>
-                                                            <table>
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>
-                                                                            Name
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            E
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            A
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            D
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            DMG
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            H
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            MIT
-                                                                        </th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <For
-                                                                        each={record.players.filter(
-                                                                            (
-                                                                                p
-                                                                            ) =>
-                                                                                p.team ===
-                                                                                'blue'
-                                                                        )}
-                                                                    >
-                                                                        {(
-                                                                            player
-                                                                        ) => (
-                                                                            <tr>
-                                                                                <td>
-                                                                                    {
-                                                                                        player.name
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.e
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.a
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.d
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.dmg
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.h
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.mit
-                                                                                    }
-                                                                                </td>
-                                                                            </tr>
-                                                                        )}
-                                                                    </For>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                        <div>
-                                                            <h5 class="red-team">
-                                                                Red Team
-                                                            </h5>
-                                                            <table>
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>
-                                                                            Name
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            E
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            A
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            D
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            DMG
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            H
-                                                                        </th>
-                                                                        <th class="right">
-                                                                            MIT
-                                                                        </th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <For
-                                                                        each={record.players.filter(
-                                                                            (
-                                                                                p
-                                                                            ) =>
-                                                                                p.team ===
-                                                                                'red'
-                                                                        )}
-                                                                    >
-                                                                        {(
-                                                                            player
-                                                                        ) => (
-                                                                            <tr>
-                                                                                <td>
-                                                                                    {
-                                                                                        player.name
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.e
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.a
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.d
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.dmg
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.h
-                                                                                    }
-                                                                                </td>
-                                                                                <td class="right">
-                                                                                    {
-                                                                                        player.mit
-                                                                                    }
-                                                                                </td>
-                                                                            </tr>
-                                                                        )}
-                                                                    </For>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
+                                                        onMatchInfoUpdate={
+                                                            updateMatchInfoField
+                                                        }
+                                                        onSave={handleSaveEdit}
+                                                        onCancel={
+                                                            handleCancelEdit
+                                                        }
+                                                    />
                                                 </td>
                                             </tr>
                                         </Show>

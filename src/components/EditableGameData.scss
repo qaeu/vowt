@@ -1,0 +1,180 @@
+@use '../theme';
+
+.editable-data-container {
+    @include theme.card(theme.$background-light);
+
+    margin-bottom: 30px;
+
+    .editable-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+
+        h2 {
+            margin: 0;
+            color: theme.$accent1;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+
+            .save-button {
+                @include theme.button(theme.$accent2-success);
+            }
+
+            .cancel-button {
+                @include theme.button(theme.$foreground-light);
+            }
+        }
+    }
+
+    .success-message {
+        @include theme.info-box(
+            theme.$accent2-success-light,
+            theme.$accent2-success-border
+        );
+        color: theme.$accent2-success;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+
+    .unsaved-message {
+        @include theme.info-box(theme.$accent2-warning, theme.$accent2-warning);
+        color: theme.$foreground-dark;
+        font-weight: bold;
+        margin-bottom: 15px;
+        background-color: #fff3e0;
+    }
+
+    .match-info-edit {
+        margin-bottom: 30px;
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: theme.$foreground-dark;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+
+            .form-group {
+                display: flex;
+                flex-direction: column;
+
+                label {
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                    color: theme.$foreground-dark;
+                    font-size: 14px;
+                }
+
+                input {
+                    padding: 8px;
+                    border: 1px solid theme.$border-light;
+                    border-radius: 4px;
+                    font-size: 14px;
+
+                    &:focus {
+                        outline: none;
+                        border-color: theme.$accent1;
+                        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+                    }
+                }
+            }
+        }
+    }
+
+    .players-edit {
+        h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: theme.$foreground-dark;
+        }
+
+        .teams-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+
+            @media (max-width: 1200px) {
+                grid-template-columns: 1fr;
+            }
+
+            .team-section {
+                h4 {
+                    margin-top: 0;
+                    margin-bottom: 10px;
+
+                    &.blue-team {
+                        color: theme.$accent1;
+                    }
+
+                    &.red-team {
+                        color: theme.$accent2-error;
+                    }
+                }
+
+                .table-wrapper {
+                    overflow-x: auto;
+
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 13px;
+
+                        thead {
+                            tr {
+                                background-color: theme.$background;
+                                border-bottom: 2px solid theme.$border-default;
+
+                                th {
+                                    padding: 8px 4px;
+                                    text-align: left;
+                                    font-weight: bold;
+                                    color: theme.$foreground-dark;
+                                }
+                            }
+                        }
+
+                        tbody {
+                            tr {
+                                border-bottom: 1px solid theme.$border-light;
+
+                                td {
+                                    padding: 4px;
+
+                                    input {
+                                        width: 100%;
+                                        padding: 6px;
+                                        border: 1px solid theme.$border-light;
+                                        border-radius: 3px;
+                                        font-size: 13px;
+                                        box-sizing: border-box;
+
+                                        &[type='number'] {
+                                            text-align: right;
+                                        }
+
+                                        &:focus {
+                                            outline: none;
+                                            border-color: theme.$accent1;
+                                            box-shadow: 0 0 0 1px
+                                                rgba(25, 118, 210, 0.2);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
