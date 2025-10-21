@@ -1,4 +1,4 @@
-import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
+import { Component, createSignal, onMount, createEffect, Show, For } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
@@ -7,7 +7,7 @@ import {
     getMatchInfoRegions,
     drawRegionsOnImage,
 } from '../utils/imagePreprocessing';
-import { saveGameRecord } from '../utils/gameStorage';
+import { saveGameRecord, type PlayerStats, type MatchInfo } from '../utils/gameStorage';
 import './ScoreboardOCR.scss';
 
 interface GameStats {
@@ -31,6 +31,18 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         createSignal<string>('/scoreboard.png');
     const [showJsonStats, setShowJsonStats] = createSignal(false);
     const [showRawText, setShowRawText] = createSignal(false);
+    
+    // Editable data states
+    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>([]);
+    const [editableMatchInfo, setEditableMatchInfo] = createSignal<MatchInfo>({
+        result: '',
+        final_score: { blue: '', red: '' },
+        date: '',
+        game_mode: '',
+        game_length: '',
+    });
+    const [hasUnsavedChanges, setHasUnsavedChanges] = createSignal(false);
+    const [saveSuccess, setSaveSuccess] = createSignal(false);
 
     const hardcodedImagePath = '/scoreboard.png';
 
@@ -128,14 +140,12 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setExtractedStats(stats);
             setProgress(100);
 
-            // Step 4: Save to localStorage
-            try {
-                if (stats.players && stats.matchInfo) {
-                    saveGameRecord(stats.players, stats.matchInfo);
-                }
-            } catch (saveError) {
-                console.error('Error saving game record:', saveError);
-                // Don't fail the whole process if save fails
+            // Set editable data (no auto-save)
+            if (stats.players && stats.matchInfo) {
+                setEditablePlayers(stats.players as PlayerStats[]);
+                setEditableMatchInfo(stats.matchInfo as MatchInfo);
+                setHasUnsavedChanges(true);
+                setSaveSuccess(false);
             }
         } catch (err) {
             setError(
@@ -167,6 +177,45 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         input.accept = 'image/*';
         input.onchange = handleFileUpload;
         input.click();
+    };
+
+    const handleSaveData = () => {
+        try {
+            saveGameRecord(editablePlayers(), editableMatchInfo());
+            setHasUnsavedChanges(false);
+            setSaveSuccess(true);
+            // Clear success message after 3 seconds
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (err) {
+            setError(
+                err instanceof Error ? err.message : 'Failed to save game record'
+            );
+        }
+    };
+
+    const handleCancelEdit = () => {
+        // Reset to original extracted stats
+        if (extractedStats().players && extractedStats().matchInfo) {
+            setEditablePlayers(extractedStats().players as PlayerStats[]);
+            setEditableMatchInfo(extractedStats().matchInfo as MatchInfo);
+            setHasUnsavedChanges(false);
+        }
+    };
+
+    const updatePlayerField = (index: number, field: keyof PlayerStats, value: string | number) => {
+        const players = [...editablePlayers()];
+        if (players[index]) {
+            players[index] = { ...players[index], [field]: value };
+            setEditablePlayers(players);
+            setHasUnsavedChanges(true);
+            setSaveSuccess(false);
+        }
+    };
+
+    const updateMatchInfoField = (field: keyof MatchInfo, value: string | { blue: string; red: string }) => {
+        setEditableMatchInfo({ ...editableMatchInfo(), [field]: value });
+        setHasUnsavedChanges(true);
+        setSaveSuccess(false);
     };
 
     return (
@@ -242,6 +291,361 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                     </p>
                 </div>
             </div>
+
+            <Show when={editablePlayers().length > 0}>
+                <div class="editable-data-container">
+                    <div class="editable-header">
+                        <h2>Extracted Game Data - Review and Edit</h2>
+                        <div class="action-buttons">
+                            <button
+                                onClick={handleSaveData}
+                                disabled={!hasUnsavedChanges()}
+                                class="save-button"
+                            >
+                                💾 Save to Records
+                            </button>
+                            <button
+                                onClick={handleCancelEdit}
+                                disabled={!hasUnsavedChanges()}
+                                class="cancel-button"
+                            >
+                                ↺ Reset Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <Show when={saveSuccess()}>
+                        <div class="success-message">
+                            ✓ Game record saved successfully!
+                        </div>
+                    </Show>
+
+                    <Show when={hasUnsavedChanges()}>
+                        <div class="unsaved-message">
+                            ⚠ You have unsaved changes
+                        </div>
+                    </Show>
+
+                    <div class="match-info-edit">
+                        <h3>Match Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Result:</label>
+                                <input
+                                    type="text"
+                                    value={editableMatchInfo().result}
+                                    onInput={(e) =>
+                                        updateMatchInfoField('result', e.currentTarget.value)
+                                    }
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Score (Blue):</label>
+                                <input
+                                    type="text"
+                                    value={editableMatchInfo().final_score.blue}
+                                    onInput={(e) =>
+                                        updateMatchInfoField('final_score', {
+                                            ...editableMatchInfo().final_score,
+                                            blue: e.currentTarget.value,
+                                        })
+                                    }
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Score (Red):</label>
+                                <input
+                                    type="text"
+                                    value={editableMatchInfo().final_score.red}
+                                    onInput={(e) =>
+                                        updateMatchInfoField('final_score', {
+                                            ...editableMatchInfo().final_score,
+                                            red: e.currentTarget.value,
+                                        })
+                                    }
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Date:</label>
+                                <input
+                                    type="text"
+                                    value={editableMatchInfo().date}
+                                    onInput={(e) =>
+                                        updateMatchInfoField('date', e.currentTarget.value)
+                                    }
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Game Mode:</label>
+                                <input
+                                    type="text"
+                                    value={editableMatchInfo().game_mode}
+                                    onInput={(e) =>
+                                        updateMatchInfoField('game_mode', e.currentTarget.value)
+                                    }
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Length:</label>
+                                <input
+                                    type="text"
+                                    value={editableMatchInfo().game_length}
+                                    onInput={(e) =>
+                                        updateMatchInfoField('game_length', e.currentTarget.value)
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="players-edit">
+                        <h3>Player Statistics</h3>
+                        <div class="teams-container">
+                            <div class="team-section">
+                                <h4 class="blue-team">Blue Team</h4>
+                                <div class="table-wrapper">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>E</th>
+                                                <th>A</th>
+                                                <th>D</th>
+                                                <th>DMG</th>
+                                                <th>H</th>
+                                                <th>MIT</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <For each={editablePlayers().filter((p) => p.team === 'blue')}>
+                                                {(player, index) => {
+                                                    const globalIndex = editablePlayers().indexOf(player);
+                                                    return (
+                                                        <tr>
+                                                            <td>
+                                                                <input
+                                                                    type="text"
+                                                                    value={player.name}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'name',
+                                                                            e.currentTarget.value
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.e}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'e',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.a}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'a',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.d}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'd',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.dmg}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'dmg',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.h}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'h',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.mit}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'mit',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }}
+                                            </For>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="team-section">
+                                <h4 class="red-team">Red Team</h4>
+                                <div class="table-wrapper">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>E</th>
+                                                <th>A</th>
+                                                <th>D</th>
+                                                <th>DMG</th>
+                                                <th>H</th>
+                                                <th>MIT</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <For each={editablePlayers().filter((p) => p.team === 'red')}>
+                                                {(player, index) => {
+                                                    const globalIndex = editablePlayers().indexOf(player);
+                                                    return (
+                                                        <tr>
+                                                            <td>
+                                                                <input
+                                                                    type="text"
+                                                                    value={player.name}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'name',
+                                                                            e.currentTarget.value
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.e}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'e',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.a}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'a',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.d}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'd',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.dmg}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'dmg',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.h}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'h',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    value={player.mit}
+                                                                    onInput={(e) =>
+                                                                        updatePlayerField(
+                                                                            globalIndex,
+                                                                            'mit',
+                                                                            parseInt(e.currentTarget.value) || 0
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }}
+                                            </For>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Show>
 
             <Show when={Object.keys(extractedStats()).length > 0}>
                 <div class="stats-box">
