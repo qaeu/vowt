@@ -22,7 +22,7 @@ import {
 import './ScoreboardOCR.scss';
 
 interface GameStats {
-    [key: string]: string | number;
+    [key: string]: any;
 }
 
 interface ScoreboardOCRProps {
