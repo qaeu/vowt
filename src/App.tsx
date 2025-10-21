@@ -35,7 +35,10 @@ const App: Component = () => {
             reader.onload = (event) => {
                 const imageData = event.target?.result as string;
                 setUploadedImage(imageData);
-                setViewMode('ocr');
+                // Switch to OCR view if not already there
+                if (viewMode() !== 'ocr') {
+                    setViewMode('ocr');
+                }
             };
             reader.readAsDataURL(file);
         }

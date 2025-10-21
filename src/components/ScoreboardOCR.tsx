@@ -1,4 +1,4 @@
-import { Component, createSignal, onMount, Show } from 'solid-js';
+import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
@@ -38,8 +38,15 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         if (props.uploadedImage) {
             setCurrentImage(props.uploadedImage);
             await processImage(props.uploadedImage);
-        } else {
-            await processImage(hardcodedImagePath);
+        }
+    });
+
+    // React to changes in uploadedImage prop (e.g., drag-and-drop while on OCR page)
+    createEffect(async () => {
+        const uploaded = props.uploadedImage;
+        if (uploaded && uploaded !== currentImage()) {
+            setCurrentImage(uploaded);
+            await processImage(uploaded);
         }
     });
 

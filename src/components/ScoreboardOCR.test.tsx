@@ -78,16 +78,18 @@ describe('ScoreboardOCR', () => {
         expect(screen.getByAltText('Original scoreboard')).toBeDefined();
     });
 
-    it('should show processing indicator initially', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should show processing indicator when uploadedImage is provided', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         // Check for processing text (may be brief)
         const processingText = screen.queryByText(/Processing image/);
         expect(processingText).toBeDefined();
     });
 
-    it('should display preprocessed image after processing', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display preprocessed image after processing with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -99,8 +101,9 @@ describe('ScoreboardOCR', () => {
         );
     });
 
-    it('should display raw OCR text output', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display raw OCR text output with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -110,8 +113,9 @@ describe('ScoreboardOCR', () => {
         );
     });
 
-    it('should display extracted game stats JSON', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display extracted game stats JSON with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -123,8 +127,9 @@ describe('ScoreboardOCR', () => {
         );
     });
 
-    it('should display success message with count', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should display success message with count with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -177,8 +182,9 @@ describe('ScoreboardOCR', () => {
         expect(originalImage.src).toContain('/scoreboard.png');
     });
 
-    it('should have collapsible JSON stats section', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should have collapsible JSON stats section with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
@@ -189,8 +195,9 @@ describe('ScoreboardOCR', () => {
         );
     });
 
-    it('should have collapsible raw text section', async () => {
-        render(() => <ScoreboardOCR />);
+    it('should have collapsible raw text section with uploaded image', async () => {
+        const testImageData = 'data:image/png;base64,testdata';
+        render(() => <ScoreboardOCR uploadedImage={testImageData} />);
 
         await waitFor(
             () => {
