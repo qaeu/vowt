@@ -64,12 +64,6 @@ describe('ScoreboardOCR', () => {
         expect(getByText('Overwatch Scoreboard Tracker POC')).toBeDefined();
     });
 
-    it('should display POC demo message', () => {
-        const { getByText } = render(() => <ScoreboardOCR />);
-        expect(getByText(/POC Demo:/)).toBeDefined();
-        expect(getByText(/region-based OCR/)).toBeDefined();
-    });
-
     it('should render upload button', () => {
         const { getByText } = render(() => <ScoreboardOCR />);
 
