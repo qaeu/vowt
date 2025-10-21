@@ -34,7 +34,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [preprocessedImage, setPreprocessedImage] = createSignal<string>('');
     const [preprocessedImagePreview, setPreprocessedImagePreview] =
         createSignal<string>('');
-    const [ocrText, setOcrText] = createSignal<string>('');
+    const [rawOcrText, setRawOcrText] = createSignal<string>('');
     const [extractedStats, setExtractedStats] = createSignal<GameStats>({});
     const [error, setError] = createSignal<string>('');
     const [progress, setProgress] = createSignal<number>(0);
@@ -128,21 +128,19 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                             height: region.height,
                         },
                     });
-                    let text;
-                    if (result.data.confidence < 6) {
-                        text = '???';
-                    } else {
-                        text = result.data.text.trim();
-                    }
 
+                    let text = result.data.text.trim();
+                    const confidence = result.data.confidence;
+                    ocrTextParts.push(
+                        `${region.name} (${confidence}%): ${text}`
+                    );
                     regionResults.set(region.name, text);
-                    ocrTextParts.push(`${region.name}: ${text}`);
                 }
 
                 await worker.terminate();
 
                 // Combine all OCR results for display
-                setOcrText(ocrTextParts.join('\n'));
+                setRawOcrText(ocrTextParts.join('\n'));
             } catch (ocrError) {
                 throw ocrError;
             }
@@ -832,14 +830,14 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                 </div>
             </Show>
 
-            <Show when={ocrText()}>
+            <Show when={rawOcrText()}>
                 <div class="ocr-output-box">
                     <h2 onClick={() => setShowRawText(!showRawText())}>
                         <span>Raw OCR Text Output</span>
                         <span>{showRawText() ? '▼' : '▶'}</span>
                     </h2>
                     <Show when={showRawText()}>
-                        <pre>{ocrText()}</pre>
+                        <pre>{rawOcrText()}</pre>
                     </Show>
                 </div>
             </Show>
