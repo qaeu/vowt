@@ -23,19 +23,19 @@ export function extractGameStats(
 
     // Extract match info
     const finalRaw =
-        regionResults.get('final_score')?.trim().toUpperCase() || ':?VS?';
+        regionResults.get('final_score')?.trim().toUpperCase() || ': VS ';
     const [beforeVS, afterVS] = finalRaw.split('VS');
 
     const matchInfo: GameRecord['matchInfo'] = {
-        result: regionResults.get('result')?.trim().toUpperCase() || '?',
+        result: regionResults.get('result')?.trim().toUpperCase() || '',
         final_score: {
             blue: beforeVS.split(':')[1].trim(),
             red: afterVS.trim(),
         },
-        date: regionResults.get('date')?.split('DATE:')[1].trim() || '?',
-        game_mode: regionResults.get('game_mode')?.split(':')[1].trim() || '?',
+        date: regionResults.get('date')?.split('DATE:')[1].trim() || '',
+        game_mode: regionResults.get('game_mode')?.split(':')[1].trim() || '',
         game_length:
-            regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '?',
+            regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '',
     };
 
     return { players, matchInfo };
@@ -49,14 +49,14 @@ function extractTeamPlayers(
     for (let i = 1; i <= 5; i++) {
         const numberStats: Partial<PlayerStatsNumberFields> = {};
         for (const field of PLAYER_STATS_NUMBER_FIELD_NAMES) {
-            numberStats[field] =
-                parseInt(
-                    ocrResults.get(`${team}_player${i}_${field}`) || ''
-                ).toString() || '?';
+            const rawResult =
+                ocrResults.get(`${team}_player${i}_${field}`) || '';
+
+            numberStats[field] = rawResult.replace(/,/g, '');
         }
 
         const player: PlayerStats = {
-            name: ocrResults.get(`${team}_player${i}_name`)?.trim() || '?',
+            name: ocrResults.get(`${team}_player${i}_name`)?.trim() || '',
             team,
             ...(numberStats as PlayerStatsNumberFields),
         };
