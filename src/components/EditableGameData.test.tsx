@@ -96,7 +96,7 @@ describe('EditableGameData', () => {
             />
         ));
 
-        expect(screen.getByText('Player Statistics')).toBeTruthy();
+        expect(screen.getByText('Match Information')).toBeTruthy();
         expect(screen.getByText('Blue Team')).toBeTruthy();
         expect(screen.getByText('Red Team')).toBeTruthy();
     });
@@ -114,9 +114,7 @@ describe('EditableGameData', () => {
             />
         ));
 
-        expect(
-            screen.getByText('Extracted Game Data - Review and Edit')
-        ).toBeTruthy();
+        expect(screen.getByText('Match Information')).toBeTruthy();
         expect(screen.getByText(/Save to Records/)).toBeTruthy();
         expect(screen.getByText(/Reset Changes/)).toBeTruthy();
     });
@@ -278,7 +276,7 @@ describe('EditableGameData', () => {
         expect(redRows.length).toBe(2); // 2 red players
     });
 
-    it('should disable action buttons when hasUnsavedChanges is false', () => {
+    it('should hide action buttons when hasUnsavedChanges is false', () => {
         render(() => (
             <EditableGameData
                 players={mockPlayers}
@@ -291,14 +289,14 @@ describe('EditableGameData', () => {
             />
         ));
 
-        const saveButton = screen.getByText(
+        const saveButton = screen.queryByText(
             /Save to Records/
         ) as HTMLButtonElement;
-        const cancelButton = screen.getByText(
+        const cancelButton = screen.queryByText(
             /Reset Changes/
         ) as HTMLButtonElement;
 
-        expect(saveButton.disabled).toBe(true);
-        expect(cancelButton.disabled).toBe(true);
+        expect.soft(saveButton).toBeNull();
+        expect.soft(cancelButton).toBeNull();
     });
 });
