@@ -23,6 +23,7 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (props) => {
             pattern={validityPattern}
             value={props.value}
             onInput={(e) => props.onInput(e.currentTarget.value)}
+            onFocus={(e) => e.target.select()}
         />
     );
 };
