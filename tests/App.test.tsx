@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@solidjs/testing-library';
 import App from '#App';
 
 // Mock the ScoreboardOCR component
-vi.mock('#c/ScoreboardOCR', () => ({
-    default: (props: any) => (
+vi.mock(import('#c/ScoreboardOCR'), () => ({
+    default: (props) => (
         <div>
             Mocked ScoreboardOCR
             {props.onClose && <button onClick={props.onClose}>✕ Close</button>}
@@ -13,8 +13,8 @@ vi.mock('#c/ScoreboardOCR', () => ({
 }));
 
 // Mock the GameRecordsTable component
-vi.mock('#c/GameRecordsTable', () => ({
-    default: (props: any) => (
+vi.mock(import('#c/GameRecordsTable'), () => ({
+    default: (props) => (
         <div>
             Mocked GameRecordsTable
             {props.onUploadClick && (
@@ -25,7 +25,7 @@ vi.mock('#c/GameRecordsTable', () => ({
 }));
 
 // Mock the RegionDebugger component
-vi.mock('#c/RegionDebugger', () => ({
+vi.mock(import('#c/RegionDebugger'), () => ({
     default: () => <div>Mocked RegionDebugger</div>,
 }));
 

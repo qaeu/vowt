@@ -235,7 +235,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                 <th>Score</th>
                                 <th>Mode</th>
                                 <th>Players</th>
-                                <th class="center"></th>
+                                <th class="center" />
                             </tr>
                         </thead>
                         <tbody>

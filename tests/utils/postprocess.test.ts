@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { extractGameStats } from '#utils/postprocess';
 
 const MOCK_REGION_RESULTS = new Map<string, string>([
@@ -129,12 +129,8 @@ describe('extractGameStats', () => {
         it('should separate blue and red team players', () => {
             const result = extractGameStats(MOCK_REGION_RESULTS);
 
-            const bluePlayers = result.players.filter(
-                (p: any) => p.team === 'blue'
-            );
-            const redPlayers = result.players.filter(
-                (p: any) => p.team === 'red'
-            );
+            const bluePlayers = result.players.filter((p) => p.team === 'blue');
+            const redPlayers = result.players.filter((p) => p.team === 'red');
 
             expect(bluePlayers).toHaveLength(5);
             expect(redPlayers).toHaveLength(5);

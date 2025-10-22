@@ -81,54 +81,46 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setProgress(25);
 
             // Step 2: Perform region-based OCR using Tesseract.js
-            let ocrTextParts: string[] = [];
+            const ocrTextParts: string[] = [];
             const regionResults = new Map<string, string>();
 
-            try {
-                const worker = await Tesseract.createWorker('eng', 1);
+            const worker = await Tesseract.createWorker('eng', 1);
 
-                // Get all defined regions
-                const scoreboardRegions = [
-                    ...getScoreboardRegions(),
-                    ...getMatchInfoRegions(),
-                ];
-                const totalScoreBoardRegions = scoreboardRegions.length;
-                for (let i = 0; i < totalScoreBoardRegions; i++) {
-                    const region = scoreboardRegions[i];
-                    setProgress(
-                        25 + Math.round((i / totalScoreBoardRegions) * 35)
-                    );
+            // Get all defined regions
+            const scoreboardRegions = [
+                ...getScoreboardRegions(),
+                ...getMatchInfoRegions(),
+            ];
+            const totalScoreBoardRegions = scoreboardRegions.length;
+            for (let i = 0; i < totalScoreBoardRegions; i++) {
+                const region = scoreboardRegions[i];
+                setProgress(25 + Math.round((i / totalScoreBoardRegions) * 35));
 
-                    await worker.setParameters({
-                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
-                        tessedit_char_whitelist: region.charSet,
-                    });
+                await worker.setParameters({
+                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
+                    tessedit_char_whitelist: region.charSet,
+                });
 
-                    // Recognize text in this region
-                    const result = await worker.recognize(preprocessed, {
-                        rectangle: {
-                            left: region.x,
-                            top: region.y,
-                            width: region.width,
-                            height: region.height,
-                        },
-                    });
+                // Recognize text in this region
+                const result = await worker.recognize(preprocessed, {
+                    rectangle: {
+                        left: region.x,
+                        top: region.y,
+                        width: region.width,
+                        height: region.height,
+                    },
+                });
 
-                    let text = result.data.text.trim();
-                    const confidence = result.data.confidence;
-                    ocrTextParts.push(
-                        `${region.name} (${confidence}%): ${text}`
-                    );
-                    regionResults.set(region.name, text);
-                }
-
-                await worker.terminate();
-
-                // Combine all OCR results for display
-                setRawOcrText(ocrTextParts.join('\n'));
-            } catch (ocrError) {
-                throw ocrError;
+                const text = result.data.text.trim();
+                const confidence = result.data.confidence;
+                ocrTextParts.push(`${region.name} (${confidence}%): ${text}`);
+                regionResults.set(region.name, text);
             }
+
+            await worker.terminate();
+
+            // Combine all OCR results for display
+            setRawOcrText(ocrTextParts.join('\n'));
             setProgress(75);
 
             // Step 3: Extract game stats from region results

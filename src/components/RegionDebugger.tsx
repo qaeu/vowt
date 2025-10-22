@@ -1,9 +1,5 @@
-import { Component, createSignal, onMount } from 'solid-js';
-import {
-    startRegionEditor,
-    DrawnRegion,
-    formatRegionForCopy,
-} from '#utils/regionEditor';
+import { Component, createSignal } from 'solid-js';
+import { startRegionEditor, DrawnRegion } from '#utils/regionEditor';
 import '#styles/RegionDebugger';
 
 const RegionDebugger: Component = () => {

@@ -197,11 +197,11 @@ describe('EditableGameData', () => {
             />
         ));
 
-        const nameInputs = Array.from(
+        const nameInputs: HTMLInputElement[] = Array.from(
             container.querySelectorAll('input[type="text"]')
         );
         const bluePlayer1Input = nameInputs.find(
-            (input: any) => input.value === 'BluePlayer1'
+            (input) => input.value === 'BluePlayer1'
         ) as HTMLInputElement;
 
         expect(bluePlayer1Input).toBeTruthy();

@@ -161,7 +161,7 @@ describe('gameStorage', () => {
     });
 
     it('should not import duplicate records', () => {
-        const record = saveGameRecord(mockPlayers, mockMatchInfo);
+        saveGameRecord(mockPlayers, mockMatchInfo);
         const exported = exportGameRecords();
 
         // Try to import the same records again
