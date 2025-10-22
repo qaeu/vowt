@@ -128,66 +128,64 @@
                         color: theme.$accent2-error;
                     }
                 }
+            }
+        }
+    }
+}
 
-                .table-wrapper {
-                    overflow-x: auto;
+.table-wrapper {
+    overflow-x: auto;
 
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-size: 13px;
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
 
-                        thead {
-                            tr {
-                                background-color: theme.$background;
-                                border-bottom: 2px solid theme.$border-default;
+        thead tr {
+            background-color: theme.$background;
+            border-bottom: 2px solid theme.$border-default;
 
-                                th {
-                                    padding: 8px 4px;
-                                    text-align: left;
-                                    font-weight: bold;
-                                    color: theme.$foreground-dark;
-                                }
-                            }
-                        }
+            th {
+                padding: 8px 4px;
+                text-align: right;
+                font-weight: bold;
+                color: theme.$foreground-dark;
+            }
+            th:first-child {
+                text-align: left;
+            }
+        }
 
-                        tbody {
-                            tr {
-                                border-bottom: 1px solid theme.$border-light;
+        tbody tr {
+            border-bottom: 1px solid theme.$border-light;
 
-                                td {
-                                    padding: 4px;
+            td {
+                padding: 4px;
 
-                                    input {
-                                        width: 100%;
-                                        padding: 6px;
-                                        border: 1px solid transparent;
-                                        border-radius: 3px;
-                                        font-size: 13px;
-                                        box-sizing: border-box;
-                                        background-color: transparent;
-                                        transition: all 0.15s ease;
+                input {
+                    width: 100%;
+                    padding: 6px;
+                    border: 1px solid transparent;
+                    border-radius: 3px;
+                    font-size: 13px;
+                    box-sizing: border-box;
+                    background-color: transparent;
+                    transition: all 0.15s ease;
 
-                                        &[type='number'] {
-                                            text-align: right;
-                                        }
+                    &[type='number'] {
+                        text-align: right;
+                    }
 
-                                        &:hover {
-                                            background-color: theme.$background-alt;
-                                            border-color: theme.$border-light;
-                                        }
+                    &:hover {
+                        background-color: theme.$background-alt;
+                        border-color: theme.$border-light;
+                    }
 
-                                        &:focus {
-                                            outline: none;
-                                            background-color: theme.$background-light;
-                                            border-color: theme.$accent1;
-                                            box-shadow: 0 0 0 1px
-                                                rgba(90, 127, 163, 0.2);
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    &:focus {
+                        outline: none;
+                        background-color: theme.$background-light;
+                        border-color: theme.$accent1;
+                        box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
                     }
                 }
             }
