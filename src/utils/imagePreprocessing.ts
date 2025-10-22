@@ -28,7 +28,7 @@ const SYMBOLS = ': /-';
 const COMMA = ',';
 
 const SCOREBOARD: Pick<TextRegion, 'x' | 'y'> = {
-    x: 500,
+    x: 480,
     y: 340,
 };
 
@@ -44,7 +44,7 @@ const NAME_TAG: Omit<TextRegion, 'name' | 'y'> = {
 };
 
 const EAD: Omit<TextRegion, 'name' | 'y'> = {
-    x: SCOREBOARD.x + NAME_TAG.width + 40,
+    x: SCOREBOARD.x + NAME_TAG.width + 60,
     width: 67,
     height: NAME_TAG.height,
     charSet: ZERO_TO_NINE,
