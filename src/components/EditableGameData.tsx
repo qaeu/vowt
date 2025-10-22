@@ -27,35 +27,37 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
             <Show when={props.showActions !== false}>
                 <div class="editable-header">
                     <h2>Match Information</h2>
+
+                    <Show when={props.saveSuccess}>
+                        <div class="success-message">
+                            ✓ Game record saved successfully!
+                        </div>
+                    </Show>
+                    <Show when={props.hasUnsavedChanges}>
+                        <div class="unsaved-message">
+                            ⚠ You have unsaved changes
+                        </div>
+                    </Show>
+
                     <div class="action-buttons">
-                        <button
-                            onClick={props.onSave}
-                            disabled={!props.hasUnsavedChanges}
-                            class="save-button"
-                        >
-                            💾 Save to Records
-                        </button>
-                        <button
-                            onClick={props.onCancel}
-                            disabled={!props.hasUnsavedChanges}
-                            class="cancel-button"
-                        >
-                            ↺ Reset Changes
-                        </button>
+                        <Show when={props.hasUnsavedChanges}>
+                            <button
+                                onClick={props.onSave}
+                                disabled={!props.hasUnsavedChanges}
+                                class="save-button"
+                            >
+                                💾 Save to Records
+                            </button>
+                            <button
+                                onClick={props.onCancel}
+                                disabled={!props.hasUnsavedChanges}
+                                class="cancel-button"
+                            >
+                                ↺ Reset Changes
+                            </button>
+                        </Show>
                     </div>
                 </div>
-
-                <Show when={props.saveSuccess}>
-                    <div class="success-message">
-                        ✓ Game record saved successfully!
-                    </div>
-                </Show>
-
-                <Show when={props.hasUnsavedChanges}>
-                    <div class="unsaved-message">
-                        ⚠ You have unsaved changes
-                    </div>
-                </Show>
             </Show>
 
             <div class="match-info-edit">
