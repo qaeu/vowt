@@ -26,7 +26,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
         <div class="editable-data-container">
             <Show when={props.showActions !== false}>
                 <div class="editable-header">
-                    <h2>Extracted Game Data - Review and Edit</h2>
+                    <h2>Match Information</h2>
                     <div class="action-buttons">
                         <button
                             onClick={props.onSave}
@@ -59,7 +59,6 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
             </Show>
 
             <div class="match-info-edit">
-                <h3>Match Information</h3>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Result:</label>
@@ -143,7 +142,6 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
             </div>
 
             <div class="players-edit">
-                <h3>Player Statistics</h3>
                 <div class="teams-container">
                     <div class="team-section">
                         <h4 class="blue-team">Blue Team</h4>
