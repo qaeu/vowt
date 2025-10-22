@@ -1,6 +1,101 @@
 import { Component, For, Show } from 'solid-js';
-import { PlayerStats, MatchInfo } from '#utils/gameStorage';
+import {
+    PLAYER_STATS_NUMBER_FIELD_NAMES,
+    PlayerStats,
+    MatchInfo,
+} from '#utils/gameStorage';
 import '#styles/EditableGameData';
+
+interface RecordFieldInputProps {
+    value?: string;
+    type?: string;
+    inputmode?: 'text' | 'numeric' | 'none';
+    onInput: (value: string) => void;
+}
+
+const RecordFieldInput: Component<RecordFieldInputProps> = (props) => {
+    const validityPattern =
+        props.inputmode === 'numeric' ? '[0-9]*' : undefined;
+    return (
+        <input
+            type={props.type || 'text'}
+            inputmode={props.inputmode || 'text'}
+            pattern={validityPattern}
+            value={props.value}
+            onInput={(e) => props.onInput(e.currentTarget.value)}
+        />
+    );
+};
+
+interface TeamDataTable {
+    players: PlayerStats[];
+    onPlayerUpdate: <K extends keyof PlayerStats>(
+        index: number,
+        field: K,
+        value: PlayerStats[K]
+    ) => void;
+}
+
+const TeamDataTable: Component<TeamDataTable> = (props) => {
+    return (
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>E</th>
+                    <th>A</th>
+                    <th>D</th>
+                    <th>DMG</th>
+                    <th>H</th>
+                    <th>MIT</th>
+                </tr>
+            </thead>
+            <tbody>
+                <For each={props.players}>
+                    {(player, index) => {
+                        return (
+                            <tr>
+                                <td>
+                                    <RecordFieldInput
+                                        value={player.name}
+                                        onInput={(value) =>
+                                            props.onPlayerUpdate(
+                                                index(),
+                                                'name',
+                                                value
+                                            )
+                                        }
+                                    />
+                                </td>
+                                <For each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
+                                    {(numericField) => (
+                                        <td>
+                                            <RecordFieldInput
+                                                value={
+                                                    player[
+                                                        numericField as keyof PlayerStats
+                                                    ]
+                                                }
+                                                inputmode="numeric"
+                                                onInput={(value) =>
+                                                    props.onPlayerUpdate(
+                                                        index(),
+                                                        numericField as keyof PlayerStats,
+                                                        value
+                                                    )
+                                                }
+                                            />
+                                        </td>
+                                    )}
+                                </For>
+                            </tr>
+                        );
+                    }}
+                </For>
+            </tbody>
+        </table>
+    );
+};
 
 interface EditableGameDataProps {
     players: PlayerStats[];
@@ -64,79 +159,61 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Result:</label>
-                        <input
-                            type="text"
+                        <RecordFieldInput
                             value={props.matchInfo.result}
-                            onInput={(e) =>
-                                props.onMatchInfoUpdate(
-                                    'result',
-                                    e.currentTarget.value
-                                )
+                            onInput={(value) =>
+                                props.onMatchInfoUpdate('result', value)
                             }
                         />
                     </div>
                     <div class="form-group">
                         <label>Score (Blue):</label>
-                        <input
-                            type="text"
+                        <RecordFieldInput
                             value={props.matchInfo.final_score.blue}
-                            onInput={(e) =>
+                            onInput={(value) =>
                                 props.onMatchInfoUpdate('final_score', {
                                     ...props.matchInfo.final_score,
-                                    blue: e.currentTarget.value,
+                                    blue: value,
                                 })
                             }
                         />
                     </div>
                     <div class="form-group">
                         <label>Score (Red):</label>
-                        <input
-                            type="text"
+                        <RecordFieldInput
                             value={props.matchInfo.final_score.red}
-                            onInput={(e) =>
+                            onInput={(value) =>
                                 props.onMatchInfoUpdate('final_score', {
                                     ...props.matchInfo.final_score,
-                                    red: e.currentTarget.value,
+                                    red: value,
                                 })
                             }
                         />
                     </div>
                     <div class="form-group">
                         <label>Date:</label>
-                        <input
-                            type="text"
+                        <RecordFieldInput
                             value={props.matchInfo.date}
-                            onInput={(e) =>
-                                props.onMatchInfoUpdate(
-                                    'date',
-                                    e.currentTarget.value
-                                )
+                            onInput={(value) =>
+                                props.onMatchInfoUpdate('date', value)
                             }
                         />
                     </div>
                     <div class="form-group">
                         <label>Game Mode:</label>
-                        <input
-                            type="text"
+                        <RecordFieldInput
                             value={props.matchInfo.game_mode}
-                            onInput={(e) =>
-                                props.onMatchInfoUpdate(
-                                    'game_mode',
-                                    e.currentTarget.value
-                                )
+                            onInput={(value) =>
+                                props.onMatchInfoUpdate('game_mode', value)
                             }
                         />
                     </div>
                     <div class="form-group">
                         <label>Length:</label>
-                        <input
-                            type="text"
+                        <RecordFieldInput
                             value={props.matchInfo.game_length}
-                            onInput={(e) =>
-                                props.onMatchInfoUpdate(
-                                    'game_length',
-                                    e.currentTarget.value
-                                )
+                            onInput={(value) =>
+                                props.onMatchInfoUpdate('game_length', value)
                             }
                         />
                     </div>
@@ -144,309 +221,29 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
             </div>
 
             <div class="players-edit">
-                <div class="teams-container">
-                    <div class="team-section">
-                        <h4 class="blue-team">Blue Team</h4>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>E</th>
-                                        <th>A</th>
-                                        <th>D</th>
-                                        <th>DMG</th>
-                                        <th>H</th>
-                                        <th>MIT</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <For
-                                        each={props.players.filter(
-                                            (p) => p.team === 'blue'
-                                        )}
-                                    >
-                                        {(player) => {
-                                            const globalIndex =
-                                                props.players.indexOf(player);
-                                            return (
-                                                <tr>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            value={player.name}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'name',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.e}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'e',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.a}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'a',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.d}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'd',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.dmg}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'dmg',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.h}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'h',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.mit}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'mit',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }}
-                                    </For>
-                                </tbody>
-                            </table>
-                        </div>
+                <div class="team-section">
+                    <h4 class="blue-team">Blue Team</h4>
+                    <div class="table-wrapper">
+                        <TeamDataTable
+                            players={props.players.filter(
+                                (player) => player.team === 'blue'
+                            )}
+                            onPlayerUpdate={props.onPlayerUpdate}
+                        />
                     </div>
+                </div>
 
-                    <div class="team-section">
-                        <h4 class="red-team">Red Team</h4>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>E</th>
-                                        <th>A</th>
-                                        <th>D</th>
-                                        <th>DMG</th>
-                                        <th>H</th>
-                                        <th>MIT</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <For
-                                        each={props.players.filter(
-                                            (p) => p.team === 'red'
-                                        )}
-                                    >
-                                        {(player) => {
-                                            const globalIndex =
-                                                props.players.indexOf(player);
-                                            return (
-                                                <tr>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            value={player.name}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'name',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.e}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'e',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.a}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'a',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.d}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'd',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.dmg}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'dmg',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.h}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'h',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            inputmode="numeric"
-                                                            pattern="[0-9]*"
-                                                            value={player.mit}
-                                                            onInput={(e) =>
-                                                                props.onPlayerUpdate(
-                                                                    globalIndex,
-                                                                    'mit',
-                                                                    e
-                                                                        .currentTarget
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }}
-                                    </For>
-                                </tbody>
-                            </table>
-                        </div>
+                <div class="team-section">
+                    <h4 class="red-team">Red Team</h4>
+                    <div class="table-wrapper">
+                        <TeamDataTable
+                            players={props.players.filter(
+                                (player) => player.team === 'red'
+                            )}
+                            onPlayerUpdate={(index, ...args) => {
+                                props.onPlayerUpdate(index + 5, ...args);
+                            }}
+                        />
                     </div>
                 </div>
             </div>
