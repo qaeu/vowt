@@ -199,12 +199,12 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                 </Show>
                 <button
                     onClick={handleExport}
-                    class="success"
+                    class="primary"
                     disabled={records().length === 0}
                 >
                     📥 Export
                 </button>
-                <button onClick={handleImport} class="warning">
+                <button onClick={handleImport} class="primary">
                     📤 Import
                 </button>
                 <button

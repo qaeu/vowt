@@ -67,7 +67,8 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
 @mixin button($bg-color) {
     padding: 10px 20px;
     color: white;
-    border: none;
+    border: solid $foreground-light;
+    border-width: 0 0 2px 0;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
@@ -75,7 +76,6 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
     background-color: $bg-color;
 
     &:disabled {
-        cursor: not-allowed;
         opacity: 0.6;
     }
 }
