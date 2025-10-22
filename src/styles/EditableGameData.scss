@@ -126,42 +126,43 @@
     }
 }
 
-.table-wrapper {
-    overflow-x: auto;
+.table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
+    thead tr {
+        background-color: theme.$background;
+        border-bottom: 2px solid theme.$border-default;
 
-        thead tr {
-            background-color: theme.$background;
-            border-bottom: 2px solid theme.$border-default;
-
-            th {
-                padding: 12px;
-                text-align: right;
-                font-weight: bold;
-                color: theme.$foreground-dark;
-            }
-            th:first-child {
-                text-align: left;
-            }
+        th:first-child {
+            text-align: left;
         }
+        th {
+            padding: 12px;
+            text-align: right;
+            font-weight: bold;
+            color: theme.$foreground-dark;
+        }
+    }
 
-        tbody tr {
-            border-bottom: 1px solid theme.$border-light;
+    tbody tr {
+        border-bottom: 1px solid theme.$border-light;
 
-            td {
-                padding: 0;
+        td {
+            padding: 0;
+
+            &:first-child {
+                width: 23%;
 
                 input {
-                    width: 100%;
-
-                    &[inputmode='numeric'] {
-                        text-align: right;
-                    }
+                    text-align: left;
                 }
+            }
+
+            input {
+                width: 100%;
+                text-align: right;
             }
         }
     }
