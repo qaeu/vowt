@@ -1,11 +1,7 @@
 import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
-import {
-    preprocessImageForOCR,
-    getScoreboardRegions,
-    getMatchInfoRegions,
-    drawRegionsOnImage,
-} from '#utils/preprocess';
+import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
+import { getScoreboardRegions, getMatchInfoRegions } from '#utils/textRegions';
 import { extractGameStats } from '#utils/postprocess';
 import {
     saveGameRecord,

@@ -7,7 +7,7 @@ import {
     type PlayerStatsNumberFields,
     type PlayerStats,
     type GameRecord,
-} from './gameStorage';
+} from '#utils/gameStorage';
 
 /**
  * Extracts game stats from region-based OCR results
