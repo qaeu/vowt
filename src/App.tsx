@@ -56,6 +56,15 @@ const App: Component = () => {
         document.removeEventListener('drop', handleDrop);
     });
 
+    const handleUploadClick = () => {
+        setUploadedImage(null);
+        setViewMode('ocr');
+    };
+
+    const handleCloseOCR = () => {
+        setViewMode('records');
+    };
+
     return (
         <div>
             {isDragging() && (
@@ -68,40 +77,26 @@ const App: Component = () => {
                     </div>
                 </div>
             )}
-            <div class="nav-container">
-                {viewMode() !== 'ocr' && (
-                    <button
-                        onClick={() => {
-                            setUploadedImage(null);
-                            setViewMode('ocr');
-                        }}
-                        class="nav-button ocr-button"
-                    >
-                        🔍 OCR
-                    </button>
-                )}
-                {viewMode() !== 'records' && (
+            {viewMode() === 'debugger' && (
+                <div class="nav-container">
                     <button
                         onClick={() => setViewMode('records')}
                         class="nav-button records-button"
                     >
                         📊 Records
                     </button>
-                )}
-                {viewMode() !== 'debugger' && (
-                    <button
-                        onClick={() => setViewMode('debugger')}
-                        class="nav-button debugger-button"
-                    >
-                        📍 Debugger
-                    </button>
-                )}
-            </div>
+                </div>
+            )}
 
             {viewMode() === 'ocr' && (
-                <ScoreboardOCR uploadedImage={uploadedImage()} />
+                <ScoreboardOCR
+                    uploadedImage={uploadedImage()}
+                    onClose={handleCloseOCR}
+                />
             )}
-            {viewMode() === 'records' && <GameRecordsTable />}
+            {viewMode() === 'records' && (
+                <GameRecordsTable onUploadClick={handleUploadClick} />
+            )}
             {viewMode() === 'debugger' && <RegionDebugger />}
         </div>
     );

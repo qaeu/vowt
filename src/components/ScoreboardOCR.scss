@@ -4,8 +4,29 @@
     @include theme.container;
 }
 
+.ocr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    .scoreboard-title {
+        margin: 0;
+    }
+
+    .close-button {
+        @include theme.button(theme.$foreground-light);
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+}
+
 .scoreboard-title {
     color: theme.$accent1;
+}
+
+.upload-button {
+    @include theme.button(theme.$accent2-success);
 }
 
 .info-box {

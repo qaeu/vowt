@@ -61,7 +61,7 @@ vi.mock('../utils/imagePreprocessing', () => ({
 describe('ScoreboardOCR', () => {
     it('should render the component', () => {
         const { getByText } = render(() => <ScoreboardOCR />);
-        expect(getByText('Overwatch Scoreboard Tracker POC')).toBeDefined();
+        expect(getByText('Upload Scoreboard Screenshot')).toBeDefined();
     });
 
     it('should render upload button', () => {
@@ -84,8 +84,8 @@ describe('ScoreboardOCR', () => {
                 <ScoreboardOCR uploadedImage={testImageData} />
             ));
 
-            expect(getByText('Original Image')).toBeDefined();
-            expect(getByAltText('Original scoreboard')).toBeDefined();
+            expect(getByText('Uploaded Image')).toBeDefined();
+            expect(getByAltText('Uploaded Image')).toBeDefined();
         });
 
         it('should show processing indicator when uploadedImage is provided', async () => {
@@ -107,9 +107,7 @@ describe('ScoreboardOCR', () => {
 
             await waitFor(
                 () => {
-                    expect(
-                        getByText('Preprocessed (Regions + Unskew)')
-                    ).toBeDefined();
+                    expect(getByText('Pre-processed Image')).toBeDefined();
                 },
                 { timeout: 3000 }
             );

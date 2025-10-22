@@ -50,14 +50,35 @@
         background-color: #fff3e0;
     }
 
+    input {
+        border: 0;
+        padding: 12px;
+        font-size: 14px;
+        box-sizing: border-box;
+        background-color: transparent;
+        transition: all 0.15s ease;
+
+        &:hover {
+            background-color: theme.$background-alt;
+            border-color: theme.$border-light;
+        }
+
+        &:focus {
+            outline: none;
+            background-color: theme.$background-light;
+            border-color: theme.$accent1;
+            box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
+        }
+    }
+
+    h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: theme.$foreground-dark;
+    }
+
     .match-info-edit {
         margin-bottom: 30px;
-
-        h3 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            color: theme.$foreground-dark;
-        }
 
         .form-grid {
             display: grid;
@@ -71,107 +92,74 @@
                 label {
                     font-weight: bold;
                     margin-bottom: 5px;
+                    padding: 4px 12px;
                     color: theme.$foreground-dark;
                     font-size: 14px;
-                }
-
-                input {
-                    padding: 8px;
-                    border: 1px solid theme.$border-light;
-                    border-radius: 4px;
-                    font-size: 14px;
-
-                    &:focus {
-                        outline: none;
-                        border-color: theme.$accent1;
-                        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
-                    }
                 }
             }
         }
     }
 
-    .players-edit {
-        h3 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            color: theme.$foreground-dark;
+    .players-edit .teams-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+
+        @media (max-width: 1200px) {
+            grid-template-columns: 1fr;
         }
 
-        .teams-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .team-section {
+            h4 {
+                margin-top: 0;
+                margin-bottom: 10px;
 
-            @media (max-width: 1200px) {
-                grid-template-columns: 1fr;
-            }
-
-            .team-section {
-                h4 {
-                    margin-top: 0;
-                    margin-bottom: 10px;
-
-                    &.blue-team {
-                        color: theme.$accent1;
-                    }
-
-                    &.red-team {
-                        color: theme.$accent2-error;
-                    }
+                &.blue-team {
+                    color: theme.$accent1;
                 }
 
-                .table-wrapper {
-                    overflow-x: auto;
+                &.red-team {
+                    color: theme.$accent2-error;
+                }
+            }
+        }
+    }
+}
 
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-size: 13px;
+.table-wrapper {
+    overflow-x: auto;
 
-                        thead {
-                            tr {
-                                background-color: theme.$background;
-                                border-bottom: 2px solid theme.$border-default;
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
 
-                                th {
-                                    padding: 8px 4px;
-                                    text-align: left;
-                                    font-weight: bold;
-                                    color: theme.$foreground-dark;
-                                }
-                            }
-                        }
+        thead tr {
+            background-color: theme.$background;
+            border-bottom: 2px solid theme.$border-default;
 
-                        tbody {
-                            tr {
-                                border-bottom: 1px solid theme.$border-light;
+            th {
+                padding: 12px;
+                text-align: right;
+                font-weight: bold;
+                color: theme.$foreground-dark;
+            }
+            th:first-child {
+                text-align: left;
+            }
+        }
 
-                                td {
-                                    padding: 4px;
+        tbody tr {
+            border-bottom: 1px solid theme.$border-light;
 
-                                    input {
-                                        width: 100%;
-                                        padding: 6px;
-                                        border: 1px solid theme.$border-light;
-                                        border-radius: 3px;
-                                        font-size: 13px;
-                                        box-sizing: border-box;
+            td {
+                padding: 0;
 
-                                        &[type='number'] {
-                                            text-align: right;
-                                        }
+                input {
+                    width: 100%;
 
-                                        &:focus {
-                                            outline: none;
-                                            border-color: theme.$accent1;
-                                            box-shadow: 0 0 0 1px
-                                                rgba(25, 118, 210, 0.2);
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    &[inputmode='numeric'] {
+                        text-align: right;
                     }
                 }
             }

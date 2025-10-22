@@ -4,12 +4,26 @@ import App from './App';
 
 // Mock the ScoreboardOCR component
 vi.mock('./components/ScoreboardOCR', () => ({
-    default: () => <div>Mocked ScoreboardOCR</div>,
+    default: (props: any) => (
+        <div>
+            Mocked ScoreboardOCR
+            {props.onClose && (
+                <button onClick={props.onClose}>✕ Close</button>
+            )}
+        </div>
+    ),
 }));
 
 // Mock the GameRecordsTable component
 vi.mock('./components/GameRecordsTable', () => ({
-    default: () => <div>Mocked GameRecordsTable</div>,
+    default: (props: any) => (
+        <div>
+            Mocked GameRecordsTable
+            {props.onUploadClick && (
+                <button onClick={props.onUploadClick}>📤 Upload Image</button>
+            )}
+        </div>
+    ),
 }));
 
 // Mock the RegionDebugger component
@@ -28,36 +42,31 @@ describe('App', () => {
         expect(screen.getByText('Mocked GameRecordsTable')).toBeDefined();
     });
 
-    it('should switch to OCR view when OCR button is clicked', () => {
+    it('should switch to OCR view when upload button is clicked', () => {
         render(() => <App />);
-        const ocrButton = screen.getByText('🔍 OCR');
-        fireEvent.click(ocrButton);
+        const uploadButton = screen.getByText('📤 Upload Image');
+        fireEvent.click(uploadButton);
         expect(screen.getByText('Mocked ScoreboardOCR')).toBeDefined();
     });
 
-    it('should switch to Debugger view when Debugger button is clicked', () => {
+    it('should switch back to Records view when close button is clicked in OCR', () => {
         render(() => <App />);
-        const debuggerButton = screen.getByText('📍 Debugger');
-        fireEvent.click(debuggerButton);
-        expect(screen.getByText('Mocked RegionDebugger')).toBeDefined();
+        // Navigate to OCR
+        const uploadButton = screen.getByText('📤 Upload Image');
+        fireEvent.click(uploadButton);
+        expect(screen.getByText('Mocked ScoreboardOCR')).toBeDefined();
+        
+        // Click close button
+        const closeButton = screen.getByText('✕ Close');
+        fireEvent.click(closeButton);
+        expect(screen.getByText('Mocked GameRecordsTable')).toBeDefined();
     });
 
-    it('should only show one navigation button at a time', () => {
+    it('should not show navigation buttons on records view', () => {
         render(() => <App />);
         
-        // Initially on Records view, should show OCR and Debugger buttons
-        expect(screen.queryByText('🔍 OCR')).toBeDefined();
-        expect(screen.queryByText('📍 Debugger')).toBeDefined();
+        // Initially on Records view, should not show navigation buttons
         expect(screen.queryByText('📊 Records')).toBeNull();
-        
-        // Navigate to OCR
-        const ocrButton = screen.getByText('🔍 OCR');
-        fireEvent.click(ocrButton);
-        
-        // Should show Records and Debugger buttons, but not OCR
-        expect(screen.queryByText('📊 Records')).toBeDefined();
-        expect(screen.queryByText('📍 Debugger')).toBeDefined();
-        expect(screen.queryByText('🔍 OCR')).toBeNull();
     });
 
     it('should have drag and drop event listeners attached', () => {
@@ -69,15 +78,15 @@ describe('App', () => {
         expect(screen.getByText('Mocked GameRecordsTable')).toBeDefined();
     });
 
-    it('should clear uploaded image when clicking OCR button from another view', () => {
+    it('should clear uploaded image when clicking upload button', () => {
         render(() => <App />);
         
         // Initially on Records view
         expect(screen.getByText('Mocked GameRecordsTable')).toBeDefined();
         
-        // Click OCR button
-        const ocrButton = screen.getByText('🔍 OCR');
-        fireEvent.click(ocrButton);
+        // Click upload button
+        const uploadButton = screen.getByText('📤 Upload Image');
+        fireEvent.click(uploadButton);
         
         // Should navigate to OCR screen
         expect(screen.getByText('Mocked ScoreboardOCR')).toBeDefined();

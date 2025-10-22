@@ -18,6 +18,7 @@ import './ScoreboardOCR.scss';
 
 interface ScoreboardOCRProps {
     uploadedImage?: string | null;
+    onClose?: () => void;
 }
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
@@ -233,22 +234,19 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
     return (
         <div class="scoreboard-container">
-            <h1 class="scoreboard-title">Overwatch Scoreboard Tracker POC</h1>
+            <div class="ocr-header">
+                <h1 class="scoreboard-title">Upload Scoreboard Screenshot</h1>
+                <Show when={props.onClose}>
+                    <button onClick={props.onClose} class="close-button">
+                        ✕ Close
+                    </button>
+                </Show>
+            </div>
             <div style={{ 'margin-bottom': '20px' }}>
                 <button
                     onClick={triggerFileUpload}
                     disabled={isProcessing()}
-                    style={{
-                        padding: '10px 20px',
-                        'background-color': '#4caf50',
-                        color: 'white',
-                        border: 'none',
-                        'border-radius': '4px',
-                        cursor: isProcessing() ? 'not-allowed' : 'pointer',
-                        'font-size': '14px',
-                        'font-weight': 'bold',
-                        'box-shadow': '0 2px 4px rgba(0,0,0,0.2)',
-                    }}
+                    class="upload-button"
                 >
                     📤 Upload Image
                 </button>
@@ -277,22 +275,22 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             <div class="image-grid">
                 <Show when={currentImage()}>
                     <div class="image-container">
-                        <h2>Original Image</h2>
-                        <img src={currentImage()} alt="Original scoreboard" />
+                        <h2>Uploaded Image</h2>
+                        <img src={currentImage()} alt="Uploaded Image" />
                     </div>
                 </Show>
 
                 <Show when={preprocessedImagePreview()}>
                     <div class="image-container">
-                        <h2>Preprocessed (Regions + Unskew)</h2>
+                        <h2>Pre-processed Image</h2>
                         <img
                             src={preprocessedImagePreview()}
-                            alt="Preprocessed scoreboard with regions and unskew applied"
+                            alt="Pre-processed scoreboard with regions and unskew applied"
                         />
                         <p>
-                            Grayscale + contrast enhanced with red region boxes.
-                            Green borders show italic regions with unskew
-                            transformation applied.
+                            Filtered for OCR clarity. Red boxes show scoreboard
+                            regions. Green boxes show scoreboard regions with
+                            transformed italic text.
                         </p>
                     </div>
                 </Show>

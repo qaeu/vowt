@@ -1,5 +1,15 @@
 @use 'theme';
 
+// Global styles - always show scrollbar to prevent layout shift
+html {
+    overflow-y: scroll;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
 // Drag and drop overlay
 .drag-overlay {
     position: fixed;

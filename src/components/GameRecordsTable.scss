@@ -19,7 +19,7 @@
         @include theme.button(theme.$accent1);
 
         &.primary {
-            @include theme.button(theme.$accent1);
+            @include theme.button(theme.$accent1-light);
         }
 
         &.success {

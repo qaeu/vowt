@@ -26,40 +26,41 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
         <div class="editable-data-container">
             <Show when={props.showActions !== false}>
                 <div class="editable-header">
-                    <h2>Extracted Game Data - Review and Edit</h2>
+                    <h2>Match Information</h2>
+
+                    <Show when={props.saveSuccess}>
+                        <div class="success-message">
+                            ✓ Game record saved successfully!
+                        </div>
+                    </Show>
+                    <Show when={props.hasUnsavedChanges}>
+                        <div class="unsaved-message">
+                            ⚠ You have unsaved changes
+                        </div>
+                    </Show>
+
                     <div class="action-buttons">
-                        <button
-                            onClick={props.onSave}
-                            disabled={!props.hasUnsavedChanges}
-                            class="save-button"
-                        >
-                            💾 Save to Records
-                        </button>
-                        <button
-                            onClick={props.onCancel}
-                            disabled={!props.hasUnsavedChanges}
-                            class="cancel-button"
-                        >
-                            ↺ Reset Changes
-                        </button>
+                        <Show when={props.hasUnsavedChanges}>
+                            <button
+                                onClick={props.onSave}
+                                disabled={!props.hasUnsavedChanges}
+                                class="save-button"
+                            >
+                                💾 Save to Records
+                            </button>
+                            <button
+                                onClick={props.onCancel}
+                                disabled={!props.hasUnsavedChanges}
+                                class="cancel-button"
+                            >
+                                ↺ Reset Changes
+                            </button>
+                        </Show>
                     </div>
                 </div>
-
-                <Show when={props.saveSuccess}>
-                    <div class="success-message">
-                        ✓ Game record saved successfully!
-                    </div>
-                </Show>
-
-                <Show when={props.hasUnsavedChanges}>
-                    <div class="unsaved-message">
-                        ⚠ You have unsaved changes
-                    </div>
-                </Show>
             </Show>
 
             <div class="match-info-edit">
-                <h3>Match Information</h3>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Result:</label>
@@ -143,7 +144,6 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
             </div>
 
             <div class="players-edit">
-                <h3>Player Statistics</h3>
                 <div class="teams-container">
                     <div class="team-section">
                         <h4 class="blue-team">Blue Team</h4>
@@ -188,7 +188,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.e}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -203,7 +205,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.a}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -218,7 +222,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.d}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -233,7 +239,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.dmg}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -248,7 +256,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.h}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -263,7 +273,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.mit}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -328,7 +340,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.e}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -343,7 +357,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.a}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -358,7 +374,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.d}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -373,7 +391,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.dmg}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -388,7 +408,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.h}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
@@ -403,7 +425,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                                     </td>
                                                     <td>
                                                         <input
-                                                            type="number"
+                                                            type="text"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={player.mit}
                                                             onInput={(e) =>
                                                                 props.onPlayerUpdate(
