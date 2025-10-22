@@ -3,7 +3,7 @@ import { createSignal, onMount, onCleanup } from 'solid-js';
 import ScoreboardOCR from './components/ScoreboardOCR';
 import RegionDebugger from './components/RegionDebugger';
 import GameRecordsTable from './components/GameRecordsTable';
-import './App.scss';
+import '#styles/App';
 
 type ViewMode = 'ocr' | 'records' | 'debugger';
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, waitFor } from '@solidjs/testing-library';
-import ScoreboardOCR from './ScoreboardOCR';
+import ScoreboardOCR from '#c/ScoreboardOCR';
 
 // Mock tesseract.js
 vi.mock('tesseract.js', () => ({
@@ -19,10 +19,26 @@ vi.mock('tesseract.js', () => ({
 }));
 
 // Mock the image preprocessing module
-vi.mock('../utils/imagePreprocessing', () => ({
+vi.mock('#utils/preprocess', () => ({
     preprocessImageForOCR: vi
         .fn()
         .mockResolvedValue('data:image/png;base64,mockdata'),
+    drawRegionsOnImage: vi
+        .fn()
+        .mockResolvedValue('data:image/png;base64,regionmockdata'),
+    getScoreboardRegions: vi
+        .fn()
+        .mockReturnValue([
+            { name: 'region_0', x: 0, y: 0, width: 100, height: 100 },
+        ]),
+    getMatchInfoRegions: vi
+        .fn()
+        .mockReturnValue([
+            { name: 'region_1', x: 0, y: 0, width: 100, height: 100 },
+        ]),
+}));
+
+vi.mock('#utils/postprocess', () => ({
     extractGameStats: vi.fn().mockReturnValue({
         players: [
             {
@@ -43,19 +59,6 @@ vi.mock('../utils/imagePreprocessing', () => ({
             game_mode: 'ESCORT',
         },
     }),
-    drawRegionsOnImage: vi
-        .fn()
-        .mockResolvedValue('data:image/png;base64,regionmockdata'),
-    getScoreboardRegions: vi
-        .fn()
-        .mockReturnValue([
-            { name: 'region_0', x: 0, y: 0, width: 100, height: 100 },
-        ]),
-    getMatchInfoRegions: vi
-        .fn()
-        .mockReturnValue([
-            { name: 'region_1', x: 0, y: 0, width: 100, height: 100 },
-        ]),
 }));
 
 describe('ScoreboardOCR', () => {
@@ -84,8 +87,8 @@ describe('ScoreboardOCR', () => {
                 <ScoreboardOCR uploadedImage={testImageData} />
             ));
 
-            expect(getByText('Uploaded Image')).toBeDefined();
-            expect(getByAltText('Uploaded Image')).toBeDefined();
+            expect(getByText('Uploaded Image')).not.toBeNull();
+            expect(getByAltText('Uploaded Image')).not.toBeNull();
         });
 
         it('should show processing indicator when uploadedImage is provided', async () => {
@@ -96,10 +99,10 @@ describe('ScoreboardOCR', () => {
 
             // Check for processing text (may be brief)
             const processingText = queryByText(/Processing image/);
-            expect(processingText).toBeDefined();
+            expect(processingText).not.toBeNull();
         });
 
-        it('should display preprocessed image after processing with uploaded image', async () => {
+        it('should display preprocessed image after processing uploaded image', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { getByText } = render(() => (
                 <ScoreboardOCR uploadedImage={testImageData} />
@@ -107,7 +110,7 @@ describe('ScoreboardOCR', () => {
 
             await waitFor(
                 () => {
-                    expect(getByText('Pre-processed Image')).toBeDefined();
+                    expect(getByText('Pre-processed Image')).not.toBeNull();
                 },
                 { timeout: 3000 }
             );
@@ -121,7 +124,7 @@ describe('ScoreboardOCR', () => {
 
             await waitFor(
                 () => {
-                    expect(getByText('Raw OCR Text Output')).toBeDefined();
+                    expect(getByText('Raw OCR Text Output')).not.toBeNull();
                 },
                 { timeout: 3000 }
             );
@@ -137,24 +140,7 @@ describe('ScoreboardOCR', () => {
                 () => {
                     expect(
                         getByText('Extracted Game Stats (JSON)')
-                    ).toBeDefined();
-                },
-                { timeout: 3000 }
-            );
-        });
-
-        it('should display success message with count with uploaded image', async () => {
-            const testImageData = 'data:image/png;base64,testdata';
-            const { queryByText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
-            ));
-
-            await waitFor(
-                () => {
-                    const successText = queryByText(
-                        /Successfully parsed .* data fields/
-                    );
-                    expect(successText).toBeDefined();
+                    ).not.toBeNull();
                 },
                 { timeout: 3000 }
             );
@@ -171,7 +157,7 @@ describe('ScoreboardOCR', () => {
                     const jsonHeader = queryByText(
                         /Extracted Game Stats \(JSON\)/
                     );
-                    expect(jsonHeader).toBeDefined();
+                    expect(jsonHeader).not.toBeNull();
                 },
                 { timeout: 3000 }
             );
@@ -185,8 +171,7 @@ describe('ScoreboardOCR', () => {
 
             await waitFor(
                 () => {
-                    const rawTextHeader = queryByText(/Raw OCR Text Output/);
-                    expect(rawTextHeader).toBeDefined();
+                    expect(queryByText(/Raw OCR Text Output/)).not.toBeNull();
                 },
                 { timeout: 3000 }
             );

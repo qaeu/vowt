@@ -10,5 +10,10 @@ export default defineConfig({
     },
     resolve: {
         conditions: ['development', 'browser'],
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.scss'],
+        alias: {
+            '#': '/src/',
+            '#c': '/src/components/',
+        },
     },
 });

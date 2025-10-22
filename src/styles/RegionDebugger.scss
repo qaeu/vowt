@@ -1,4 +1,4 @@
-@use '../theme';
+@use 'theme';
 
 .region-debugger-container {
     @include theme.container;

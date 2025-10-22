@@ -12,6 +12,11 @@
         "module": "ESNext",
         "moduleResolution": "bundler",
         "noEmit": true,
+        "paths": {
+            "#*": ["./src/*"],
+            "#c/*": ["./src/components/*"],
+            "#styles/*": ["./src/styles/*.scss"]
+        },
 
         // Type Checking & Safety
         "strict": true,

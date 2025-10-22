@@ -2,19 +2,19 @@ import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import {
     preprocessImageForOCR,
-    extractGameStats,
     getScoreboardRegions,
     getMatchInfoRegions,
     drawRegionsOnImage,
-} from '../utils/imagePreprocessing';
+} from '#utils/preprocess';
+import { extractGameStats } from '#utils/postprocess';
 import {
     saveGameRecord,
     type PlayerStats,
     type MatchInfo,
     type GameRecord,
-} from '../utils/gameStorage';
-import EditableGameData from './EditableGameData';
-import './ScoreboardOCR.scss';
+} from '#utils/gameStorage';
+import EditableGameData from '#c/EditableGameData';
+import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
     uploadedImage?: string | null;

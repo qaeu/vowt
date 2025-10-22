@@ -9,9 +9,9 @@ import {
     type GameRecord,
     type PlayerStats,
     type MatchInfo,
-} from '../utils/gameStorage';
-import EditableGameData from './EditableGameData';
-import './GameRecordsTable.scss';
+} from '#utils/gameStorage';
+import EditableGameData from '#c/EditableGameData';
+import '#styles/GameRecordsTable';
 
 interface GameRecordsTableProps {
     onUploadClick?: () => void;

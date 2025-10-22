@@ -2,13 +2,6 @@
  * Image preprocessing utilities for OCR optimization
  */
 
-import {
-    PLAYER_STATS_NUMBER_FIELD_NAMES,
-    type PlayerStatsNumberFields,
-    type PlayerStats,
-    type GameRecord,
-} from './gameStorage';
-
 /**
  * Text element region definition for targeted OCR
  */
@@ -567,71 +560,6 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 }
 
 /**
- * Preprocesses a specific region of the image for OCR
- * @param imageData - Region image data
- * @param region - Region definition
- * @returns Promise resolving to preprocessed region data URL
- */
-function preprocessRegionForOCR(
-    imageData: ImageData,
-    region: TextRegion
-): ImageData {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx || !region.isItalic) {
-        return imageData;
-    }
-
-    // Set canvas to region size
-    canvas.width = region.width;
-    canvas.height = region.height;
-
-    // Put the image data on canvas
-    ctx.putImageData(imageData, 0, 0);
-
-    // Apply italic correction if needed
-    if (region.isItalic) {
-        imageData = unskewItalicText(imageData);
-        ctx.putImageData(imageData, 0, 0);
-    }
-
-    return ctx.getImageData(0, 0, canvas.width, canvas.height);
-}
-
-/**
- * Extracts game stats from region-based OCR results
- * @param regionResults - Map of region names to OCR text
- * @returns Structured game stats
- */
-export function extractGameStats(
-    regionResults: Map<string, string>
-): Pick<GameRecord, 'players' | 'matchInfo'> {
-    const players: GameRecord['players'] = [];
-    players.push(...extractTeamPlayers('blue', regionResults));
-    players.push(...extractTeamPlayers('red', regionResults));
-
-    // Extract match info
-    const finalRaw =
-        regionResults.get('final_score')?.trim().toUpperCase() || ':?VS?';
-    const [beforeVS, afterVS] = finalRaw.split('VS');
-
-    const matchInfo: GameRecord['matchInfo'] = {
-        result: regionResults.get('result')?.trim().toUpperCase() || '?',
-        final_score: {
-            blue: beforeVS.split(':')[1].trim(),
-            red: afterVS.trim(),
-        },
-        date: regionResults.get('date')?.split('DATE:')[1].trim() || '?',
-        game_mode: regionResults.get('game_mode')?.split(':')[1].trim() || '?',
-        game_length:
-            regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '?',
-    };
-
-    return { players, matchInfo };
-}
-
-/**
  * Draws italic regions with unskew visualization on the preprocessed image
  * Uses green overlay for regions to show which ones are being unskewed
  * @param imageUrl - URL of the preprocessed image
@@ -701,27 +629,35 @@ export async function drawRegionsOnImage(
     });
 }
 
-function extractTeamPlayers(
-    team: PlayerStats['team'],
-    ocrResults: Map<string, string>
-): PlayerStats[] {
-    const teamPlayers: PlayerStats[] = [];
-    for (let i = 1; i <= 5; i++) {
-        const numberStats: Partial<PlayerStatsNumberFields> = {};
-        for (const field of PLAYER_STATS_NUMBER_FIELD_NAMES) {
-            numberStats[field] =
-                parseInt(
-                    ocrResults.get(`${team}_player${i}_${field}`) || ''
-                ).toString() || '?';
-        }
+/**
+ * Preprocesses a specific region of the image for OCR
+ * @param imageData - Region image data
+ * @param region - Region definition
+ * @returns Promise resolving to preprocessed region data URL
+ */
+function preprocessRegionForOCR(
+    imageData: ImageData,
+    region: TextRegion
+): ImageData {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-        const player: PlayerStats = {
-            name: ocrResults.get(`${team}_player${i}_name`)?.trim() || '?',
-            team,
-            ...(numberStats as PlayerStatsNumberFields),
-        };
-
-        teamPlayers.push(player);
+    if (!ctx || !region.isItalic) {
+        return imageData;
     }
-    return teamPlayers;
+
+    // Set canvas to region size
+    canvas.width = region.width;
+    canvas.height = region.height;
+
+    // Put the image data on canvas
+    ctx.putImageData(imageData, 0, 0);
+
+    // Apply italic correction if needed
+    if (region.isItalic) {
+        imageData = unskewItalicText(imageData);
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }

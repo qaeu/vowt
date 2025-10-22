@@ -3,8 +3,8 @@ import {
     startRegionEditor,
     DrawnRegion,
     formatRegionForCopy,
-} from '../utils/regionEditor';
-import './RegionDebugger.scss';
+} from '#utils/regionEditor';
+import '#styles/RegionDebugger';
 
 const RegionDebugger: Component = () => {
     const [regions, setRegions] = createSignal<DrawnRegion[]>([]);

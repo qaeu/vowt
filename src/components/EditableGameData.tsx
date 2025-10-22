@@ -1,6 +1,6 @@
 import { Component, For, Show } from 'solid-js';
-import { PlayerStats, MatchInfo } from '../utils/gameStorage';
-import './EditableGameData.scss';
+import { PlayerStats, MatchInfo } from '#utils/gameStorage';
+import '#styles/EditableGameData';
 
 interface EditableGameDataProps {
     players: PlayerStats[];

@@ -1,4 +1,4 @@
-@use '../theme';
+@use 'theme';
 
 .editable-data-container {
     @include theme.card(theme.$background-light);

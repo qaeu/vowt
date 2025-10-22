@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { extractGameStats } from './imagePreprocessing';
+import { extractGameStats } from '#utils/postprocess';
 
 const MOCK_REGION_RESULTS = new Map<string, string>([
     ['blue_player1_name', 'STARK'],

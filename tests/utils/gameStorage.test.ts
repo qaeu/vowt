@@ -9,19 +9,19 @@ import {
     importGameRecords,
     type PlayerStats,
     type MatchInfo,
-} from './gameStorage';
+} from '#utils/gameStorage';
 
 describe('gameStorage', () => {
     const mockPlayers: PlayerStats[] = [
         {
             name: 'Player1',
             team: 'blue',
-            e: 10,
-            a: 5,
-            d: 2,
-            dmg: 5000,
-            h: 3000,
-            mit: 1000,
+            e: '10',
+            a: '5',
+            d: '2',
+            dmg: '5000',
+            h: '3000',
+            mit: '1000',
         },
     ];
 
@@ -82,12 +82,12 @@ describe('gameStorage', () => {
             {
                 name: 'UpdatedPlayer1',
                 team: 'blue',
-                e: 20,
-                a: 10,
-                d: 4,
-                dmg: 10000,
-                h: 6000,
-                mit: 2000,
+                e: '20',
+                a: '10',
+                d: '4',
+                dmg: '10000',
+                h: '6000',
+                mit: '2000',
             },
         ];
 
@@ -139,7 +139,7 @@ describe('gameStorage', () => {
     it('should export game records as JSON', () => {
         saveGameRecord(mockPlayers, mockMatchInfo);
         const exported = exportGameRecords();
-        
+
         expect(exported).toBeDefined();
         const parsed = JSON.parse(exported);
         expect(parsed.length).toBe(1);
@@ -149,12 +149,12 @@ describe('gameStorage', () => {
     it('should import game records from JSON', () => {
         const record = saveGameRecord(mockPlayers, mockMatchInfo);
         const exported = exportGameRecords();
-        
+
         clearAllGameRecords();
-        
+
         const importedCount = importGameRecords(exported);
         expect(importedCount).toBe(1);
-        
+
         const records = loadGameRecords();
         expect(records.length).toBe(1);
         expect(records[0].id).toBe(record.id);
@@ -163,11 +163,11 @@ describe('gameStorage', () => {
     it('should not import duplicate records', () => {
         const record = saveGameRecord(mockPlayers, mockMatchInfo);
         const exported = exportGameRecords();
-        
+
         // Try to import the same records again
         const importedCount = importGameRecords(exported);
         expect(importedCount).toBe(0);
-        
+
         const records = loadGameRecords();
         expect(records.length).toBe(1);
     });
@@ -175,13 +175,13 @@ describe('gameStorage', () => {
     it('should generate unique IDs for each record', () => {
         const record1 = saveGameRecord(mockPlayers, mockMatchInfo);
         const record2 = saveGameRecord(mockPlayers, mockMatchInfo);
-        
+
         expect(record1.id).not.toBe(record2.id);
     });
 
     it('should handle corrupted localStorage data gracefully', () => {
         localStorage.setItem('vowt_game_records', 'invalid json');
-        
+
         const records = loadGameRecords();
         expect(records).toEqual([]);
     });
