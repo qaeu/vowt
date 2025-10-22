@@ -8,18 +8,17 @@ import '#styles/EditableGameData';
 
 interface RecordFieldInputProps {
     value?: string;
-    type?: string;
-    inputmode?: 'text' | 'numeric' | 'none';
+    staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
     onInput: (value: string) => void;
 }
 
 const RecordFieldInput: Component<RecordFieldInputProps> = (props) => {
     const validityPattern =
-        props.inputmode === 'numeric' ? '[0-9]*' : undefined;
+        props.staticInputmode === 'numeric' ? '[0-9]*' : undefined;
     return (
         <input
-            type={props.type || 'text'}
-            inputmode={props.inputmode || 'text'}
+            type="text"
+            inputmode={props.staticInputmode || 'text'}
             pattern={validityPattern}
             value={props.value}
             onInput={(e) => props.onInput(e.currentTarget.value)}
@@ -77,7 +76,7 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                                         numericField as keyof PlayerStats
                                                     ]
                                                 }
-                                                inputmode="numeric"
+                                                staticInputmode="numeric"
                                                 onInput={(value) =>
                                                     props.onPlayerUpdate(
                                                         index(),
@@ -113,8 +112,8 @@ interface EditableGameDataProps {
         field: K,
         value: MatchInfo[K]
     ) => void;
-    onSave?: () => void;
-    onCancel?: () => void;
+    onSave: () => void;
+    onCancel: () => void;
 }
 
 const EditableGameData: Component<EditableGameDataProps> = (props) => {
@@ -138,14 +137,14 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="action-buttons">
                         <Show when={props.hasUnsavedChanges}>
                             <button
-                                onClick={props.onSave}
+                                onClick={() => props.onSave()}
                                 disabled={!props.hasUnsavedChanges}
                                 class="save-button"
                             >
                                 💾 Save to Records
                             </button>
                             <button
-                                onClick={props.onCancel}
+                                onClick={() => props.onCancel()}
                                 disabled={!props.hasUnsavedChanges}
                                 class="cancel-button"
                             >

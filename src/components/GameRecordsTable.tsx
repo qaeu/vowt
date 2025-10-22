@@ -14,7 +14,7 @@ import EditableGameData from '#c/EditableGameData';
 import '#styles/GameRecordsTable';
 
 interface GameRecordsTableProps {
-    onUploadClick?: () => void;
+    onUploadClick: () => void;
 }
 
 const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
@@ -193,7 +193,10 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
             <div class="button-group">
                 <Show when={props.onUploadClick}>
-                    <button onClick={props.onUploadClick} class="primary">
+                    <button
+                        onClick={() => props.onUploadClick()}
+                        class="primary"
+                    >
                         📤 Upload Image
                     </button>
                 </Show>

@@ -14,7 +14,7 @@ import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
     uploadedImage?: string | null;
-    onClose?: () => void;
+    onClose: () => void;
 }
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
@@ -53,11 +53,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     });
 
     // React to changes in uploadedImage prop (e.g., drag-and-drop while on OCR page)
-    createEffect(async () => {
+    createEffect(() => {
         const uploaded = props.uploadedImage;
         if (uploaded && uploaded !== currentImage()) {
             setCurrentImage(uploaded);
-            await processImage(uploaded);
+            processImage(uploaded);
         }
     });
 
@@ -224,11 +224,14 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         <div class="scoreboard-container">
             <div class="ocr-header">
                 <h1 class="scoreboard-title">Upload Scoreboard Screenshot</h1>
-                <Show when={props.onClose}>
-                    <button onClick={props.onClose} class="close-button">
-                        ✕ Close
-                    </button>
-                </Show>
+                <button
+                    onClick={() => {
+                        props.onClose();
+                    }}
+                    class="close-button"
+                >
+                    ✕ Close
+                </button>
             </div>
             <div style={{ 'margin-bottom': '20px' }}>
                 <button
