@@ -1,8 +1,9 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup } from 'solid-js';
-import ScoreboardOCR from './components/ScoreboardOCR';
-import RegionDebugger from './components/RegionDebugger';
-import GameRecordsTable from './components/GameRecordsTable';
+import ScoreboardOCR from '#c/ScoreboardOCR';
+import RegionDebugger from '#c/RegionDebugger';
+import GameRecordsTable from '#c/GameRecordsTable';
+import { triggerUploadDialog, handleFileUpload } from '#utils/gameStorage';
 import '#styles/App';
 
 type ViewMode = 'ocr' | 'records' | 'debugger';
@@ -15,7 +16,12 @@ const App: Component = () => {
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragging(true);
+        if (
+            e.dataTransfer?.items[0]?.kind === 'file' &&
+            e.dataTransfer.items[0].type.startsWith('image/')
+        ) {
+            setIsDragging(true);
+        }
     };
 
     const handleDragLeave = (e: DragEvent) => {
@@ -29,19 +35,11 @@ const App: Component = () => {
         e.stopPropagation();
         setIsDragging(false);
 
-        const file = e.dataTransfer?.files[0];
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const imageData = event.target?.result as string;
-                setUploadedImage(imageData);
-                // Switch to OCR view if not already there
-                if (viewMode() !== 'ocr') {
-                    setViewMode('ocr');
-                }
-            };
-            reader.readAsDataURL(file);
-        }
+        const file = e.dataTransfer?.files[0] as File;
+        handleFileUpload(file, (imageData) => {
+            setUploadedImage(imageData);
+            setViewMode('ocr');
+        });
     };
 
     onMount(() => {
@@ -57,8 +55,10 @@ const App: Component = () => {
     });
 
     const handleUploadClick = () => {
-        setUploadedImage(null);
-        setViewMode('ocr');
+        triggerUploadDialog((imageData) => {
+            setUploadedImage(imageData);
+            setViewMode('ocr');
+        });
     };
 
     const handleCloseOCR = () => {

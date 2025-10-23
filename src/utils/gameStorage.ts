@@ -44,6 +44,32 @@ export interface GameRecord {
 const STORAGE_KEY = 'vowt_game_records';
 const SCHEMA_VERSION = 1;
 
+export function triggerUploadDialog(callback: (imageData: string) => void) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (event) => {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0] as File;
+
+        handleFileUpload(file, callback);
+    };
+    input.click();
+}
+
+export function handleFileUpload(
+    file: File,
+    callback: (imageData: string) => void
+) {
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            callback(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
 /**
  * Generate a unique ID for a game record
  */
@@ -119,7 +145,7 @@ export function updateGameRecord(
     try {
         const records = loadGameRecords();
         const index = records.findIndex((record) => record.id === id);
-        
+
         if (index === -1) {
             return null;
         }

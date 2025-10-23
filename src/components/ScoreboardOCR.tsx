@@ -1,5 +1,6 @@
 import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
+import EditableGameData from '#c/EditableGameData';
 import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { getScoreboardRegions, getMatchInfoRegions } from '#utils/textRegions';
 import { extractGameStats } from '#utils/postprocess';
@@ -9,7 +10,6 @@ import {
     type MatchInfo,
     type GameRecord,
 } from '#utils/gameStorage';
-import EditableGameData from '#c/EditableGameData';
 import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
@@ -146,28 +146,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         }
     };
 
-    const handleFileUpload = (event: Event) => {
-        const input = event.target as HTMLInputElement;
-        const file = input.files?.[0];
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const imageData = e.target?.result as string;
-                setCurrentImage(imageData);
-                await processImage(imageData);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const triggerFileUpload = () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = handleFileUpload;
-        input.click();
-    };
-
     const handleSaveData = () => {
         try {
             saveGameRecord(editablePlayers(), editableMatchInfo());
@@ -231,15 +209,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                     class="close-button"
                 >
                     ✕ Close
-                </button>
-            </div>
-            <div style={{ 'margin-bottom': '20px' }}>
-                <button
-                    onClick={triggerFileUpload}
-                    disabled={isProcessing()}
-                    class="upload-button"
-                >
-                    📤 Upload Image
                 </button>
             </div>
 

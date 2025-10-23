@@ -192,14 +192,9 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
             <h1 class="records-title">Game History</h1>
 
             <div class="button-group">
-                <Show when={props.onUploadClick}>
-                    <button
-                        onClick={() => props.onUploadClick()}
-                        class="primary"
-                    >
-                        📤 Upload Image
-                    </button>
-                </Show>
+                <button onClick={() => props.onUploadClick()} class="primary">
+                    📤 Upload Image
+                </button>
                 <button
                     onClick={handleExport}
                     class="primary"
