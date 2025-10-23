@@ -17,6 +17,12 @@ interface GameRecordsTableProps {
     onUploadClick: () => void;
 }
 
+// Type to track which fields have been modified
+type ModifiedFields = {
+    players: Set<string>; // Format: "playerIndex:fieldName"
+    matchInfo: Set<keyof MatchInfo>; // Field names like 'result', 'date', etc.
+};
+
 const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
     const [records, setRecords] = createSignal<GameRecord[]>([]);
     const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(
@@ -32,8 +38,14 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
         game_mode: '',
         game_length: '',
     });
-    const [hasUnsavedChanges, setHasUnsavedChanges] = createSignal(false);
-    const [saveSuccess, setSaveSuccess] = createSignal(false);
+    const [modifiedFields, setModifiedFields] = createSignal<ModifiedFields>({
+        players: new Set(),
+        matchInfo: new Set(),
+    });
+    const [justSavedFields, setJustSavedFields] = createSignal<ModifiedFields>({
+        players: new Set(),
+        matchInfo: new Set(),
+    });
 
     const loadRecords = () => {
         setRecords(loadGameRecords());
@@ -111,15 +123,15 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
         // If this record is already being edited, close it
         if (expandedRecordId() === recordId) {
             setExpandedRecordId(null);
-            setHasUnsavedChanges(false);
-            setSaveSuccess(false);
+            setModifiedFields({ players: new Set(), matchInfo: new Set() });
+            setJustSavedFields({ players: new Set(), matchInfo: new Set() });
         } else {
             // Otherwise, open it for editing
             setExpandedRecordId(recordId);
             setEditablePlayers(structuredClone(record.players));
             setEditableMatchInfo({ ...record.matchInfo });
-            setHasUnsavedChanges(false);
-            setSaveSuccess(false);
+            setModifiedFields({ players: new Set(), matchInfo: new Set() });
+            setJustSavedFields({ players: new Set(), matchInfo: new Set() });
         }
     };
 
@@ -133,7 +145,9 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
         }
         setEditablePlayers(structuredClone(record.players));
         setEditableMatchInfo({ ...record.matchInfo });
-        setHasUnsavedChanges(false);
+        // Instantly clear all highlights
+        setModifiedFields({ players: new Set(), matchInfo: new Set() });
+        setJustSavedFields({ players: new Set(), matchInfo: new Set() });
     };
 
     const handleSaveEdit = () => {
@@ -142,10 +156,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
         try {
             updateGameRecord(recordId, editablePlayers(), editableMatchInfo());
-            setHasUnsavedChanges(false);
-            setSaveSuccess(true);
+            // Move modified fields to justSaved for animation
+            setJustSavedFields(modifiedFields());
+            // Clear modified fields
+            setModifiedFields({ players: new Set(), matchInfo: new Set() });
             // Reload records to show updated data
             loadRecords();
+            // Clear saved fields after animation duration
+            setTimeout(() => {
+                setJustSavedFields({ players: new Set(), matchInfo: new Set() });
+            }, 2000); // Total animation time: brief green + fade out
         } catch (err) {
             alert(
                 err instanceof Error
@@ -162,12 +182,30 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
     ) => {
         const players = editablePlayers();
         if (players[index]) {
+            const record = records().find(
+                (r) => r.id === expandedRecordId()
+            ) as GameRecord;
+            if (!record) return;
+            
             setEditablePlayers((cur) => {
                 cur[index] = { ...cur[index], [field]: value };
                 return cur;
             });
-            setHasUnsavedChanges(true);
-            setSaveSuccess(false);
+            
+            // Check if the value is different from original
+            const fieldKey = `${index}:${String(field)}`;
+            if (record.players[index]?.[field] !== value) {
+                setModifiedFields((prev) => ({
+                    ...prev,
+                    players: new Set(prev.players).add(fieldKey),
+                }));
+            } else {
+                setModifiedFields((prev) => {
+                    const newPlayers = new Set(prev.players);
+                    newPlayers.delete(fieldKey);
+                    return { ...prev, players: newPlayers };
+                });
+            }
         }
     };
 
@@ -175,12 +213,30 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
         field: K,
         value: MatchInfo[K]
     ) => {
+        const record = records().find(
+            (r) => r.id === expandedRecordId()
+        ) as GameRecord;
+        if (!record) return;
+        
         setEditableMatchInfo((cur) => {
             cur[field] = value;
             return cur;
         });
-        setHasUnsavedChanges(true);
-        setSaveSuccess(false);
+        
+        // Check if the value is different from original
+        const originalValue = record.matchInfo[field];
+        if (JSON.stringify(originalValue) !== JSON.stringify(value)) {
+            setModifiedFields((prev) => ({
+                ...prev,
+                matchInfo: new Set(prev.matchInfo).add(field),
+            }));
+        } else {
+            setModifiedFields((prev) => {
+                const newMatchInfo = new Set(prev.matchInfo);
+                newMatchInfo.delete(field);
+                return { ...prev, matchInfo: newMatchInfo };
+            });
+        }
     };
 
     const formatDate = (timestamp: number) => {
@@ -307,8 +363,8 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                                     <EditableGameData
                                                         players={editablePlayers()}
                                                         matchInfo={editableMatchInfo()}
-                                                        hasUnsavedChanges={hasUnsavedChanges()}
-                                                        saveSuccess={saveSuccess()}
+                                                        modifiedFields={modifiedFields()}
+                                                        justSavedFields={justSavedFields()}
                                                         onPlayerUpdate={
                                                             updatePlayerField
                                                         }

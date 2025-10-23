@@ -10,11 +10,21 @@ interface RecordFieldInputProps {
     value?: string;
     staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
     onInput: (value: string) => void;
+    isModified?: boolean;
+    isJustSaved?: boolean;
 }
 
 const RecordFieldInput: Component<RecordFieldInputProps> = (props) => {
     const validityPattern =
         props.staticInputmode === 'numeric' ? '[0-9]*' : undefined;
+    
+    const getClassName = () => {
+        const classes = [];
+        if (props.isModified) classes.push('modified');
+        if (props.isJustSaved) classes.push('just-saved');
+        return classes.join(' ');
+    };
+    
     return (
         <input
             type="text"
@@ -23,6 +33,7 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (props) => {
             value={props.value}
             onInput={(e) => props.onInput(e.currentTarget.value)}
             onFocus={(e) => e.target.select()}
+            class={getClassName()}
         />
     );
 };
@@ -34,6 +45,8 @@ interface TeamDataTable {
         field: K,
         value: PlayerStats[K]
     ) => void;
+    modifiedFields: Set<string>;
+    justSavedFields: Set<string>;
 }
 
 const TeamDataTable: Component<TeamDataTable> = (props) => {
@@ -53,6 +66,7 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
             <tbody>
                 <For each={props.players}>
                     {(player, index) => {
+                        const fieldKey = (field: string) => `${index()}:${field}`;
                         return (
                             <tr>
                                 <td>
@@ -65,6 +79,8 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                                 value
                                             )
                                         }
+                                        isModified={props.modifiedFields.has(fieldKey('name'))}
+                                        isJustSaved={props.justSavedFields.has(fieldKey('name'))}
                                     />
                                 </td>
                                 <For each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
@@ -84,6 +100,8 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                                         value
                                                     )
                                                 }
+                                                isModified={props.modifiedFields.has(fieldKey(numericField))}
+                                                isJustSaved={props.justSavedFields.has(fieldKey(numericField))}
                                             />
                                         </td>
                                     )}
@@ -97,11 +115,16 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
     );
 };
 
+type ModifiedFields = {
+    players: Set<string>; // Format: "playerIndex:fieldName"
+    matchInfo: Set<keyof MatchInfo>; // Field names like 'result', 'date', etc.
+};
+
 interface EditableGameDataProps {
     players: PlayerStats[];
     matchInfo: MatchInfo;
-    hasUnsavedChanges?: boolean;
-    saveSuccess?: boolean;
+    modifiedFields?: ModifiedFields;
+    justSavedFields?: ModifiedFields;
     showActions?: boolean;
     onPlayerUpdate: <K extends keyof PlayerStats>(
         index: number,
@@ -112,40 +135,32 @@ interface EditableGameDataProps {
         field: K,
         value: MatchInfo[K]
     ) => void;
-    onSave: () => void;
-    onCancel: () => void;
+    onSave?: () => void;
+    onCancel?: () => void;
 }
 
 const EditableGameData: Component<EditableGameDataProps> = (props) => {
+    const hasUnsavedChanges = () => {
+        const modified = props.modifiedFields;
+        return modified ? (modified.players.size > 0 || modified.matchInfo.size > 0) : false;
+    };
+    
     return (
         <div class="editable-data-container">
             <Show when={props.showActions !== false}>
                 <div class="editable-header">
                     <h2>Match Information</h2>
 
-                    <Show when={props.saveSuccess}>
-                        <div class="success-message">
-                            ✓ Game record saved successfully!
-                        </div>
-                    </Show>
-                    <Show when={props.hasUnsavedChanges}>
-                        <div class="unsaved-message">
-                            ⚠ You have unsaved changes
-                        </div>
-                    </Show>
-
                     <div class="action-buttons">
-                        <Show when={props.hasUnsavedChanges}>
+                        <Show when={hasUnsavedChanges()}>
                             <button
-                                onClick={() => props.onSave()}
-                                disabled={!props.hasUnsavedChanges}
+                                onClick={() => props.onSave?.()}
                                 class="save-button"
                             >
                                 💾 Save to Records
                             </button>
                             <button
-                                onClick={() => props.onCancel()}
-                                disabled={!props.hasUnsavedChanges}
+                                onClick={() => props.onCancel?.()}
                                 class="cancel-button"
                             >
                                 ↺ Reset Changes
@@ -164,6 +179,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             onInput={(value) =>
                                 props.onMatchInfoUpdate('result', value)
                             }
+                            isModified={props.modifiedFields?.matchInfo.has('result')}
+                            isJustSaved={props.justSavedFields?.matchInfo.has('result')}
                         />
                     </div>
                     <div class="form-group">
@@ -176,6 +193,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                     blue: value,
                                 })
                             }
+                            isModified={props.modifiedFields?.matchInfo.has('final_score')}
+                            isJustSaved={props.justSavedFields?.matchInfo.has('final_score')}
                         />
                     </div>
                     <div class="form-group">
@@ -188,6 +207,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                     red: value,
                                 })
                             }
+                            isModified={props.modifiedFields?.matchInfo.has('final_score')}
+                            isJustSaved={props.justSavedFields?.matchInfo.has('final_score')}
                         />
                     </div>
                     <div class="form-group">
@@ -197,6 +218,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             onInput={(value) =>
                                 props.onMatchInfoUpdate('date', value)
                             }
+                            isModified={props.modifiedFields?.matchInfo.has('date')}
+                            isJustSaved={props.justSavedFields?.matchInfo.has('date')}
                         />
                     </div>
                     <div class="form-group">
@@ -206,6 +229,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             onInput={(value) =>
                                 props.onMatchInfoUpdate('game_mode', value)
                             }
+                            isModified={props.modifiedFields?.matchInfo.has('game_mode')}
+                            isJustSaved={props.justSavedFields?.matchInfo.has('game_mode')}
                         />
                     </div>
                     <div class="form-group">
@@ -215,6 +240,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             onInput={(value) =>
                                 props.onMatchInfoUpdate('game_length', value)
                             }
+                            isModified={props.modifiedFields?.matchInfo.has('game_length')}
+                            isJustSaved={props.justSavedFields?.matchInfo.has('game_length')}
                         />
                     </div>
                 </div>
@@ -229,6 +256,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                                 (player) => player.team === 'blue'
                             )}
                             onPlayerUpdate={props.onPlayerUpdate}
+                            modifiedFields={props.modifiedFields?.players || new Set()}
+                            justSavedFields={props.justSavedFields?.players || new Set()}
                         />
                     </div>
                 </div>
@@ -243,6 +272,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             onPlayerUpdate={(index, ...args) => {
                                 props.onPlayerUpdate(index + 5, ...args);
                             }}
+                            modifiedFields={props.modifiedFields?.players || new Set()}
+                            justSavedFields={props.justSavedFields?.players || new Set()}
                         />
                     </div>
                 </div>
