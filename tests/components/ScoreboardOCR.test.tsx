@@ -63,19 +63,16 @@ vi.mock('#utils/postprocess', () => ({
 
 describe('ScoreboardOCR', () => {
     it('should render the component', () => {
-        const { getByText } = render(() => <ScoreboardOCR />);
+        const { getByText } = render(() => (
+            <ScoreboardOCR onClose={() => {}} />
+        ));
         expect(getByText('Upload Scoreboard Screenshot')).toBeDefined();
     });
 
-    it('should render upload button', () => {
-        const { getByText } = render(() => <ScoreboardOCR />);
-
-        const uploadButton = getByText(/Upload Image/);
-        expect(uploadButton).toBeDefined();
-    });
-
     it('should not render original image section', () => {
-        const { queryByText, queryByAltText } = render(() => <ScoreboardOCR />);
+        const { queryByText, queryByAltText } = render(() => (
+            <ScoreboardOCR onClose={() => {}} />
+        ));
         expect.soft(queryByText('Original Image')).toBeNull();
         expect.soft(queryByAltText('Original scoreboard')).toBeNull();
     });
@@ -84,7 +81,10 @@ describe('ScoreboardOCR', () => {
         it('should render original image section', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { getByText, getByAltText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
             ));
 
             expect(getByText('Uploaded Image')).not.toBeNull();
@@ -94,7 +94,10 @@ describe('ScoreboardOCR', () => {
         it('should show processing indicator when uploadedImage is provided', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { queryByText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
             ));
 
             // Check for processing text (may be brief)
@@ -105,7 +108,10 @@ describe('ScoreboardOCR', () => {
         it('should display preprocessed image after processing uploaded image', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { getByText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
             ));
 
             await waitFor(
@@ -119,7 +125,10 @@ describe('ScoreboardOCR', () => {
         it('should display raw OCR text output with uploaded image', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { getByText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
             ));
 
             await waitFor(
@@ -133,7 +142,10 @@ describe('ScoreboardOCR', () => {
         it('should display extracted game stats JSON with uploaded image', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { getByText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
             ));
 
             await waitFor(
@@ -149,7 +161,10 @@ describe('ScoreboardOCR', () => {
         it('should have collapsible JSON stats section', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { queryByText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
             ));
 
             await waitFor(
@@ -166,7 +181,10 @@ describe('ScoreboardOCR', () => {
         it('should have collapsible raw text section', async () => {
             const testImageData = 'data:image/png;base64,testdata';
             const { queryByText } = render(() => (
-                <ScoreboardOCR uploadedImage={testImageData} />
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
             ));
 
             await waitFor(

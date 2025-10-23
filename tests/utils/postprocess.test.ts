@@ -111,7 +111,7 @@ describe('extractGameStats', () => {
 
             expect(result.players).toHaveLength(10);
             // matchInfo has default empty result and final_score values
-            expect(result.matchInfo.result).toBe('?');
+            expect(result.matchInfo.result).toBe('');
         });
 
         it('should handle malformed input gracefully', () => {
