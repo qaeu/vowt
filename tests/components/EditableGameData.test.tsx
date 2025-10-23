@@ -106,7 +106,10 @@ describe('EditableGameData', () => {
             <EditableGameData
                 players={mockPlayers}
                 matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
+                modifiedFields={{
+                    players: new Set(['0:name']),
+                    matchInfo: new Set(),
+                }}
                 onPlayerUpdate={onPlayerUpdateMock}
                 onMatchInfoUpdate={onMatchInfoUpdateMock}
                 onSave={onSaveMock}
@@ -137,32 +140,46 @@ describe('EditableGameData', () => {
         expect(screen.queryByText(/Reset Changes/)).toBeNull();
     });
 
-    it('should show success message when saveSuccess is true', () => {
-        render(() => (
+    it('should apply just-saved class when fields are just saved', () => {
+        const { container } = render(() => (
             <EditableGameData
                 players={mockPlayers}
                 matchInfo={mockMatchInfo}
-                saveSuccess={true}
+                justSavedFields={{
+                    players: new Set(),
+                    matchInfo: new Set(['result']),
+                }}
                 onPlayerUpdate={onPlayerUpdateMock}
                 onMatchInfoUpdate={onMatchInfoUpdateMock}
             />
         ));
 
-        expect(screen.getByText(/Game record saved successfully/)).toBeTruthy();
+        const inputs = Array.from(
+            container.querySelectorAll('.match-info-edit input[type="text"]')
+        );
+        const resultInput = inputs[0] as HTMLInputElement;
+        expect(resultInput.classList.contains('just-saved')).toBe(true);
     });
 
-    it('should show unsaved changes message when hasUnsavedChanges is true', () => {
-        render(() => (
+    it('should apply modified class when fields are modified', () => {
+        const { container } = render(() => (
             <EditableGameData
                 players={mockPlayers}
                 matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
+                modifiedFields={{
+                    players: new Set(),
+                    matchInfo: new Set(['result']),
+                }}
                 onPlayerUpdate={onPlayerUpdateMock}
                 onMatchInfoUpdate={onMatchInfoUpdateMock}
             />
         ));
 
-        expect(screen.getByText(/unsaved changes/i)).toBeTruthy();
+        const inputs = Array.from(
+            container.querySelectorAll('.match-info-edit input[type="text"]')
+        );
+        const resultInput = inputs[0] as HTMLInputElement;
+        expect(resultInput.classList.contains('modified')).toBe(true);
     });
 
     it('should call onMatchInfoUpdate when match info field is edited', () => {
@@ -221,7 +238,10 @@ describe('EditableGameData', () => {
             <EditableGameData
                 players={mockPlayers}
                 matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
+                modifiedFields={{
+                    players: new Set(['0:name']),
+                    matchInfo: new Set(),
+                }}
                 onPlayerUpdate={onPlayerUpdateMock}
                 onMatchInfoUpdate={onMatchInfoUpdateMock}
                 onSave={onSaveMock}
@@ -239,7 +259,10 @@ describe('EditableGameData', () => {
             <EditableGameData
                 players={mockPlayers}
                 matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
+                modifiedFields={{
+                    players: new Set(['0:name']),
+                    matchInfo: new Set(),
+                }}
                 onPlayerUpdate={onPlayerUpdateMock}
                 onMatchInfoUpdate={onMatchInfoUpdateMock}
                 onSave={onSaveMock}
@@ -276,12 +299,15 @@ describe('EditableGameData', () => {
         expect(redRows.length).toBe(2); // 2 red players
     });
 
-    it('should hide action buttons when hasUnsavedChanges is false', () => {
+    it('should hide action buttons when there are no modified fields', () => {
         render(() => (
             <EditableGameData
                 players={mockPlayers}
                 matchInfo={mockMatchInfo}
-                hasUnsavedChanges={false}
+                modifiedFields={{
+                    players: new Set(),
+                    matchInfo: new Set(),
+                }}
                 onPlayerUpdate={onPlayerUpdateMock}
                 onMatchInfoUpdate={onMatchInfoUpdateMock}
                 onSave={onSaveMock}
