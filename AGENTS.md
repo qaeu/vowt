@@ -27,24 +27,26 @@ VOWT is a client-side OCR application for extracting and managing video game sco
 ```
 src/
 ├── App.tsx                      # Main entry point; layout and debug toggles
-├── App.scss                     # App navigation styling
 ├── index.tsx                    # SolidJS app initialization
 ├── setupTests.ts                # Test configuration
-├── _theme.scss                  # Color variables, typography, and reusable mixins
+├── styles/
+│   ├── _theme.scss              # Color variables, typography, and reusable mixins
+│   ├── App.scss                 # App navigation styling
+│   ├── ScoreboardOCR.scss       # OCR component styling
+│   ├── RegionDebugger.scss      # Region debugger styling
+│   ├── GameRecordsTable.scss    # Records table styling
+│   └── EditableGameData.scss    # Editable game data styling
 ├── components/
 │   ├── ScoreboardOCR.tsx        # Primary OCR processing logic
-│   ├── ScoreboardOCR.scss       # OCR component styling
-│   ├── ScoreboardOCR.test.tsx   # Component tests
 │   ├── RegionDebugger.tsx       # Development tool for region visualization
-│   ├── RegionDebugger.scss      # Region debugger styling
 │   ├── GameRecordsTable.tsx     # Game records display and management
-│   └── GameRecordsTable.scss    # Records table styling
+│   └── EditableGameData.tsx     # Inline editing interface for game records
 └── utils/
-    ├── imagePreprocessing.ts    # Image processing, region definitions, OCR utilities
-    ├── imagePreprocessing.test.ts
-    ├── gameStorage.ts           # Game record persistence (localStorage)
-    ├── gameStorage.test.ts
-    └── regionEditor.ts          # Region coordinate management
+    ├── preprocess.ts            # Image preprocessing and enhancement
+    ├── postprocess.ts           # OCR result post-processing and validation
+    ├── textRegions.ts           # Region definitions and OCR area management
+    ├── regionEditor.ts          # Region coordinate management and editing
+    └── gameStorage.ts           # Game record persistence (localStorage)
 ```
 
 ## Development Guidelines
