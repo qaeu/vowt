@@ -17,35 +17,11 @@ interface GameRecordsTableProps {
     onUploadClick: () => void;
 }
 
-// Type to track which fields have been modified
-type ModifiedFields = {
-    players: Set<string>; // Format: "playerIndex:fieldName"
-    matchInfo: Set<keyof MatchInfo>; // Field names like 'result', 'date', etc.
-};
-
 const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
     const [records, setRecords] = createSignal<GameRecord[]>([]);
     const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(
         null
     );
-    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
-        []
-    );
-    const [editableMatchInfo, setEditableMatchInfo] = createSignal<MatchInfo>({
-        result: '',
-        final_score: { blue: '', red: '' },
-        date: '',
-        game_mode: '',
-        game_length: '',
-    });
-    const [modifiedFields, setModifiedFields] = createSignal<ModifiedFields>({
-        players: new Set(),
-        matchInfo: new Set(),
-    });
-    const [justSavedFields, setJustSavedFields] = createSignal<ModifiedFields>({
-        players: new Set(),
-        matchInfo: new Set(),
-    });
 
     const loadRecords = () => {
         setRecords(loadGameRecords());
@@ -61,7 +37,6 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
             // If we're editing this record, stop editing
             if (expandedRecordId() === id) {
                 setExpandedRecordId(null);
-                setHasUnsavedChanges(false);
             }
             loadRecords();
         }
@@ -123,119 +98,25 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
         // If this record is already being edited, close it
         if (expandedRecordId() === recordId) {
             setExpandedRecordId(null);
-            setModifiedFields({ players: new Set(), matchInfo: new Set() });
-            setJustSavedFields({ players: new Set(), matchInfo: new Set() });
         } else {
             // Otherwise, open it for editing
+            loadRecords();
             setExpandedRecordId(recordId);
-            setEditablePlayers(structuredClone(record.players));
-            setEditableMatchInfo({ ...record.matchInfo });
-            setModifiedFields({ players: new Set(), matchInfo: new Set() });
-            setJustSavedFields({ players: new Set(), matchInfo: new Set() });
         }
     };
 
-    const handleCancelEdit = () => {
-        const record = records().find(
-            (r) => r.id === expandedRecordId()
-        ) as GameRecord;
-        if (!record) {
-            setExpandedRecordId(null);
-            return;
-        }
-        setEditablePlayers(structuredClone(record.players));
-        setEditableMatchInfo({ ...record.matchInfo });
-        // Instantly clear all highlights
-        setModifiedFields({ players: new Set(), matchInfo: new Set() });
-        setJustSavedFields({ players: new Set(), matchInfo: new Set() });
-    };
-
-    const handleSaveEdit = () => {
+    const handleSaveEdits = (players: PlayerStats[], matchInfo: MatchInfo) => {
         const recordId = expandedRecordId();
         if (!recordId) return;
 
         try {
-            updateGameRecord(recordId, editablePlayers(), editableMatchInfo());
-            // Move modified fields to justSaved for animation
-            setJustSavedFields(modifiedFields());
-            // Clear modified fields
-            setModifiedFields({ players: new Set(), matchInfo: new Set() });
-            // Reload records to show updated data
-            loadRecords();
-            // Clear saved fields after animation duration
-            setTimeout(() => {
-                setJustSavedFields({ players: new Set(), matchInfo: new Set() });
-            }, 2000); // Total animation time: brief green + fade out
+            updateGameRecord(recordId, players, matchInfo);
         } catch (err) {
             alert(
                 err instanceof Error
                     ? err.message
                     : 'Failed to update game record'
             );
-        }
-    };
-
-    const updatePlayerField = <K extends keyof PlayerStats>(
-        index: number,
-        field: K,
-        value: PlayerStats[K]
-    ) => {
-        const players = editablePlayers();
-        if (players[index]) {
-            const record = records().find(
-                (r) => r.id === expandedRecordId()
-            ) as GameRecord;
-            if (!record) return;
-            
-            setEditablePlayers((cur) => {
-                cur[index] = { ...cur[index], [field]: value };
-                return cur;
-            });
-            
-            // Check if the value is different from original
-            const fieldKey = `${index}:${String(field)}`;
-            if (record.players[index]?.[field] !== value) {
-                setModifiedFields((prev) => ({
-                    ...prev,
-                    players: new Set(prev.players).add(fieldKey),
-                }));
-            } else {
-                setModifiedFields((prev) => {
-                    const newPlayers = new Set(prev.players);
-                    newPlayers.delete(fieldKey);
-                    return { ...prev, players: newPlayers };
-                });
-            }
-        }
-    };
-
-    const updateMatchInfoField = <K extends keyof MatchInfo>(
-        field: K,
-        value: MatchInfo[K]
-    ) => {
-        const record = records().find(
-            (r) => r.id === expandedRecordId()
-        ) as GameRecord;
-        if (!record) return;
-        
-        setEditableMatchInfo((cur) => {
-            cur[field] = value;
-            return cur;
-        });
-        
-        // Check if the value is different from original
-        const originalValue = record.matchInfo[field];
-        if (JSON.stringify(originalValue) !== JSON.stringify(value)) {
-            setModifiedFields((prev) => ({
-                ...prev,
-                matchInfo: new Set(prev.matchInfo).add(field),
-            }));
-        } else {
-            setModifiedFields((prev) => {
-                const newMatchInfo = new Set(prev.matchInfo);
-                newMatchInfo.delete(field);
-                return { ...prev, matchInfo: newMatchInfo };
-            });
         }
     };
 
@@ -346,7 +227,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                                     class="delete-button"
                                                     title="Delete record"
                                                 >
-                                                    ×
+                                                    x
                                                 </button>
                                             </td>
                                         </tr>
@@ -361,20 +242,13 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                                     class="expanded-details"
                                                 >
                                                     <EditableGameData
-                                                        players={editablePlayers()}
-                                                        matchInfo={editableMatchInfo()}
-                                                        modifiedFields={modifiedFields()}
-                                                        justSavedFields={justSavedFields()}
-                                                        onPlayerUpdate={
-                                                            updatePlayerField
+                                                        initialPlayers={
+                                                            record.players
                                                         }
-                                                        onMatchInfoUpdate={
-                                                            updateMatchInfoField
+                                                        initialMatchInfo={
+                                                            record.matchInfo
                                                         }
-                                                        onSave={handleSaveEdit}
-                                                        onCancel={
-                                                            handleCancelEdit
-                                                        }
+                                                        onSave={handleSaveEdits}
                                                     />
                                                 </td>
                                             </tr>
