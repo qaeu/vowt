@@ -1,4 +1,11 @@
-import { Component, For, Show, createSignal, mergeProps } from 'solid-js';
+import {
+    Component,
+    For,
+    onMount,
+    Show,
+    createSignal,
+    mergeProps,
+} from 'solid-js';
 import {
     PLAYER_STATS_NUMBER_FIELD_NAMES,
     PlayerStats,
@@ -8,32 +15,59 @@ import '#styles/EditableGameData';
 
 interface RecordFieldInputProps {
     onInput: (value: string) => void;
+    id: string;
     staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
-    initialValue?: Readonly<string>;
-    isJustSaved?: boolean;
+    value: () => Readonly<string>;
+    initialIsJustSaved: () => Readonly<boolean>;
+    registerField?: (
+        fieldId: string,
+        isModifiedGetter: () => boolean,
+        resetModified: () => void
+    ) => void;
 }
 
 const defaultRecordFieldInputProps: Partial<RecordFieldInputProps> = {
     staticInputmode: 'text' as const,
-    initialValue: '',
-    isJustSaved: false,
 };
 
 const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
     const props = mergeProps(
         defaultRecordFieldInputProps,
         _props
-    ) as Required<RecordFieldInputProps>;
+    ) as Partial<RecordFieldInputProps> & {
+        onInput: (value: string) => void;
+        id: string;
+        value: () => string;
+        initialIsJustSaved: () => boolean;
+    };
 
     const [isModified, setIsModified] = createSignal<boolean>(false);
+
+    onMount(() => {
+        console.log('mount ' + props.id);
+        // Register this field's modification state with parent
+        if (props.registerField) {
+            props.registerField(
+                props.id,
+                // The getter function is called later from a tracked scope
+                // eslint-disable-next-line solid/reactivity
+                () => isModified(),
+                () => setIsModified(false)
+            );
+        }
+    });
 
     const validityPattern =
         props.staticInputmode === 'numeric' ? '[0-9]*' : undefined;
 
     const getClassName = () => {
         const classes = [];
-        if (isModified()) classes.push('modified');
-        if (props.isJustSaved) classes.push('just-saved');
+        if (isModified()) {
+            classes.push('modified');
+        }
+        if (props.initialIsJustSaved()) {
+            classes.push('just-saved');
+        }
         return classes.join(' ');
     };
 
@@ -44,7 +78,8 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
         }
     ) => {
         const inputValue = e.currentTarget.value;
-        if (inputValue !== props.initialValue) {
+        // Compare against the baseline value to detect modifications
+        if (inputValue !== props.value()) {
             setIsModified(true);
         } else {
             setIsModified(false);
@@ -57,22 +92,30 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
             type="text"
             inputmode={props.staticInputmode || 'text'}
             pattern={validityPattern}
-            value={props.initialValue}
+            value={props.value()}
             onInput={handleInput}
             onFocus={(e) => e.target.select()}
             class={getClassName()}
+            id={props.id}
         />
     );
 };
 
 interface TeamDataTable {
-    players: PlayerStats[];
+    players: () => PlayerStats[];
+    savedPlayers: () => PlayerStats[];
+    team: PlayerStats['team'];
     isNewRecord?: boolean;
-    justSavedFields: Set<string>;
     onPlayerUpdate: <K extends keyof PlayerStats>(
         index: number,
         field: K,
         value: PlayerStats[K]
+    ) => void;
+    isFieldJustSaved: (fieldId: string) => boolean;
+    registerField: (
+        fieldId: string,
+        isModifiedGetter: () => boolean,
+        resetModified: () => void
     ) => void;
 }
 
@@ -91,54 +134,71 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                 </tr>
             </thead>
             <tbody>
-                <For each={props.players}>
-                    {(player, index) => {
-                        const fieldKey = (field: string) =>
-                            `${index()}:${field}`;
-                        return (
-                            <tr>
-                                <td>
-                                    <RecordFieldInput
-                                        initialValue={player.name}
-                                        onInput={(value) =>
-                                            props.onPlayerUpdate(
-                                                index(),
-                                                'name',
-                                                value
-                                            )
-                                        }
-                                        isJustSaved={props.justSavedFields.has(
-                                            fieldKey('name')
-                                        )}
-                                    />
-                                </td>
-                                <For each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
-                                    {(numericField) => (
-                                        <td>
-                                            <RecordFieldInput
-                                                initialValue={
-                                                    player[
+                <For each={props.players()}>
+                    {(player, index) => (
+                        <tr>
+                            <td>
+                                <RecordFieldInput
+                                    id={`${props.team}-player-${index()}-name`}
+                                    value={() =>
+                                        props.savedPlayers()[index()]?.name ??
+                                        ''
+                                    }
+                                    onInput={(value) =>
+                                        props.onPlayerUpdate(
+                                            index(),
+                                            'name',
+                                            value
+                                        )
+                                    }
+                                    initialIsJustSaved={() =>
+                                        props.isFieldJustSaved(
+                                            `${
+                                                props.team
+                                            }-player-${index()}-name`
+                                        )
+                                    }
+                                    registerField={props.registerField}
+                                />
+                            </td>
+                            <For each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
+                                {(numericField) => (
+                                    <td>
+                                        <RecordFieldInput
+                                            id={`${
+                                                props.team
+                                            }-player-${index()}-${numericField}`}
+                                            value={() =>
+                                                String(
+                                                    props.savedPlayers()[
+                                                        index()
+                                                    ]?.[
                                                         numericField as keyof PlayerStats
-                                                    ]
-                                                }
-                                                staticInputmode="numeric"
-                                                onInput={(value) =>
-                                                    props.onPlayerUpdate(
-                                                        index(),
-                                                        numericField as keyof PlayerStats,
-                                                        value
-                                                    )
-                                                }
-                                                isJustSaved={props.justSavedFields.has(
-                                                    fieldKey(numericField)
-                                                )}
-                                            />
-                                        </td>
-                                    )}
-                                </For>
-                            </tr>
-                        );
-                    }}
+                                                    ] ?? ''
+                                                )
+                                            }
+                                            staticInputmode="numeric"
+                                            onInput={(value) =>
+                                                props.onPlayerUpdate(
+                                                    index(),
+                                                    numericField as keyof PlayerStats,
+                                                    value
+                                                )
+                                            }
+                                            initialIsJustSaved={() =>
+                                                props.isFieldJustSaved(
+                                                    `${
+                                                        props.team
+                                                    }-player-${index()}-${numericField}`
+                                                )
+                                            }
+                                            registerField={props.registerField}
+                                        />
+                                    </td>
+                                )}
+                            </For>
+                        </tr>
+                    )}
                 </For>
             </tbody>
         </table>
@@ -151,61 +211,140 @@ export interface ModifiedFields {
 }
 
 interface EditableGameDataProps {
-    players: PlayerStats[];
-    matchInfo: MatchInfo;
-    justSavedFields: ModifiedFields;
+    initialPlayers: PlayerStats[];
+    initialMatchInfo: MatchInfo;
     showActions?: boolean;
-    onPlayerUpdate: <K extends keyof PlayerStats>(
-        index: number,
-        field: K,
-        value: PlayerStats[K]
-    ) => void;
-    onMatchInfoUpdate: <K extends keyof MatchInfo>(
-        field: K,
-        value: MatchInfo[K]
-    ) => void;
-    onSave?: () => void;
-    onCancel?: () => void;
+    onSave: (players: PlayerStats[], matchInfo: MatchInfo) => void;
 }
 
 const EditableGameData: Component<EditableGameDataProps> = (props) => {
-    let containerRef!: HTMLDivElement;
+    // Track the working state
+    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
+        structuredClone(props.initialPlayers)
+    );
+    const [editableMatchInfo, setEditableMatchInfo] = createSignal<MatchInfo>(
+        structuredClone(props.initialMatchInfo)
+    );
 
-    const [hasUnsavedChanges, setHasUnsavedChanges] = createSignal(false);
+    // Track the last saved state
+    const [lastSavedPlayers, setLastSavedPlayers] = createSignal<PlayerStats[]>(
+        structuredClone(props.initialPlayers)
+    );
+    const [lastSavedMatchInfo, setLastSavedMatchInfo] = createSignal<MatchInfo>(
+        structuredClone(props.initialMatchInfo)
+    );
 
-    const inputModified = () => {
-        const modifiedFields = containerRef.querySelectorAll('input.modified');
-        setHasUnsavedChanges(modifiedFields.length > 0);
+    // Track which fields are currently showing "just-saved" state
+    const [justSavedFieldIds, setJustSavedFieldIds] = createSignal<Set<string>>(
+        new Set()
+    );
+
+    // Registry to track all input fields' modification state and reset functions
+    const [fieldRegistry, setFieldRegistry] = createSignal<
+        Map<string, { isModified: () => boolean; reset: () => void }>
+    >(new Map());
+
+    const registerField = (
+        fieldId: string,
+        isModifiedGetter: () => boolean,
+        resetModified: () => void
+    ) => {
+        setFieldRegistry((prev) =>
+            new Map(prev).set(fieldId, {
+                isModified: isModifiedGetter,
+                reset: resetModified,
+            })
+        );
     };
 
-    const onPlayerUpdate: typeof props.onPlayerUpdate = (...args) => {
-        inputModified();
-        props.onPlayerUpdate(...args);
+    const getModifiedFieldIds = () => {
+        const modified = new Set<string>();
+        fieldRegistry().forEach((field, fieldId) => {
+            if (field.isModified()) {
+                modified.add(fieldId);
+            }
+        });
+        return modified;
     };
 
-    const onMatchInfoUpdate: typeof props.onMatchInfoUpdate = (...args) => {
-        inputModified();
-        props.onMatchInfoUpdate(...args);
+    const resetAllModifiedFields = () => {
+        fieldRegistry().forEach((field) => {
+            field.reset();
+        });
+    };
+
+    const handleSave = () => {
+        props.onSave(editablePlayers(), editableMatchInfo());
+
+        setLastSavedPlayers(structuredClone(editablePlayers()));
+        setLastSavedMatchInfo({ ...editableMatchInfo() });
+
+        const modifiedFieldIds = getModifiedFieldIds();
+        resetAllModifiedFields();
+        setJustSavedFieldIds(modifiedFieldIds);
+
+        // Clear the saved state after animation completes
+        setTimeout(() => {
+            setJustSavedFieldIds(new Set<string>());
+        }, 2000);
+    };
+
+    const handleReset = () => {
+        setEditablePlayers(structuredClone(lastSavedPlayers()));
+        setEditableMatchInfo({ ...lastSavedMatchInfo() });
+
+        resetAllModifiedFields();
+        setJustSavedFieldIds(new Set<string>());
+    };
+
+    const isFieldJustSaved = (fieldId: string) => {
+        return justSavedFieldIds().has(fieldId);
+    };
+
+    // Derive unsaved state from fieldRegistry
+    const hasUnsavedChanges = () => {
+        let hasChanges = false;
+        fieldRegistry().forEach((field) => {
+            if (field.isModified()) {
+                hasChanges = true;
+            }
+        });
+        return hasChanges;
+    };
+
+    const updatePlayerField = <K extends keyof PlayerStats>(
+        index: number,
+        field: K,
+        value: PlayerStats[K]
+    ) => {
+        // Mutate in place without triggering re-renders
+        const players = editablePlayers();
+        if (players[index]) {
+            players[index][field] = value;
+        }
+    };
+
+    const updateMatchInfoField = <K extends keyof MatchInfo>(
+        field: K,
+        value: MatchInfo[K]
+    ) => {
+        // Mutate in place without triggering re-renders
+        const current = editableMatchInfo();
+        current[field] = value;
     };
 
     return (
-        <div class="editable-data-container" ref={containerRef}>
+        <div class="editable-data-container">
             <Show when={props.showActions !== false}>
                 <div class="editable-header">
                     <h2>Match Information</h2>
 
                     <div class="action-buttons">
                         <Show when={hasUnsavedChanges()}>
-                            <button
-                                onClick={() => props.onSave?.()}
-                                class="save-button"
-                            >
+                            <button onClick={handleSave} class="save-button">
                                 💾 Save to Records
                             </button>
-                            <button
-                                onClick={() => props.onCancel?.()}
-                                class="cancel-button"
-                            >
+                            <button onClick={handleReset} class="cancel-button">
                                 ↺ Reset Changes
                             </button>
                         </Show>
@@ -218,79 +357,91 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group">
                         <label>Result:</label>
                         <RecordFieldInput
-                            initialValue={props.matchInfo.result}
+                            id="matchinfo-result"
+                            value={() => editableMatchInfo().result}
                             onInput={(value) =>
-                                onMatchInfoUpdate('result', value)
+                                updateMatchInfoField('result', value)
                             }
-                            isJustSaved={props.justSavedFields.matchInfo.has(
-                                'result'
-                            )}
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-result')
+                            }
+                            registerField={registerField}
                         />
                     </div>
                     <div class="form-group">
                         <label>Score (Blue):</label>
                         <RecordFieldInput
-                            initialValue={props.matchInfo.final_score.blue}
+                            id="matchinfo-finalscore-blue"
+                            value={() => editableMatchInfo().final_score.blue}
                             onInput={(value) =>
-                                onMatchInfoUpdate('final_score', {
-                                    ...props.matchInfo.final_score,
+                                updateMatchInfoField('final_score', {
+                                    ...editableMatchInfo().final_score,
                                     blue: value,
                                 })
                             }
-                            isJustSaved={props.justSavedFields.matchInfo.has(
-                                'final_score'
-                            )}
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-finalscore-blue')
+                            }
+                            registerField={registerField}
                         />
                     </div>
                     <div class="form-group">
                         <label>Score (Red):</label>
                         <RecordFieldInput
-                            initialValue={props.matchInfo.final_score.red}
+                            id="matchinfo-finalscore-red"
+                            value={() => editableMatchInfo().final_score.red}
                             onInput={(value) =>
-                                onMatchInfoUpdate('final_score', {
-                                    ...props.matchInfo.final_score,
+                                updateMatchInfoField('final_score', {
+                                    ...editableMatchInfo().final_score,
                                     red: value,
                                 })
                             }
-                            isJustSaved={props.justSavedFields.matchInfo.has(
-                                'final_score'
-                            )}
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-finalscore-red')
+                            }
+                            registerField={registerField}
                         />
                     </div>
                     <div class="form-group">
                         <label>Date:</label>
                         <RecordFieldInput
-                            initialValue={props.matchInfo.date}
+                            id="matchinfo-date"
+                            value={() => editableMatchInfo().date}
                             onInput={(value) =>
-                                onMatchInfoUpdate('date', value)
+                                updateMatchInfoField('date', value)
                             }
-                            isJustSaved={props.justSavedFields.matchInfo.has(
-                                'date'
-                            )}
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-date')
+                            }
+                            registerField={registerField}
                         />
                     </div>
                     <div class="form-group">
                         <label>Game Mode:</label>
                         <RecordFieldInput
-                            initialValue={props.matchInfo.game_mode}
+                            id="matchinfo-gamemode"
+                            value={() => editableMatchInfo().game_mode}
                             onInput={(value) =>
-                                onMatchInfoUpdate('game_mode', value)
+                                updateMatchInfoField('game_mode', value)
                             }
-                            isJustSaved={props.justSavedFields.matchInfo.has(
-                                'game_mode'
-                            )}
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-gamemode')
+                            }
+                            registerField={registerField}
                         />
                     </div>
                     <div class="form-group">
                         <label>Length:</label>
                         <RecordFieldInput
-                            initialValue={props.matchInfo.game_length}
+                            id="matchinfo-gamelength"
+                            value={() => editableMatchInfo().game_length}
                             onInput={(value) =>
-                                onMatchInfoUpdate('game_length', value)
+                                updateMatchInfoField('game_length', value)
                             }
-                            isJustSaved={props.justSavedFields.matchInfo.has(
-                                'game_length'
-                            )}
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-gamelength')
+                            }
+                            registerField={registerField}
                         />
                     </div>
                 </div>
@@ -301,11 +452,20 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <h4 class="blue-team">Blue Team</h4>
                     <div class="table-wrapper">
                         <TeamDataTable
-                            players={props.players.filter(
-                                (player) => player.team === 'blue'
-                            )}
-                            justSavedFields={props.justSavedFields.players}
-                            onPlayerUpdate={onPlayerUpdate}
+                            players={() =>
+                                editablePlayers().filter(
+                                    (player) => player.team === 'blue'
+                                )
+                            }
+                            savedPlayers={() =>
+                                editablePlayers().filter(
+                                    (player) => player.team === 'blue'
+                                )
+                            }
+                            team="blue"
+                            onPlayerUpdate={updatePlayerField}
+                            isFieldJustSaved={isFieldJustSaved}
+                            registerField={registerField}
                         />
                     </div>
                 </div>
@@ -314,13 +474,22 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <h4 class="red-team">Red Team</h4>
                     <div class="table-wrapper">
                         <TeamDataTable
-                            players={props.players.filter(
-                                (player) => player.team === 'red'
-                            )}
-                            justSavedFields={props.justSavedFields.players}
+                            players={() =>
+                                editablePlayers().filter(
+                                    (player) => player.team === 'red'
+                                )
+                            }
+                            savedPlayers={() =>
+                                editablePlayers().filter(
+                                    (player) => player.team === 'red'
+                                )
+                            }
+                            team="red"
                             onPlayerUpdate={(index, ...args) => {
-                                onPlayerUpdate(index + 5, ...args);
+                                updatePlayerField(index + 5, ...args);
                             }}
+                            isFieldJustSaved={isFieldJustSaved}
+                            registerField={registerField}
                         />
                     </div>
                 </div>
