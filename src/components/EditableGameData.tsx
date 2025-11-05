@@ -1,11 +1,4 @@
-import {
-    Component,
-    For,
-    onMount,
-    Show,
-    createSignal,
-    mergeProps,
-} from 'solid-js';
+import { Component, For, Show, createSignal, mergeProps } from 'solid-js';
 import {
     PLAYER_STATS_NUMBER_FIELD_NAMES,
     PlayerStats,
@@ -19,7 +12,7 @@ interface RecordFieldInputProps {
     staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
     value: () => Readonly<string>;
     initialIsJustSaved: () => Readonly<boolean>;
-    registerField?: (
+    staticRegisterField?: (
         fieldId: string,
         isModifiedGetter: () => boolean,
         resetModified: () => void
@@ -43,19 +36,16 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
 
     const [isModified, setIsModified] = createSignal<boolean>(false);
 
-    onMount(() => {
-        console.log('mount ' + props.id);
-        // Register this field's modification state with parent
-        if (props.registerField) {
-            props.registerField(
-                props.id,
-                // The getter function is called later from a tracked scope
-                // eslint-disable-next-line solid/reactivity
-                () => isModified(),
-                () => setIsModified(false)
-            );
-        }
-    });
+    // Register this field's modification state with parent during component initialization
+    if (props.staticRegisterField) {
+        props.staticRegisterField(
+            // eslint-disable-next-line solid/reactivity
+            props.id,
+            // eslint-disable-next-line solid/reactivity
+            () => isModified(),
+            () => setIsModified(false)
+        );
+    }
 
     const validityPattern =
         props.staticInputmode === 'numeric' ? '[0-9]*' : undefined;
@@ -158,7 +148,7 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                             }-player-${index()}-name`
                                         )
                                     }
-                                    registerField={props.registerField}
+                                    staticRegisterField={props.registerField}
                                 />
                             </td>
                             <For each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
@@ -192,7 +182,9 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                                     }-player-${index()}-${numericField}`
                                                 )
                                             }
-                                            registerField={props.registerField}
+                                            staticRegisterField={
+                                                props.registerField
+                                            }
                                         />
                                     </td>
                                 )}
@@ -365,7 +357,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-result')
                             }
-                            registerField={registerField}
+                            staticRegisterField={registerField}
                         />
                     </div>
                     <div class="form-group">
@@ -382,7 +374,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-finalscore-blue')
                             }
-                            registerField={registerField}
+                            staticRegisterField={registerField}
                         />
                     </div>
                     <div class="form-group">
@@ -399,7 +391,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-finalscore-red')
                             }
-                            registerField={registerField}
+                            staticRegisterField={registerField}
                         />
                     </div>
                     <div class="form-group">
@@ -413,7 +405,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-date')
                             }
-                            registerField={registerField}
+                            staticRegisterField={registerField}
                         />
                     </div>
                     <div class="form-group">
@@ -427,7 +419,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-gamemode')
                             }
-                            registerField={registerField}
+                            staticRegisterField={registerField}
                         />
                     </div>
                     <div class="form-group">
@@ -441,7 +433,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-gamelength')
                             }
-                            registerField={registerField}
+                            staticRegisterField={registerField}
                         />
                     </div>
                 </div>
