@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, assert, beforeEach } from 'vitest';
 import {
     loadGameRecords,
     saveGameRecord,
@@ -182,7 +182,14 @@ describe('gameStorage', () => {
     it('should handle corrupted localStorage data gracefully', () => {
         localStorage.setItem('vowt_game_records', 'invalid json');
 
-        const records = loadGameRecords();
-        expect(records).toEqual([]);
+        let records;
+        try {
+            records = loadGameRecords();
+
+            assert.fail('Expected error');
+        } catch (e) {
+            expect(e).toBeInstanceOf(Error);
+            expect(records).toEqual([]);
+        }
     });
 });

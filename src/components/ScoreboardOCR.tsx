@@ -31,20 +31,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [showJsonStats, setShowJsonStats] = createSignal(false);
     const [showRawText, setShowRawText] = createSignal(false);
 
-    // Editable data states
-    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
-        []
-    );
-    const [editableMatchInfo, setEditableMatchInfo] = createSignal<MatchInfo>({
-        result: '',
-        final_score: { blue: '', red: '' },
-        date: '',
-        game_mode: '',
-        game_length: '',
-    });
-    const [hasUnsavedChanges, setHasUnsavedChanges] = createSignal(false);
-    const [saveSuccess, setSaveSuccess] = createSignal(false);
-
     onMount(async () => {
         if (props.uploadedImage) {
             setCurrentImage(props.uploadedImage);
@@ -127,15 +113,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
             setProgress(100);
-
-            // Set editable data
-            if (stats.players && stats.matchInfo) {
-                setEditablePlayers(structuredClone(stats.players));
-                setEditableMatchInfo({ ...stats.matchInfo });
-                saveGameRecord(editablePlayers(), editableMatchInfo());
-                setHasUnsavedChanges(false);
-                setSaveSuccess(true);
-            }
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Unknown error occurred'
@@ -146,11 +123,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         }
     };
 
-    const handleSaveData = () => {
+    const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
         try {
-            saveGameRecord(editablePlayers(), editableMatchInfo());
-            setHasUnsavedChanges(false);
-            setSaveSuccess(true);
+            saveGameRecord(players, matchInfo);
         } catch (err) {
             setError(
                 err instanceof Error
@@ -158,44 +133,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                     : 'Failed to save game record'
             );
         }
-    };
-
-    const handleCancelEdit = () => {
-        // Reset to original extracted stats
-        const stats = extractedStats();
-        if (stats.players && stats.matchInfo) {
-            setEditablePlayers(structuredClone(stats.players));
-            setEditableMatchInfo({ ...stats.matchInfo });
-            setHasUnsavedChanges(false);
-        }
-    };
-
-    const updatePlayerField = <K extends keyof PlayerStats>(
-        index: number,
-        field: K,
-        value: PlayerStats[K]
-    ) => {
-        const players = editablePlayers();
-        if (players[index]) {
-            setEditablePlayers((cur) => {
-                cur[index] = { ...cur[index], [field]: value };
-                return cur;
-            });
-            setHasUnsavedChanges(true);
-            setSaveSuccess(false);
-        }
-    };
-
-    const updateMatchInfoField = <K extends keyof MatchInfo>(
-        field: K,
-        value: MatchInfo[K]
-    ) => {
-        setEditableMatchInfo((cur) => {
-            cur[field] = value;
-            return cur;
-        });
-        setHasUnsavedChanges(true);
-        setSaveSuccess(false);
     };
 
     return (
@@ -256,20 +193,33 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                 </Show>
             </div>
 
-            <Show when={editablePlayers().length > 0}>
+            <Show
+                when={
+                    extractedStats().players &&
+                    extractedStats().players.length > 0
+                }
+            >
                 <EditableGameData
-                    players={editablePlayers()}
-                    matchInfo={editableMatchInfo()}
-                    hasUnsavedChanges={hasUnsavedChanges()}
-                    saveSuccess={saveSuccess()}
-                    onPlayerUpdate={updatePlayerField}
-                    onMatchInfoUpdate={updateMatchInfoField}
+                    initialPlayers={extractedStats().players || []}
+                    initialMatchInfo={
+                        extractedStats().matchInfo || {
+                            result: '',
+                            final_score: { blue: '', red: '' },
+                            date: '',
+                            game_mode: '',
+                            game_length: '',
+                        }
+                    }
                     onSave={handleSaveData}
-                    onCancel={handleCancelEdit}
                 />
             </Show>
 
-            <Show when={editablePlayers().length > 0}>
+            <Show
+                when={
+                    extractedStats().players &&
+                    extractedStats().players.length > 0
+                }
+            >
                 <div class="stats-box">
                     <h2 onClick={() => setShowJsonStats(!showJsonStats())}>
                         <span>Extracted Game Stats (JSON)</span>

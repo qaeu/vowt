@@ -22,18 +22,6 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
     const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(
         null
     );
-    const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
-        []
-    );
-    const [editableMatchInfo, setEditableMatchInfo] = createSignal<MatchInfo>({
-        result: '',
-        final_score: { blue: '', red: '' },
-        date: '',
-        game_mode: '',
-        game_length: '',
-    });
-    const [hasUnsavedChanges, setHasUnsavedChanges] = createSignal(false);
-    const [saveSuccess, setSaveSuccess] = createSignal(false);
 
     const loadRecords = () => {
         setRecords(loadGameRecords());
@@ -49,7 +37,6 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
             // If we're editing this record, stop editing
             if (expandedRecordId() === id) {
                 setExpandedRecordId(null);
-                setHasUnsavedChanges(false);
             }
             loadRecords();
         }
@@ -111,41 +98,19 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
         // If this record is already being edited, close it
         if (expandedRecordId() === recordId) {
             setExpandedRecordId(null);
-            setHasUnsavedChanges(false);
-            setSaveSuccess(false);
         } else {
             // Otherwise, open it for editing
+            loadRecords();
             setExpandedRecordId(recordId);
-            setEditablePlayers(structuredClone(record.players));
-            setEditableMatchInfo({ ...record.matchInfo });
-            setHasUnsavedChanges(false);
-            setSaveSuccess(false);
         }
     };
 
-    const handleCancelEdit = () => {
-        const record = records().find(
-            (r) => r.id === expandedRecordId()
-        ) as GameRecord;
-        if (!record) {
-            setExpandedRecordId(null);
-            return;
-        }
-        setEditablePlayers(structuredClone(record.players));
-        setEditableMatchInfo({ ...record.matchInfo });
-        setHasUnsavedChanges(false);
-    };
-
-    const handleSaveEdit = () => {
+    const handleSaveEdits = (players: PlayerStats[], matchInfo: MatchInfo) => {
         const recordId = expandedRecordId();
         if (!recordId) return;
 
         try {
-            updateGameRecord(recordId, editablePlayers(), editableMatchInfo());
-            setHasUnsavedChanges(false);
-            setSaveSuccess(true);
-            // Reload records to show updated data
-            loadRecords();
+            updateGameRecord(recordId, players, matchInfo);
         } catch (err) {
             alert(
                 err instanceof Error
@@ -153,34 +118,6 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                     : 'Failed to update game record'
             );
         }
-    };
-
-    const updatePlayerField = <K extends keyof PlayerStats>(
-        index: number,
-        field: K,
-        value: PlayerStats[K]
-    ) => {
-        const players = editablePlayers();
-        if (players[index]) {
-            setEditablePlayers((cur) => {
-                cur[index] = { ...cur[index], [field]: value };
-                return cur;
-            });
-            setHasUnsavedChanges(true);
-            setSaveSuccess(false);
-        }
-    };
-
-    const updateMatchInfoField = <K extends keyof MatchInfo>(
-        field: K,
-        value: MatchInfo[K]
-    ) => {
-        setEditableMatchInfo((cur) => {
-            cur[field] = value;
-            return cur;
-        });
-        setHasUnsavedChanges(true);
-        setSaveSuccess(false);
     };
 
     const formatDate = (timestamp: number) => {
@@ -290,7 +227,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                                     class="delete-button"
                                                     title="Delete record"
                                                 >
-                                                    ×
+                                                    x
                                                 </button>
                                             </td>
                                         </tr>
@@ -305,20 +242,13 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                                     class="expanded-details"
                                                 >
                                                     <EditableGameData
-                                                        players={editablePlayers()}
-                                                        matchInfo={editableMatchInfo()}
-                                                        hasUnsavedChanges={hasUnsavedChanges()}
-                                                        saveSuccess={saveSuccess()}
-                                                        onPlayerUpdate={
-                                                            updatePlayerField
+                                                        initialPlayers={
+                                                            record.players
                                                         }
-                                                        onMatchInfoUpdate={
-                                                            updateMatchInfoField
+                                                        initialMatchInfo={
+                                                            record.matchInfo
                                                         }
-                                                        onSave={handleSaveEdit}
-                                                        onCancel={
-                                                            handleCancelEdit
-                                                        }
+                                                        onSave={handleSaveEdits}
                                                     />
                                                 </td>
                                             </tr>

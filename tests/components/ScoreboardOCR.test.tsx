@@ -18,6 +18,31 @@ vi.mock('tesseract.js', () => ({
     },
 }));
 
+// Mock EditableGameData component
+vi.mock('#c/EditableGameData', () => ({
+    default: (props) => (
+        <div data-testid="editable-game-data">
+            <div data-testid="players-data">
+                {props.initialPlayers &&
+                    props.initialPlayers.map((p) => (
+                        <div data-testid={`player-${p.name}`}>{p.name}</div>
+                    ))}
+            </div>
+            <div data-testid="match-info-data">
+                {props.initialMatchInfo.result}
+            </div>
+            <button
+                onClick={() =>
+                    props.onSave(props.initialPlayers, props.initialMatchInfo)
+                }
+                data-testid="save-button"
+            >
+                Save
+            </button>
+        </div>
+    ),
+}));
+
 // Mock the image preprocessing module
 vi.mock('#utils/preprocess', () => ({
     preprocessImageForOCR: vi
@@ -190,6 +215,78 @@ describe('ScoreboardOCR', () => {
             await waitFor(
                 () => {
                     expect(queryByText(/Raw OCR Text Output/)).not.toBeNull();
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should render EditableGameData when stats are extracted', async () => {
+            const testImageData = 'data:image/png;base64,testdata';
+            const { queryByTestId } = render(() => (
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
+            ));
+
+            await waitFor(
+                () => {
+                    expect(queryByTestId('editable-game-data')).not.toBeNull();
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should pass extracted players to EditableGameData', async () => {
+            const testImageData = 'data:image/png;base64,testdata';
+            const { queryByTestId } = render(() => (
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
+            ));
+
+            await waitFor(
+                () => {
+                    const playerElement = queryByTestId('player-VEQ');
+                    expect(playerElement).not.toBeNull();
+                    expect(playerElement?.textContent).toBe('VEQ');
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should pass extracted match info to EditableGameData', async () => {
+            const testImageData = 'data:image/png;base64,testdata';
+            const { queryByTestId } = render(() => (
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
+            ));
+
+            await waitFor(
+                () => {
+                    const matchInfoElement = queryByTestId('match-info-data');
+                    expect(matchInfoElement?.textContent).toBe('VICTORY');
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should call onSave handler when EditableGameData save is triggered', async () => {
+            const testImageData = 'data:image/png;base64,testdata';
+            const { queryByTestId } = render(() => (
+                <ScoreboardOCR
+                    onClose={() => {}}
+                    uploadedImage={testImageData}
+                />
+            ));
+
+            await waitFor(
+                () => {
+                    const saveButton = queryByTestId('save-button');
+                    expect(saveButton).not.toBeNull();
                 },
                 { timeout: 3000 }
             );

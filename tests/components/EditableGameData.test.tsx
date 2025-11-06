@@ -55,25 +55,18 @@ describe('EditableGameData', () => {
         game_length: '10:30',
     };
 
-    let onPlayerUpdateMock: ReturnType<typeof vi.fn>;
-    let onMatchInfoUpdateMock: ReturnType<typeof vi.fn>;
     let onSaveMock: ReturnType<typeof vi.fn>;
-    let onCancelMock: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-        onPlayerUpdateMock = vi.fn();
-        onMatchInfoUpdateMock = vi.fn();
         onSaveMock = vi.fn();
-        onCancelMock = vi.fn();
     });
 
     it('should render match information fields', () => {
         render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                onSave={onSaveMock}
             />
         ));
 
@@ -89,10 +82,9 @@ describe('EditableGameData', () => {
     it('should render player statistics for both teams', () => {
         render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                onSave={onSaveMock}
             />
         ));
 
@@ -102,17 +94,21 @@ describe('EditableGameData', () => {
     });
 
     it('should display action buttons when showActions is not false', () => {
-        render(() => (
+        const { container } = render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                showActions={true}
                 onSave={onSaveMock}
-                onCancel={onCancelMock}
             />
         ));
+
+        // Edit a field to trigger the appearance of action buttons
+        const inputs = Array.from(
+            container.querySelectorAll('.match-info-edit input[type="text"]')
+        );
+        const resultInput = inputs[0] as HTMLInputElement;
+        fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
 
         expect(screen.getByText('Match Information')).toBeTruthy();
         expect(screen.getByText(/Save to Records/)).toBeTruthy();
@@ -122,11 +118,10 @@ describe('EditableGameData', () => {
     it('should not display action buttons when showActions is false', () => {
         render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
                 showActions={false}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                onSave={onSaveMock}
             />
         ));
 
@@ -137,41 +132,59 @@ describe('EditableGameData', () => {
         expect(screen.queryByText(/Reset Changes/)).toBeNull();
     });
 
-    it('should show success message when saveSuccess is true', () => {
-        render(() => (
-            <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                saveSuccess={true}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
-            />
-        ));
-
-        expect(screen.getByText(/Game record saved successfully/)).toBeTruthy();
-    });
-
-    it('should show unsaved changes message when hasUnsavedChanges is true', () => {
-        render(() => (
-            <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
-            />
-        ));
-
-        expect(screen.getByText(/unsaved changes/i)).toBeTruthy();
-    });
-
-    it('should call onMatchInfoUpdate when match info field is edited', () => {
+    it('should apply just-saved class when fields are just saved', () => {
         const { container } = render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                onSave={onSaveMock}
+            />
+        ));
+
+        // Find and edit the result input
+        const inputs = Array.from(
+            container.querySelectorAll('.match-info-edit input[type="text"]')
+        );
+        const resultInput = inputs[0] as HTMLInputElement;
+        fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
+
+        // Click save button
+        const saveButton = screen.getByText(/Save to Records/);
+        fireEvent.click(saveButton);
+
+        // After save, the onSaveMock should be called with the updated data
+        expect(onSaveMock).toHaveBeenCalledWith(
+            expect.any(Array),
+            expect.objectContaining({ result: 'DEFEAT' })
+        );
+    });
+
+    it('should apply modified class when fields are modified', () => {
+        const { container } = render(() => (
+            <EditableGameData
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                onSave={onSaveMock}
+            />
+        ));
+
+        // Find and edit the result input to trigger modified state
+        const inputs = Array.from(
+            container.querySelectorAll('.match-info-edit input[type="text"]')
+        );
+        const resultInput = inputs[0] as HTMLInputElement;
+        fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
+
+        // The input should now have the modified class
+        expect(resultInput.classList.contains('modified')).toBe(true);
+    });
+
+    it('should update match info field when edited', () => {
+        const { container } = render(() => (
+            <EditableGameData
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                onSave={onSaveMock}
             />
         ));
 
@@ -184,16 +197,23 @@ describe('EditableGameData', () => {
         expect(resultInput.value).toBe('VICTORY');
 
         fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
-        expect(onMatchInfoUpdateMock).toHaveBeenCalledWith('result', 'DEFEAT');
+
+        // Click save to verify onSave is called with the updated value
+        const saveButton = screen.getByText(/Save to Records/);
+        fireEvent.click(saveButton);
+
+        expect(onSaveMock).toHaveBeenCalledWith(
+            expect.any(Array),
+            expect.objectContaining({ result: 'DEFEAT' })
+        );
     });
 
-    it('should call onPlayerUpdate when player field is edited', () => {
+    it('should update player field when edited', () => {
         const { container } = render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                onSave={onSaveMock}
             />
         ));
 
@@ -209,56 +229,71 @@ describe('EditableGameData', () => {
             target: { value: 'UpdatedPlayer' },
         });
 
-        expect(onPlayerUpdateMock).toHaveBeenCalledWith(
-            0,
-            'name',
-            'UpdatedPlayer'
+        // Click save to verify onSave is called with the updated player
+        const saveButton = screen.getByText(/Save to Records/);
+        fireEvent.click(saveButton);
+
+        expect(onSaveMock).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({ name: 'UpdatedPlayer' }),
+            ]),
+            expect.any(Object)
         );
     });
 
     it('should call onSave when save button is clicked', () => {
         render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
                 onSave={onSaveMock}
-                onCancel={onCancelMock}
             />
         ));
+
+        // First, edit a field to make the save button appear
+        const inputs = Array.from(
+            document.querySelectorAll('.match-info-edit input[type="text"]')
+        );
+        const resultInput = inputs[0] as HTMLInputElement;
+        fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
 
         const saveButton = screen.getByText(/Save to Records/);
         fireEvent.click(saveButton);
-        expect(onSaveMock).toHaveBeenCalled();
+        expect(onSaveMock).toHaveBeenCalledWith(
+            expect.any(Array),
+            expect.objectContaining({ result: 'DEFEAT' })
+        );
     });
 
-    it('should call onCancel when cancel button is clicked', () => {
+    it('should reset changes when cancel button is clicked', () => {
         render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                hasUnsavedChanges={true}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
                 onSave={onSaveMock}
-                onCancel={onCancelMock}
             />
         ));
 
+        // First, edit a field to make the cancel button appear
+        const inputs = Array.from(
+            document.querySelectorAll('.match-info-edit input[type="text"]')
+        );
+        const resultInput = inputs[0] as HTMLInputElement;
+        fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
+
         const cancelButton = screen.getByText(/Reset Changes/);
         fireEvent.click(cancelButton);
-        expect(onCancelMock).toHaveBeenCalled();
+
+        // After reset, the input should revert to its original value
+        expect(resultInput.value).toBe('VICTORY');
     });
 
     it('should render correct number of players for each team', () => {
         const { container } = render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
+                onSave={onSaveMock}
             />
         ));
 
@@ -276,19 +311,16 @@ describe('EditableGameData', () => {
         expect(redRows.length).toBe(2); // 2 red players
     });
 
-    it('should hide action buttons when hasUnsavedChanges is false', () => {
+    it('should hide action buttons when there are no modified fields', () => {
         render(() => (
             <EditableGameData
-                players={mockPlayers}
-                matchInfo={mockMatchInfo}
-                hasUnsavedChanges={false}
-                onPlayerUpdate={onPlayerUpdateMock}
-                onMatchInfoUpdate={onMatchInfoUpdateMock}
+                initialPlayers={mockPlayers}
+                initialMatchInfo={mockMatchInfo}
                 onSave={onSaveMock}
-                onCancel={onCancelMock}
             />
         ));
 
+        // Initially, there should be no unsaved changes, so buttons should not appear
         const saveButton = screen.queryByText(
             /Save to Records/
         ) as HTMLButtonElement;
