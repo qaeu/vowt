@@ -1,0 +1,353 @@
+[
+  {
+    "id": "game_1760989519790_iuzow4wtk",
+    "timestamp": 1760989519790,
+    "players": [
+      {
+        "name": "STARK",
+        "team": "blue",
+        "e": null,
+        "a": 4,
+        "d": 7,
+        "dmg": null,
+        "h": 0,
+        "mit": null
+      },
+      {
+        "name": "WY",
+        "team": "blue",
+        "e": null,
+        "a": 0,
+        "d": null,
+        "dmg": 103,
+        "h": null,
+        "mit": null
+      },
+      {
+        "name": "???",
+        "team": "blue",
+        "e": 2,
+        "a": null,
+        "d": 10,
+        "dmg": 1062,
+        "h": null,
+        "mit": null
+      },
+      {
+        "name": "???",
+        "team": "blue",
+        "e": 6,
+        "a": null,
+        "d": null,
+        "dmg": null,
+        "h": null,
+        "mit": null
+      },
+      {
+        "name": "???",
+        "team": "blue",
+        "e": null,
+        "a": null,
+        "d": null,
+        "dmg": null,
+        "h": null,
+        "mit": null
+      },
+      {
+        "name": "???",
+        "team": "red",
+        "e": null,
+        "a": 5,
+        "d": 10,
+        "dmg": 18675,
+        "h": null,
+        "mit": 191
+      },
+      {
+        "name": "JURE",
+        "team": "red",
+        "e": 25,
+        "a": 5,
+        "d": null,
+        "dmg": 12736,
+        "h": null,
+        "mit": null
+      },
+      {
+        "name": "???",
+        "team": "red",
+        "e": null,
+        "a": 0,
+        "d": null,
+        "dmg": "",
+        "h": "",
+        "mit": ""
+      },
+      {
+        "name": "???",
+        "team": "red",
+        "e": 2,
+        "a": 2,
+        "d": null,
+        "dmg": "",
+        "h": "",
+        "mit": ""
+      },
+      {
+        "name": "???",
+        "team": "red",
+        "e": 0,
+        "a": null,
+        "d": "",
+        "dmg": "",
+        "h": "",
+        "mit": ""
+      }
+    ],
+    "matchInfo": {
+      "result": "VICTORY",
+      "final_score": {
+        "blue": "3",
+        "red": "2"
+      },
+      "date": "09/15/25-02:49",
+      "game_mode": "ESCORT",
+      "game_length": "16:05"
+    },
+    "version": 1
+  },
+  {
+    "id": "game_1761075043092_qo9tmow",
+    "timestamp": 1761075043092,
+    "players": [
+      {
+        "name": "REALBOW",
+        "team": "blue",
+        "e": "35",
+        "a": "10",
+        "d": "7",
+        "dmg": "14",
+        "h": "0",
+        "mit": "9"
+      },
+      {
+        "name": "CIMPLAYZ2ET",
+        "team": "blue",
+        "e": "43",
+        "a": "1",
+        "d": "6",
+        "dmg": "12",
+        "h": "818",
+        "mit": "3"
+      },
+      {
+        "name": "yea",
+        "team": "blue",
+        "e": "3",
+        "a": "14",
+        "d": "11",
+        "dmg": "12",
+        "h": "218",
+        "mit": ""
+      },
+      {
+        "name": "DORK",
+        "team": "blue",
+        "e": "21",
+        "a": "30",
+        "d": "8",
+        "dmg": "5",
+        "h": "8",
+        "mit": ""
+      },
+      {
+        "name": "VEQ",
+        "team": "blue",
+        "e": "45",
+        "a": "24",
+        "d": "8",
+        "dmg": "11",
+        "h": "3",
+        "mit": "222"
+      },
+      {
+        "name": "GLIZZYGOBBLE",
+        "team": "red",
+        "e": "19",
+        "a": "1",
+        "d": "12",
+        "dmg": "11",
+        "h": "0",
+        "mit": "20"
+      },
+      {
+        "name": "RI",
+        "team": "red",
+        "e": "22",
+        "a": "0",
+        "d": "12",
+        "dmg": "7",
+        "h": "676",
+        "mit": "1"
+      },
+      {
+        "name": "???",
+        "team": "red",
+        "e": "22",
+        "a": "3",
+        "d": "14",
+        "dmg": "10",
+        "h": "486",
+        "mit": "1"
+      },
+      {
+        "name": "V1BRMFRRNKIE",
+        "team": "red",
+        "e": "13",
+        "a": "10",
+        "d": "18",
+        "dmg": "3",
+        "h": "9",
+        "mit": "2"
+      },
+      {
+        "name": "NEYTIRI",
+        "team": "red",
+        "e": "7",
+        "a": "13",
+        "d": "14",
+        "dmg": "2",
+        "h": "12",
+        "mit": "1"
+      }
+    ],
+    "matchInfo": {
+      "result": "VICTORY",
+      "final_score": {
+        "blue": "3",
+        "red": "1"
+      },
+      "date": "08/25/25 - 22:11",
+      "game_mode": "FLASHPOINT",
+      "game_length": "13:52"
+    },
+    "version": 1
+  },
+  {
+    "id": "game_1762342565988_xecg0g9",
+    "timestamp": 1762342565988,
+    "players": [
+      {
+        "name": "STARK",
+        "team": "blue",
+        "e": "27",
+        "a": "",
+        "d": "7",
+        "dmg": "17542",
+        "h": "0",
+        "mit": "14872"
+      },
+      {
+        "name": "BABY",
+        "team": "blue",
+        "e": "21",
+        "a": "0",
+        "d": "11",
+        "dmg": "11603",
+        "h": "27",
+        "mit": "1277"
+      },
+      {
+        "name": "KRPPACAPPER",
+        "team": "blue",
+        "e": "24",
+        "a": "3",
+        "d": "10",
+        "dmg": "10362",
+        "h": "0",
+        "mit": "794"
+      },
+      {
+        "name": "TSTFAN",
+        "team": "blue",
+        "e": "16",
+        "a": "24",
+        "d": "8",
+        "dmg": "6279",
+        "h": "12615",
+        "mit": "969"
+      },
+      {
+        "name": "VEQ",
+        "team": "blue",
+        "e": "1",
+        "a": "6",
+        "d": "3",
+        "dmg": "8405",
+        "h": "13444",
+        "mit": "0"
+      },
+      {
+        "name": "YATID",
+        "team": "red",
+        "e": "27",
+        "a": "3",
+        "d": "10",
+        "dmg": "15675",
+        "h": "670",
+        "mit": "15391"
+      },
+      {
+        "name": "LBRO",
+        "team": "red",
+        "e": "25",
+        "a": "5",
+        "d": "11",
+        "dmg": "12736",
+        "h": "0",
+        "mit": "48"
+      },
+      {
+        "name": "",
+        "team": "red",
+        "e": "14",
+        "a": "0",
+        "d": "9",
+        "dmg": "7869",
+        "h": "1191",
+        "mit": "278"
+      },
+      {
+        "name": "DIDNTRSK",
+        "team": "red",
+        "e": "12",
+        "a": "12",
+        "d": "9",
+        "dmg": "4931",
+        "h": "12745",
+        "mit": "1246"
+      },
+      {
+        "name": "MISCA",
+        "team": "red",
+        "e": "10",
+        "a": "14",
+        "d": "7",
+        "dmg": "3415",
+        "h": "15541",
+        "mit": "2021"
+      }
+    ],
+    "matchInfo": {
+      "result": "VICTORY",
+      "final_score": {
+        "blue": "3",
+        "red": "2"
+      },
+      "date": "09/15/25 - 02:49",
+      "game_mode": "ESCORT",
+      "game_length": "16:05"
+    },
+    "version": 1
+  }
+]
