@@ -55,13 +55,12 @@ const MATCH_INFO: Omit<TextRegion, 'name' | 'height'> = {
 const INFOLINE_H = 37;
 
 /**
- * Define all text regions on the Overwatch scoreboard
- * Coordinates are for the full 2560x1440 (1440p) scoreboard image.
+ * Returns the definition of all text regions on the Overwatch scoreboard.
+ * Coordinates are for a fullscreen 2560x1440 (1440p) scoreboard image.
  */
 export function getScoreboardRegions(): TextRegion[] {
-    // These coordinates are based on the actual scoreboard screenshot at 2560x1440
     return [
-        // Blue team players (rows in table)
+        // Blue team players
         {
             name: 'blue_player1_name',
             ...SCOREBOARD,
@@ -412,7 +411,7 @@ export function getScoreboardRegions(): TextRegion[] {
 
 export function getMatchInfoRegions(): TextRegion[] {
     return [
-        // Match info (right side)
+        // Match info
         {
             name: 'result',
             ...MATCH_INFO,
