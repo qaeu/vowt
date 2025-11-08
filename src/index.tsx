@@ -1,9 +1,11 @@
 /* @refresh reload */
 import { render } from 'solid-js/web';
 import 'solid-devtools';
+import { attachDevtoolsOverlay } from '@solid-devtools/overlay';
 
 import App from './App';
 
+attachDevtoolsOverlay();
 const root = document.getElementById('root');
 
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
