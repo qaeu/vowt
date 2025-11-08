@@ -102,43 +102,11 @@ src/
 -   **Region extraction**: Use `getScoreboardRegions()` and `getMatchInfoRegions()` to define OCR focus areas.
 -   **Canvas operations**: Be mindful of cross-origin restrictions when loading external images.
 
-## Testing
-
-### Test Structure
-
--   **Unit tests**: Place in `*.test.ts` files alongside source files.
--   **Component tests**: Use `@solidjs/testing-library` for integration testing with `render()`.
--   **Test configuration**: See `vitest.config.ts` for test setup; JSDOM environment enabled.
-
-### Running Tests
+## Running Tests
 
 ```bash
-npm test -- --run        # Run all tests once
+npm test
 ```
-
-## Build & Deployment
-
-### Development Server
-
-```bash
-npm start      # Start Vite dev server on port 3000
-```
-
-### Production Build
-
-```bash
-npm run build  # Output to dist/ folder
-npm run serve  # Preview production build locally
-```
-
-### GitHub Pages Deployment
-
--   Build output goes to `dist/` folder.
--   Configure GitHub Pages to deploy from `dist/` or via Actions workflow.
--   Vite automatically optimizes:
-    -   Code splitting for faster loads
-    -   Asset hashing for cache busting
-    -   Minification and dead code elimination
 
 ## Security Considerations
 
@@ -154,16 +122,6 @@ npm run serve  # Preview production build locally
 -   **Lazy loading**: Only load Tesseract.js when OCR is needed.
 -   **Memoization**: Cache region definitions and preprocessed images in signals/memos to avoid recomputation.
 -   **Worker pooling**: Consider reusing a single Tesseract worker across multiple recognitions.
-
-## Debugging & Development Tools
-
--   **RegionDebugger component**: Toggle via button in App.tsx to visualize OCR regions on images.
--   **Browser DevTools**: Use Chrome/Firefox DevTools to inspect:
-    -   Network (should see no external API calls)
-    -   Local Storage (verify data is stored correctly)
-    -   Performance (profile OCR processing bottlenecks)
--   **SolidJS DevTools**: Vite config includes `solid-devtools` for reactive graph debugging.
--   **Test UI**: Run `npm run test:ui` for interactive test runner with time-travel debugging.
 
 ## Contributing Tips
 
