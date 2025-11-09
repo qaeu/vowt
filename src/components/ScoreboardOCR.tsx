@@ -54,6 +54,15 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             setError('');
             setProgress(0);
 
+            // Step 0: Get image dimensions
+            const imageDimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve({ width: img.width, height: img.height });
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = imageToProcess;
+            });
+            setProgress(5);
+
             // Step 1: Preprocess the full image
             const preprocessed = await preprocessImageForOCR(imageToProcess);
             setProgress(20);
@@ -72,10 +81,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
             const worker = await Tesseract.createWorker('eng', 1);
 
-            // Get all defined regions
+            // Get all defined regions with normalized coordinates
             const scoreboardRegions = [
-                ...getScoreboardRegions(),
-                ...getMatchInfoRegions(),
+                ...getScoreboardRegions(imageDimensions.width, imageDimensions.height),
+                ...getMatchInfoRegions(imageDimensions.width, imageDimensions.height),
             ];
             const totalScoreBoardRegions = scoreboardRegions.length;
             for (let i = 0; i < totalScoreBoardRegions; i++) {

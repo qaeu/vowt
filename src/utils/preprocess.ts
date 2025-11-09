@@ -83,8 +83,8 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
             ctx.drawImage(img, 0, 0);
 
             const regions = [
-                ...getScoreboardRegions(),
-                ...getMatchInfoRegions(),
+                ...getScoreboardRegions(img.width, img.height),
+                ...getMatchInfoRegions(img.width, img.height),
             ];
             for (const region of regions) {
                 // Extract region image data
@@ -152,8 +152,8 @@ export async function drawRegionsOnImage(
                 ctx.lineWidth = 1;
 
                 const regions = [
-                    ...getScoreboardRegions(),
-                    ...getMatchInfoRegions(),
+                    ...getScoreboardRegions(sourceImg.width, sourceImg.height),
+                    ...getMatchInfoRegions(sourceImg.width, sourceImg.height),
                 ];
                 for (const region of regions) {
                     if (region.isItalic) {
