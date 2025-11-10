@@ -5,10 +5,11 @@ import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { getScoreboardRegions, getMatchInfoRegions } from '#utils/textRegions';
 import { extractGameStats } from '#utils/postprocess';
 import {
-    saveGameRecord,
     type PlayerStats,
     type MatchInfo,
     type GameRecord,
+    saveGameRecord,
+    updateGameRecord,
 } from '#utils/gameStorage';
 import '#styles/ScoreboardOCR';
 
@@ -30,6 +31,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [currentImage, setCurrentImage] = createSignal<string>();
     const [showJsonStats, setShowJsonStats] = createSignal(false);
     const [showRawText, setShowRawText] = createSignal(false);
+
+    let recordId: string;
 
     onMount(async () => {
         if (props.uploadedImage) {
@@ -126,6 +129,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             // Step 3: Extract game stats from region results
             const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
+            recordId = saveGameRecord(stats.players, stats.matchInfo).id;
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Unknown error occurred'
@@ -138,7 +142,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
     const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
         try {
-            saveGameRecord(players, matchInfo);
+            updateGameRecord(recordId, players, matchInfo);
         } catch (err) {
             setError(
                 err instanceof Error
