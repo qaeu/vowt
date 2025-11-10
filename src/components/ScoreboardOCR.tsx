@@ -52,20 +52,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         try {
             setIsProcessing(true);
             setError('');
-            setProgress(0);
 
             // Step 0: Get image dimensions
-            const imageDimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+            const imageDimensions = await new Promise<{
+                width: number;
+                height: number;
+            }>((resolve, reject) => {
                 const img = new Image();
-                img.onload = () => resolve({ width: img.width, height: img.height });
+                img.onload = () =>
+                    resolve({ width: img.width, height: img.height });
                 img.onerror = () => reject(new Error('Failed to load image'));
                 img.src = imageToProcess;
             });
-            setProgress(5);
 
             // Step 1: Preprocess the full image
             const preprocessed = await preprocessImageForOCR(imageToProcess);
-            setProgress(20);
 
             // Preview preprocessed image with regions
             const preprocessedPreview = await drawRegionsOnImage(
@@ -73,7 +74,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                 imageToProcess
             );
             setPreprocessedImagePreview(preprocessedPreview);
-            setProgress(25);
 
             // Step 2: Perform region-based OCR using Tesseract.js
             const ocrTextParts: string[] = [];
@@ -83,13 +83,19 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
             // Get all defined regions with normalized coordinates
             const scoreboardRegions = [
-                ...getScoreboardRegions(imageDimensions.width, imageDimensions.height),
-                ...getMatchInfoRegions(imageDimensions.width, imageDimensions.height),
+                ...getScoreboardRegions(
+                    imageDimensions.width,
+                    imageDimensions.height
+                ),
+                ...getMatchInfoRegions(
+                    imageDimensions.width,
+                    imageDimensions.height
+                ),
             ];
             const totalScoreBoardRegions = scoreboardRegions.length;
             for (let i = 0; i < totalScoreBoardRegions; i++) {
                 const region = scoreboardRegions[i];
-                setProgress(25 + Math.round((i / totalScoreBoardRegions) * 35));
+                setProgress(Math.round((i / totalScoreBoardRegions) * 100));
 
                 await worker.setParameters({
                     tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
@@ -116,12 +122,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
             // Combine all OCR results for display
             setRawOcrText(ocrTextParts.join('\n'));
-            setProgress(75);
 
             // Step 3: Extract game stats from region results
             const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
-            setProgress(100);
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Unknown error occurred'
