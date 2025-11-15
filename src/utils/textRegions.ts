@@ -11,6 +11,36 @@ export interface TextRegion {
     isItalic?: boolean;
 }
 
+/**
+ * Reference resolution for hardcoded coordinates (1440p)
+ */
+export const REFERENCE_WIDTH = 2560;
+export const REFERENCE_HEIGHT = 1440;
+
+/**
+ * Normalizes coordinates from reference resolution to target resolution
+ * @param region - Region with coordinates in reference resolution
+ * @param targetWidth - Target image width
+ * @param targetHeight - Target image height
+ * @returns Region with normalized coordinates
+ */
+export function normalizeRegion(
+    region: TextRegion,
+    targetWidth: number,
+    targetHeight: number
+): TextRegion {
+    const scaleX = targetWidth / REFERENCE_WIDTH;
+    const scaleY = targetHeight / REFERENCE_HEIGHT;
+
+    return {
+        ...region,
+        x: Math.round(region.x * scaleX),
+        y: Math.round(region.y * scaleY),
+        width: Math.round(region.width * scaleX),
+        height: Math.round(region.height * scaleY),
+    };
+}
+
 const ZERO_TO_NINE = '0123456789';
 const A_TO_Z = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SYMBOLS = ': /-';
@@ -56,9 +86,17 @@ const INFOLINE_H = 37;
 
 /**
  * Returns the definition of all text regions on the Overwatch scoreboard.
- * Coordinates are for a fullscreen 2560x1440 (1440p) scoreboard image.
+ * Coordinates are normalized based on the target image dimensions.
+ * @param imageWidth - Width of the target image (defaults to reference width)
+ * @param imageHeight - Height of the target image (defaults to reference height)
+ * @returns Array of text regions with coordinates normalized to target dimensions
  */
-export function getScoreboardRegions(): TextRegion[] {
+export function getScoreboardRegions(
+    imageWidth: number = REFERENCE_WIDTH,
+    imageHeight: number = REFERENCE_HEIGHT
+): TextRegion[] {
+    const needsNormalization = 
+        imageWidth !== REFERENCE_WIDTH || imageHeight !== REFERENCE_HEIGHT;
     return [
         // Blue team players
         {
@@ -406,10 +444,18 @@ export function getScoreboardRegions(): TextRegion[] {
             x: STATLINE.x + 2 * STATLINE.width,
             y: RED_Y + 4 * ROW_H,
         },
-    ];
+    ].map(region => needsNormalization 
+        ? normalizeRegion(region, imageWidth, imageHeight)
+        : region
+    );
 }
 
-export function getMatchInfoRegions(): TextRegion[] {
+export function getMatchInfoRegions(
+    imageWidth: number = REFERENCE_WIDTH,
+    imageHeight: number = REFERENCE_HEIGHT
+): TextRegion[] {
+    const needsNormalization = 
+        imageWidth !== REFERENCE_WIDTH || imageHeight !== REFERENCE_HEIGHT;
     return [
         // Match info
         {
@@ -442,5 +488,8 @@ export function getMatchInfoRegions(): TextRegion[] {
             y: MATCH_INFO.y + 90 + 3 * INFOLINE_H,
             height: INFOLINE_H,
         },
-    ];
+    ].map(region => needsNormalization 
+        ? normalizeRegion(region, imageWidth, imageHeight)
+        : region
+    );
 }

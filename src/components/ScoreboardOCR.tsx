@@ -5,10 +5,11 @@ import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { getScoreboardRegions, getMatchInfoRegions } from '#utils/textRegions';
 import { extractGameStats } from '#utils/postprocess';
 import {
-    saveGameRecord,
     type PlayerStats,
     type MatchInfo,
     type GameRecord,
+    saveGameRecord,
+    updateGameRecord,
 } from '#utils/gameStorage';
 import '#styles/ScoreboardOCR';
 
@@ -31,6 +32,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
     const [showJsonStats, setShowJsonStats] = createSignal(false);
     const [showRawText, setShowRawText] = createSignal(false);
 
+    let recordId: string;
+
     onMount(async () => {
         if (props.uploadedImage) {
             setCurrentImage(props.uploadedImage);
@@ -52,11 +55,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
         try {
             setIsProcessing(true);
             setError('');
-            setProgress(0);
+
+            // Step 0: Get image dimensions
+            const imageDimensions = await new Promise<{
+                width: number;
+                height: number;
+            }>((resolve, reject) => {
+                const img = new Image();
+                img.onload = () =>
+                    resolve({ width: img.width, height: img.height });
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = imageToProcess;
+            });
 
             // Step 1: Preprocess the full image
             const preprocessed = await preprocessImageForOCR(imageToProcess);
-            setProgress(20);
 
             // Preview preprocessed image with regions
             const preprocessedPreview = await drawRegionsOnImage(
@@ -64,7 +77,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
                 imageToProcess
             );
             setPreprocessedImagePreview(preprocessedPreview);
-            setProgress(25);
 
             // Step 2: Perform region-based OCR using Tesseract.js
             const ocrTextParts: string[] = [];
@@ -72,15 +84,21 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
             const worker = await Tesseract.createWorker('eng', 1);
 
-            // Get all defined regions
+            // Get all defined regions with normalized coordinates
             const scoreboardRegions = [
-                ...getScoreboardRegions(),
-                ...getMatchInfoRegions(),
+                ...getScoreboardRegions(
+                    imageDimensions.width,
+                    imageDimensions.height
+                ),
+                ...getMatchInfoRegions(
+                    imageDimensions.width,
+                    imageDimensions.height
+                ),
             ];
             const totalScoreBoardRegions = scoreboardRegions.length;
             for (let i = 0; i < totalScoreBoardRegions; i++) {
                 const region = scoreboardRegions[i];
-                setProgress(25 + Math.round((i / totalScoreBoardRegions) * 35));
+                setProgress(Math.round((i / totalScoreBoardRegions) * 100));
 
                 await worker.setParameters({
                     tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
@@ -107,12 +125,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
             // Combine all OCR results for display
             setRawOcrText(ocrTextParts.join('\n'));
-            setProgress(75);
 
             // Step 3: Extract game stats from region results
             const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
-            setProgress(100);
+            recordId = saveGameRecord(stats.players, stats.matchInfo).id;
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Unknown error occurred'
@@ -125,7 +142,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
     const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
         try {
-            saveGameRecord(players, matchInfo);
+            updateGameRecord(recordId, players, matchInfo);
         } catch (err) {
             setError(
                 err instanceof Error

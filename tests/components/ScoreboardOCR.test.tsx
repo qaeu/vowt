@@ -1,6 +1,25 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@solidjs/testing-library';
 import ScoreboardOCR from '#c/ScoreboardOCR';
+
+// Mock Image constructor for image dimension detection
+beforeEach(() => {
+    global.Image = class {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        src = '';
+        width = 2560;
+        height = 1440;
+        
+        constructor() {
+            setTimeout(() => {
+                if (this.onload) {
+                    this.onload();
+                }
+            }, 0);
+        }
+    } as any;
+});
 
 // Mock tesseract.js
 vi.mock('tesseract.js', () => ({
