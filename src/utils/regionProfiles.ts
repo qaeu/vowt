@@ -39,6 +39,7 @@ export interface ExportedProfile {
     type: 'vowt-region-profile';
     schemaVersion: number;
     profile: RegionProfile;
+    exportedAt: string;
 }
 
 /**
@@ -178,10 +179,10 @@ export function loadProfileById(profileId: string): TextRegion[] | null {
 }
 
 /**
- * Lists all saved region profile IDs
- * @returns Array of profile IDs sorted by updatedAt descending
+ * Lists all saved region profiles
+ * @returns Array of profile IDs and descriptions sorted by updatedAt descending
  */
-export function listProfileIds(): string[] {
+export function listProfiles(): { id: string; description: string }[] {
     const storage = loadProfilesFromStorage();
 
     // Sort by updatedAt descending and return only IDs
@@ -191,7 +192,7 @@ export function listProfileIds(): string[] {
                 new Date(b.updatedAt).getTime() -
                 new Date(a.updatedAt).getTime()
         )
-        .map((p) => p.id);
+        .map((p) => ({ id: p.id, description: p.description }));
 }
 
 /**
@@ -284,6 +285,7 @@ export function exportProfile(profileId: string): string | null {
         type: 'vowt-region-profile',
         schemaVersion: PROFILE_SCHEMA_VERSION,
         profile,
+        exportedAt: new Date().toISOString(),
     };
 
     return JSON.stringify(exportData, null, 2);

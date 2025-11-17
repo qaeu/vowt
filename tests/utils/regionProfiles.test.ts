@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     saveProfile,
     loadProfileById,
-    listProfileIds,
+    listProfiles,
     deleteProfile,
     setActiveProfile,
     getActiveProfileId,
@@ -129,7 +129,7 @@ describe('Region Profiles', () => {
 
     describe('listProfileIds', () => {
         it('should return empty array when no profiles exist', () => {
-            const profileIds = listProfileIds();
+            const profileIds = listProfiles();
             expect(profileIds).toEqual([]);
         });
 
@@ -141,10 +141,10 @@ describe('Region Profiles', () => {
                 description: 'Profile 2',
             });
 
-            const profileIds = listProfileIds();
-            expect(profileIds).toHaveLength(2);
-            expect(profileIds).toContain(profileId1);
-            expect(profileIds).toContain(profileId2);
+            const profiles = listProfiles();
+            expect(profiles).toHaveLength(2);
+            expect(profiles.map((p) => p.id)).toContain(profileId1);
+            expect(profiles.map((p) => p.id)).toContain(profileId2);
         });
 
         it('should sort profile IDs by updatedAt in descending order', () => {
@@ -159,9 +159,9 @@ describe('Region Profiles', () => {
                         description: 'Profile 2',
                     });
 
-                    const profileIds = listProfileIds();
-                    expect(profileIds[0]).toBe(profileId2);
-                    expect(profileIds[1]).toBe(profileId1);
+                    const profiles = listProfiles();
+                    expect(profiles[0].id).toBe(profileId2);
+                    expect(profiles[1].id).toBe(profileId1);
                     resolve();
                 }, 2);
             });
@@ -207,7 +207,7 @@ describe('Region Profiles', () => {
             deleteProfile(profileId1);
 
             expect(loadProfileById(profileId2)).toBeDefined();
-            expect(listProfileIds()).toHaveLength(1);
+            expect(listProfiles()).toHaveLength(1);
         });
     });
 
@@ -315,7 +315,7 @@ describe('Region Profiles', () => {
             const count = importProfile(exported);
 
             expect(count).toBe(1);
-            expect(listProfileIds()).toHaveLength(1);
+            expect(listProfiles()).toHaveLength(1);
         });
 
         it('should return null for invalid JSON', () => {
@@ -364,7 +364,7 @@ describe('Region Profiles', () => {
             const count = importProfile(updatedExport);
 
             expect(count).toBe(1);
-            expect(listProfileIds()).toHaveLength(1);
+            expect(listProfiles()).toHaveLength(1);
 
             // Verify the description was updated
             const regions = loadProfileById(profileId);
