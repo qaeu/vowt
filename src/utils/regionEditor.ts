@@ -11,18 +11,26 @@ export interface DrawnRegion {
     color: string;
 }
 
+function drawRegion(ctx: CanvasRenderingContext2D, r: DrawnRegion): void {
+    ctx.strokeStyle = r.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x, r.y, r.width, r.height);
+}
+
 /**
  * Creates an interactive canvas where you can draw regions by clicking and dragging
  * Coordinates are logged to console for easy copying
  * @param canvasElement - Canvas element to draw on
  * @param imageUrl - URL of the image to draw regions on
  * @param onRegionComplete - Callback when a region is completed
+ * @param initialRegions - Optional initial regions to display on load
  * @returns Promise that resolves when editor is ready
  */
 export async function startRegionEditor(
     canvasElement: HTMLCanvasElement,
-    imageUrl: string,
-    onRegionComplete: (region: DrawnRegion) => void
+    imageUrl: string | null,
+    onRegionComplete: (region: DrawnRegion) => void,
+    initialRegions?: DrawnRegion[]
 ): Promise<void> {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -40,6 +48,11 @@ export async function startRegionEditor(
 
             // Draw the image
             ctx.drawImage(img, 0, 0);
+
+            // Draw initial regions if provided
+            if (initialRegions && initialRegions.length > 0) {
+                initialRegions.forEach((r) => drawRegion(ctx, r));
+            }
 
             let isDrawing = false;
             let startX = 0;
@@ -139,12 +152,6 @@ export async function startRegionEditor(
                         color,
                     };
 
-                    // Log to console in easy-to-copy format
-                    console.log(`\n📍 Region ${regionCount} (${color}):`);
-                    console.log(
-                        `{ name: 'NAME', x: ${region.x}, y: ${region.y}, width: ${region.width}, height: ${region.height} },`
-                    );
-
                     onRegionComplete(region);
                     regionCount++;
 
@@ -171,7 +178,6 @@ export async function startRegionEditor(
                     canvasElement.removeEventListener('mouseup', handleMouseUp);
                     canvasElement.removeEventListener('keydown', handleKeyDown);
                     canvasElement.style.cursor = 'default';
-                    console.log('✓ Region editor closed');
                     resolve();
                 }
             };
@@ -180,25 +186,45 @@ export async function startRegionEditor(
             canvasElement.addEventListener('mousemove', handleMouseMove);
             canvasElement.addEventListener('mouseup', handleMouseUp);
             canvasElement.addEventListener('keydown', handleKeyDown);
-
-            console.log('🎨 Region Editor Started:');
-            console.log('  • Click and drag to draw regions');
-            console.log('  • Coordinates appear in real-time');
-            console.log('  • Check console for region values (easy to copy)');
-            console.log('  • Press ESC to close editor');
         };
 
         img.onerror = () => {
             reject(new Error('Failed to load image'));
         };
 
-        img.src = imageUrl;
+        if (imageUrl) {
+            img.src = imageUrl;
+        }
     });
 }
 
 /**
- * Helper to display region coordinates in console-friendly format
+ * Draws regions on the canvas without setting up event handlers
+ * Used to redraw regions when editing an existing profile
+ * @param canvasElement - Canvas element to draw on
+ * @param regions - Regions to draw
+ * @param imgSrc - URL of the image to display
  */
-export function formatRegionForCopy(region: DrawnRegion, name: string): string {
-    return `{ name: '${name}', x: ${region.x}, y: ${region.y}, width: ${region.width}, height: ${region.height} },`;
+export function drawRegions(
+    canvasElement: HTMLCanvasElement,
+    regions: DrawnRegion[],
+    imgSrc: string
+) {
+    const ctx = canvasElement.getContext('2d');
+    if (!ctx) {
+        console.error('Failed to get canvas context');
+        return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        regions.forEach((r) => drawRegion(ctx, r));
+    };
+
+    img.onerror = () => {
+        console.error('Failed to load image for drawRegions');
+    };
+
+    img.src = imgSrc;
 }
