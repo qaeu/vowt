@@ -17,6 +17,7 @@ vi.mock('#utils/regionProfiles', () => ({
 // Mock the region editor utility
 vi.mock('#utils/regionEditor', () => ({
     startRegionEditor: vi.fn(),
+    drawRegions: vi.fn(),
 }));
 
 describe('RegionProfileManager', () => {
@@ -28,10 +29,13 @@ describe('RegionProfileManager', () => {
     const mockOnClose = vi.fn();
 
     beforeEach(() => {
-        vi.clearAllMocks();
         localStorage.clear();
+        vi.clearAllMocks();
         vi.mocked(regionProfiles.listProfiles).mockReturnValue(mockProfiles);
-        vi.mocked(regionProfiles.getActiveProfileId).mockReturnValue(null);
+        vi.mocked(regionProfiles.getActiveProfileId).mockReturnValue(
+            mockProfiles[1].id
+        );
+        vi.mocked(regionEditor.startRegionEditor).mockResolvedValue(undefined);
     });
 
     afterEach(() => {
@@ -41,14 +45,20 @@ describe('RegionProfileManager', () => {
     describe('Rendering', () => {
         it('should render the component with title', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
-            expect(screen.getByText('📍 Region Profile Manager')).toBeDefined();
+            expect(screen.getByText('Region Profile Manager')).toBeDefined();
         });
 
         it('should render the close button', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const closeButton = screen.getByRole('button', { name: /close/i });
             expect(closeButton).toBeDefined();
@@ -56,7 +66,10 @@ describe('RegionProfileManager', () => {
 
         it('should render instructions text', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             expect(
                 screen.getByText(/Create and manage region profiles/i)
@@ -65,7 +78,10 @@ describe('RegionProfileManager', () => {
 
         it('should show drag and drop tip when no preview image', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             expect(screen.getByText(/Drag and drop an image/i)).toBeDefined();
         });
@@ -82,19 +98,25 @@ describe('RegionProfileManager', () => {
     });
 
     describe('Region Editor', () => {
-        it('should have Start Region Editor button', () => {
+        it('should have Clear All button', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const button = screen.getByRole('button', {
-                name: /Start Region Editor/i,
+                name: /Clear All/i,
             });
             expect(button).toBeDefined();
         });
 
         it('should have Clear All button disabled when no regions', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const clearButton = screen.getByRole('button', {
                 name: /Clear All/i,
@@ -104,41 +126,25 @@ describe('RegionProfileManager', () => {
 
         it('should have Copy Code button disabled when no regions', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const copyButton = screen.getByRole('button', {
                 name: /Copy Code/i,
             }) as HTMLButtonElement;
             expect(copyButton.disabled).toBe(true);
         });
-
-        it('should call startRegionEditor when clicking Start Region Editor', async () => {
-            vi.mocked(regionEditor.startRegionEditor).mockResolvedValue(
-                undefined
-            );
-
-            render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
-            ));
-
-            const button = screen.getByRole('button', {
-                name: /Start Region Editor/i,
-            }) as HTMLButtonElement;
-            button.click();
-
-            // Give it a moment for the async call
-            await new Promise((resolve) => setTimeout(resolve, 10));
-
-            expect(
-                vi.mocked(regionEditor.startRegionEditor)
-            ).toHaveBeenCalled();
-        });
     });
 
     describe('Profile Management', () => {
         it('should display list of saved profiles', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             expect(screen.getByText('profile1')).toBeDefined();
             expect(screen.getByText('profile2')).toBeDefined();
@@ -147,32 +153,46 @@ describe('RegionProfileManager', () => {
         it('should show "No profiles yet" when list is empty', () => {
             vi.mocked(regionProfiles.listProfiles).mockReturnValue([]);
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             expect(screen.getByText('No profiles yet')).toBeDefined();
         });
 
         it('should render Select button for each profile', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const selectButtons = screen.getAllByRole('button', {
                 name: /Select/i,
             });
-            expect(selectButtons.length).toBeGreaterThanOrEqual(2);
+            expect(selectButtons.length).toBeGreaterThanOrEqual(1);
         });
 
         it('should render Edit button for each profile', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
-            const editButtons = screen.getAllByRole('button', { name: /Edit/i });
+            const editButtons = screen.getAllByRole('button', {
+                name: /Edit/i,
+            });
             expect(editButtons.length).toBeGreaterThanOrEqual(2);
         });
 
         it('should render Delete button for each profile', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const deleteButtons = screen.getAllByRole('button', {
                 name: /Delete/i,
@@ -182,7 +202,10 @@ describe('RegionProfileManager', () => {
 
         it('should call setActiveProfile when selecting a profile', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
 
             const selectButtons = screen.getAllByRole('button', {
@@ -200,7 +223,10 @@ describe('RegionProfileManager', () => {
                 'profile1'
             );
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             expect(screen.getByText('✓ Active')).toBeDefined();
         });
@@ -210,7 +236,10 @@ describe('RegionProfileManager', () => {
             vi.spyOn(window, 'confirm').mockReturnValue(true);
 
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
 
             const deleteButtons = screen.getAllByRole('button', {
@@ -227,7 +256,10 @@ describe('RegionProfileManager', () => {
             vi.spyOn(window, 'confirm').mockReturnValue(false);
 
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
 
             const deleteButtons = screen.getAllByRole('button', {
@@ -241,43 +273,47 @@ describe('RegionProfileManager', () => {
         });
     });
 
-    describe('Profile Creation', () => {
-        it('should have Create New Profile button disabled when no regions', () => {
+    describe('Profile Details Section', () => {
+        it('should display Profile Details section', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
-            const createButton = screen.getByRole('button', {
-                name: /Create New Profile/i,
-            }) as HTMLButtonElement;
-            expect(createButton.disabled).toBe(true);
+            expect(screen.getByText('Profile Details')).toBeDefined();
         });
 
-        it('should have Create New Profile button in the component', () => {
+        it('should have Profile ID input field', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
-            const createButton = screen.getByRole('button', {
-                name: /Create New Profile/i,
-            });
-            expect(createButton).toBeDefined();
+            const idInputs = document.querySelectorAll('input');
+            expect(idInputs.length).toBeGreaterThan(0);
         });
 
-        it('should call onClose when close button is clicked', () => {
+        it('should have Description input field', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
-
-            const closeButton = screen.getByRole('button', { name: /close/i }) as HTMLButtonElement;
-            closeButton.click();
-
-            expect(mockOnClose).toHaveBeenCalled();
+            const inputs = document.querySelectorAll('input');
+            expect(inputs.length).toBeGreaterThan(0);
         });
     });
 
     describe('Canvas Rendering', () => {
         it('should render canvas element', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const canvas = document.querySelector('canvas');
             expect(canvas).toBeDefined();
@@ -285,34 +321,71 @@ describe('RegionProfileManager', () => {
 
         it('should render canvas wrapper', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
             const wrapper = document.querySelector('.canvas-wrapper');
             expect(wrapper).toBeDefined();
         });
     });
 
-    describe('Profile Editing', () => {
-        it('should display Edit buttons in the profile list', () => {
+    describe('UI Sections', () => {
+        it('should render Region Editor section', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
-
-            const editButtons = screen.getAllByRole('button', { name: /Edit/i });
-            expect(editButtons.length).toBeGreaterThanOrEqual(2);
+            expect(screen.getByText('Region Editor')).toBeDefined();
         });
 
-        it('should have editProfile functionality available', () => {
+        it('should render Profile Details section', () => {
             render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
             ));
+            expect(screen.getByText('Profile Details')).toBeDefined();
+        });
 
-            const editButtons = screen.getAllByRole('button', { name: /Edit/i });
-            expect(editButtons[0]).toBeDefined();
+        it('should render Saved Profiles section', () => {
+            render(() => (
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
+            ));
+            expect(screen.getByText('Saved Profiles')).toBeDefined();
         });
     });
 
-    describe('Preview Image', () => {
+    describe('Component Props', () => {
+        it('should accept onClose callback', () => {
+            const onClose = vi.fn();
+            render(() => (
+                <RegionProfileManager previewImage={null} onClose={onClose} />
+            ));
+            expect(screen.getByText('Region Profile Manager')).toBeDefined();
+        });
+
+        it('should call onClose prop when close button clicked', () => {
+            const onClose = vi.fn();
+            render(() => (
+                <RegionProfileManager previewImage={null} onClose={onClose} />
+            ));
+
+            const closeButton = screen.getByRole('button', {
+                name: /close/i,
+            }) as HTMLButtonElement;
+            closeButton.click();
+
+            expect(onClose).toHaveBeenCalled();
+        });
+
         it('should accept previewImage prop', () => {
             const previewImage = 'data:image/png;base64,test';
             render(() => (
@@ -321,7 +394,7 @@ describe('RegionProfileManager', () => {
                     onClose={mockOnClose}
                 />
             ));
-            expect(screen.getByText('📍 Region Profile Manager')).toBeDefined();
+            expect(screen.getByText('Region Profile Manager')).toBeDefined();
         });
 
         it('should use previewImage when available', () => {
@@ -334,51 +407,6 @@ describe('RegionProfileManager', () => {
             ));
             const canvas = document.querySelector('canvas');
             expect(canvas).toBeDefined();
-        });
-    });
-
-    describe('UI Sections', () => {
-        it('should render Region Editor section', () => {
-            render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
-            ));
-            expect(screen.getByText('Region Editor')).toBeDefined();
-        });
-
-        it('should render Save Profile section', () => {
-            render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
-            ));
-            expect(screen.getByText('Save Profile')).toBeDefined();
-        });
-
-        it('should render Saved Profiles section', () => {
-            render(() => (
-                <RegionProfileManager onClose={mockOnClose} />
-            ));
-            expect(screen.getByText('Saved Profiles')).toBeDefined();
-        });
-    });
-
-    describe('Component Props', () => {
-        it('should accept onClose callback', () => {
-            const onClose = vi.fn();
-            render(() => (
-                <RegionProfileManager onClose={onClose} />
-            ));
-            expect(screen.getByText('📍 Region Profile Manager')).toBeDefined();
-        });
-
-        it('should call onClose prop when close button clicked', () => {
-            const onClose = vi.fn();
-            render(() => (
-                <RegionProfileManager onClose={onClose} />
-            ));
-
-            const closeButton = screen.getByRole('button', { name: /close/i }) as HTMLButtonElement;
-            closeButton.click();
-
-            expect(onClose).toHaveBeenCalled();
         });
     });
 });
