@@ -3,7 +3,7 @@
     "schemaVersion": 1,
     "profile": {
         "id": "Post-game_5v5",
-        "description": "Post-game 5v5 F1 screen",
+        "description": "Post-game F1 match info screen (5v5)",
         "regions": [
             {
                 "name": "blue_player1_name",
