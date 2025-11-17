@@ -24,9 +24,14 @@ vi.mock(import('#c/GameRecordsTable'), () => ({
     ),
 }));
 
-// Mock the RegionDebugger component
-vi.mock(import('#c/RegionDebugger'), () => ({
-    default: () => <div>Mocked RegionDebugger</div>,
+// Mock the RegionProfileManager component
+vi.mock(import('#c/RegionProfileManager'), () => ({
+    default: (props) => (
+        <div>
+            Mocked RegionProfileManager
+            {props.onClose && <button onClick={props.onClose}>✕ Close</button>}
+        </div>
+    ),
 }));
 
 describe('App', () => {
