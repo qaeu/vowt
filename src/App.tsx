@@ -1,12 +1,12 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup } from 'solid-js';
 import ScoreboardOCR from '#c/ScoreboardOCR';
-import RegionDebugger from '#c/RegionDebugger';
+import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
 import { triggerUploadDialog, handleFileUpload } from '#utils/gameStorage';
 import '#styles/App';
 
-type ViewMode = 'ocr' | 'records' | 'debugger';
+type ViewMode = 'ocr' | 'records' | 'regions';
 
 const App: Component = () => {
     const [viewMode, setViewMode] = createSignal<ViewMode>('records');
@@ -36,9 +36,13 @@ const App: Component = () => {
         setIsDragging(false);
 
         const file = e.dataTransfer?.files[0] as File;
+        const currentViewMode = viewMode();
         handleFileUpload(file, (imageData) => {
             setUploadedImage(imageData);
-            setViewMode('ocr');
+            // If we're in regions view, stay in regions view; otherwise go to OCR
+            if (currentViewMode !== 'regions') {
+                setViewMode('ocr');
+            }
         });
     };
 
@@ -77,27 +81,34 @@ const App: Component = () => {
                     </div>
                 </div>
             )}
-            {viewMode() === 'debugger' && (
-                <div class="nav-container">
-                    <button
-                        onClick={() => setViewMode('records')}
-                        class="nav-button records-button"
-                    >
-                        📊 Records
-                    </button>
-                </div>
-            )}
 
             {viewMode() === 'ocr' && (
-                <ScoreboardOCR
-                    uploadedImage={uploadedImage()}
-                    onClose={handleCloseOCR}
-                />
+                <>
+                    <div class="nav-container">
+                        <button
+                            onClick={() => setViewMode('regions')}
+                            class="nav-button records-button"
+                        >
+                            Region Profiles
+                        </button>
+                    </div>
+                    <ScoreboardOCR
+                        uploadedImage={uploadedImage()}
+                        onClose={handleCloseOCR}
+                    />
+                </>
             )}
+
             {viewMode() === 'records' && (
                 <GameRecordsTable onUploadClick={handleUploadClick} />
             )}
-            {viewMode() === 'debugger' && <RegionDebugger />}
+
+            {viewMode() === 'regions' && (
+                <RegionProfileManager
+                    previewImage={uploadedImage()}
+                    onClose={() => setViewMode('ocr')}
+                />
+            )}
         </div>
     );
 };
