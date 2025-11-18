@@ -1,4 +1,4 @@
-import { TextRegion } from './textRegions';
+import { normaliseRegion, type TextRegion } from './textRegions';
 import { defaultProfiles } from '#data/profiles';
 
 /**
@@ -86,20 +86,20 @@ function loadProfilesFromStorage(): ProfilesStorage {
  * Initializes storage with default profiles
  */
 function initializeWithDefaults(): ProfilesStorage {
-        return ensureDefaultProfilesExist();
+    return ensureDefaultProfilesExist();
 }
 
 /**
  * Ensures all default profiles exist in storage; adds missing ones
  */
 function ensureDefaultProfilesExist(
-storage?: ProfilesStorage
+    storage?: ProfilesStorage
 ): ProfilesStorage {
     const profilesToLoad = defaultProfiles.filter(
         (item) => item.type === 'vowt-region-profile'
     );
 
-const missingDefaults = [];
+    const missingDefaults = [];
     for (const item of profilesToLoad) {
         if (
             !storage ||
@@ -138,13 +138,21 @@ function saveProfilesToStorage(storage: ProfilesStorage): void {
  */
 export function saveProfile(
     regions: TextRegion[],
-    options?: { id?: string; description?: string }
+    options?: { id?: string; description?: string },
+    imgWidth?: number,
+    imgHeight?: number
 ): string {
     const now = new Date().toISOString();
     const profileId = options?.id || generateProfileId();
 
     const storage = loadProfilesFromStorage();
     const existingIndex = storage.profiles.findIndex((p) => p.id === profileId);
+
+    if (imgWidth && imgHeight) {
+        regions = regions.map((region) =>
+            normaliseRegion(region, imgWidth, imgHeight)
+        );
+    }
 
     const savedProfile: RegionProfile = {
         id: profileId,
@@ -247,8 +255,8 @@ export function setActiveProfile(profileId: string): void {
  * @returns The active profile ID
  */
 export function getActiveProfileId(): string {
-        const storage = loadProfilesFromStorage();
-        return storage.activeProfileId!;
+    const storage = loadProfilesFromStorage();
+    return storage.activeProfileId!;
 }
 
 /**
@@ -257,7 +265,7 @@ export function getActiveProfileId(): string {
  */
 export function getActiveProfile(): TextRegion[] {
     const profileId = getActiveProfileId();
-    
+
     return loadProfileById(profileId)!;
 }
 

@@ -129,10 +129,17 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
             return;
         }
 
-        saveProfile(profileRegions, {
-            id: editingProfileId(),
-            description: editingProfileDesc(),
-        });
+        if (canvasRef) {
+            saveProfile(
+                profileRegions,
+                {
+                    id: editingProfileId(),
+                    description: editingProfileDesc(),
+                },
+                canvasRef.width,
+                canvasRef.height
+            );
+        }
 
         // Update selected profile ID to the new/modified ID and refresh profiles list
         setSelectedProfileId(editingProfileId());

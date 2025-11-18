@@ -2,15 +2,16 @@ import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import EditableGameData from '#c/EditableGameData';
 import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
-import { getScoreboardRegions, getMatchInfoRegions } from '#utils/textRegions';
 import { extractGameStats } from '#utils/postprocess';
+import { normaliseRegion } from '#utils/textRegions';
 import {
+    saveGameRecord,
+    updateGameRecord,
     type PlayerStats,
     type MatchInfo,
     type GameRecord,
-    saveGameRecord,
-    updateGameRecord,
 } from '#utils/gameStorage';
+import { getActiveProfile } from '#utils/regionProfiles';
 import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
@@ -84,21 +85,25 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
             const worker = await Tesseract.createWorker('eng', 1);
 
-            // Get all defined regions with normalized coordinates
-            const scoreboardRegions = [
-                ...getScoreboardRegions(
+            const scoreboardRegions = getActiveProfile().map((region) =>
+                normaliseRegion(
+                    region,
                     imageDimensions.width,
                     imageDimensions.height
-                ),
-                ...getMatchInfoRegions(
-                    imageDimensions.width,
-                    imageDimensions.height
-                ),
-            ];
-            const totalScoreBoardRegions = scoreboardRegions.length;
-            for (let i = 0; i < totalScoreBoardRegions; i++) {
+                )
+            );
+            const regionCount = scoreboardRegions.length;
+
+            if (!scoreboardRegions || regionCount === 0) {
+                setError(
+                    'No scoreboard regions defined in the active profile.'
+                );
+                return;
+            }
+
+            for (let i = 0; i < regionCount; i++) {
                 const region = scoreboardRegions[i];
-                setProgress(Math.round((i / totalScoreBoardRegions) * 100));
+                setProgress(Math.round((i / regionCount) * 100));
 
                 await worker.setParameters({
                     tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
