@@ -4,13 +4,13 @@ import ScoreboardOCR from '#c/ScoreboardOCR';
 
 // Mock Image constructor for image dimension detection
 beforeEach(() => {
-    global.Image = class {
+    class MockImage {
         onload: (() => void) | null = null;
         onerror: (() => void) | null = null;
         src = '';
         width = 2560;
         height = 1440;
-        
+
         constructor() {
             setTimeout(() => {
                 if (this.onload) {
@@ -18,7 +18,9 @@ beforeEach(() => {
                 }
             }, 0);
         }
-    } as any;
+    }
+    (globalThis as unknown as Record<string, typeof MockImage>).Image =
+        MockImage;
 });
 
 // Mock tesseract.js
@@ -39,11 +41,18 @@ vi.mock('tesseract.js', () => ({
 
 // Mock EditableGameData component
 vi.mock('#c/EditableGameData', () => ({
-    default: (props) => (
+    default: (props: {
+        initialPlayers?: Array<{ name: string }>;
+        initialMatchInfo: { result: string };
+        onSave: (
+            players: Array<{ name: string }>,
+            matchInfo: { result: string }
+        ) => void;
+    }) => (
         <div data-testid="editable-game-data">
             <div data-testid="players-data">
                 {props.initialPlayers &&
-                    props.initialPlayers.map((p) => (
+                    props.initialPlayers.map((p: { name: string }) => (
                         <div data-testid={`player-${p.name}`}>{p.name}</div>
                     ))}
             </div>
@@ -52,7 +61,10 @@ vi.mock('#c/EditableGameData', () => ({
             </div>
             <button
                 onClick={() =>
-                    props.onSave(props.initialPlayers, props.initialMatchInfo)
+                    props.onSave(
+                        props.initialPlayers || [],
+                        props.initialMatchInfo
+                    )
                 }
                 data-testid="save-button"
             >
@@ -103,6 +115,13 @@ vi.mock('#utils/postprocess', () => ({
             game_mode: 'ESCORT',
         },
     }),
+}));
+
+vi.mock('#utils/regionProfiles', () => ({
+    getActiveProfile: vi.fn().mockReturnValue([
+        { name: 'region_0', x: 0, y: 0, width: 100, height: 100 },
+        { name: 'region_1', x: 100, y: 0, width: 100, height: 100 },
+    ]),
 }));
 
 describe('ScoreboardOCR', () => {

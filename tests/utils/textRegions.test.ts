@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-    normalizeRegion,
+    normaliseRegion,
     getScoreboardRegions,
     getMatchInfoRegions,
     REFERENCE_WIDTH,
@@ -19,7 +19,7 @@ describe('textRegions', () => {
                 height: 60,
             };
 
-            const normalized = normalizeRegion(
+            const normalized = normaliseRegion(
                 region,
                 REFERENCE_WIDTH,
                 REFERENCE_HEIGHT
@@ -37,7 +37,7 @@ describe('textRegions', () => {
                 height: 50,
             };
 
-            const normalized = normalizeRegion(region, 1920, 1080);
+            const normalized = normaliseRegion(region, 1920, 1080);
 
             // 1920/2560 = 0.75, 1080/1440 = 0.75
             expect(normalized.x).toBe(1920); // 2560 * 0.75
@@ -55,7 +55,7 @@ describe('textRegions', () => {
                 height: 100,
             };
 
-            const normalized = normalizeRegion(region, 3840, 2160);
+            const normalized = normaliseRegion(region, 3840, 2160);
 
             // 3840/2560 = 1.5, 2160/1440 = 1.5
             expect(normalized.x).toBe(150); // 100 * 1.5
@@ -73,7 +73,7 @@ describe('textRegions', () => {
                 height: 333,
             };
 
-            const normalized = normalizeRegion(region, 1000, 1000);
+            const normalized = normaliseRegion(region, 1000, 1000);
 
             // All values should be integers
             expect(Number.isInteger(normalized.x)).toBe(true);
@@ -93,7 +93,7 @@ describe('textRegions', () => {
                 isItalic: true,
             };
 
-            const normalized = normalizeRegion(region, 1920, 1080);
+            const normalized = normaliseRegion(region, 1920, 1080);
 
             expect(normalized.name).toBe('test_region');
             expect(normalized.charSet).toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
