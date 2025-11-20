@@ -2,11 +2,8 @@
  * Image preprocessing utilities for OCR optimization
  */
 
-import {
-    getScoreboardRegions,
-    getMatchInfoRegions,
-    type TextRegion,
-} from '#utils/textRegions';
+import { type TextRegion } from '#utils/textRegions';
+import { getActiveProfile } from '#utils/regionProfiles';
 
 /**
  * Applies skew correction to italic text to make it more readable
@@ -82,10 +79,7 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 
             ctx.drawImage(img, 0, 0);
 
-            const regions = [
-                ...getScoreboardRegions(img.width, img.height),
-                ...getMatchInfoRegions(img.width, img.height),
-            ];
+            const regions = getActiveProfile();
             for (const region of regions) {
                 // Extract region image data
                 const regionImageData = ctx.getImageData(
@@ -151,10 +145,7 @@ export async function drawRegionsOnImage(
 
                 ctx.lineWidth = 1;
 
-                const regions = [
-                    ...getScoreboardRegions(sourceImg.width, sourceImg.height),
-                    ...getMatchInfoRegions(sourceImg.width, sourceImg.height),
-                ];
+                const regions = getActiveProfile();
                 for (const region of regions) {
                     if (region.isItalic) {
                         ctx.strokeStyle = '#4caf50';

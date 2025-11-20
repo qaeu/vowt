@@ -18,13 +18,13 @@ export const REFERENCE_WIDTH = 2560;
 export const REFERENCE_HEIGHT = 1440;
 
 /**
- * Normalizes coordinates from reference resolution to target resolution
+ * Normalises coordinates from reference resolution to target resolution
  * @param region - Region with coordinates in reference resolution
  * @param targetWidth - Target image width
  * @param targetHeight - Target image height
- * @returns Region with normalized coordinates
+ * @returns Region with normalised coordinates
  */
-export function normalizeRegion(
+export function normaliseRegion(
     region: TextRegion,
     targetWidth: number,
     targetHeight: number
@@ -95,7 +95,7 @@ export function getScoreboardRegions(
     imageWidth: number = REFERENCE_WIDTH,
     imageHeight: number = REFERENCE_HEIGHT
 ): TextRegion[] {
-    const needsNormalization = 
+    const needsNormalization =
         imageWidth !== REFERENCE_WIDTH || imageHeight !== REFERENCE_HEIGHT;
     return [
         // Blue team players
@@ -444,9 +444,10 @@ export function getScoreboardRegions(
             x: STATLINE.x + 2 * STATLINE.width,
             y: RED_Y + 4 * ROW_H,
         },
-    ].map(region => needsNormalization 
-        ? normalizeRegion(region, imageWidth, imageHeight)
-        : region
+    ].map((region) =>
+        needsNormalization
+            ? normaliseRegion(region, imageWidth, imageHeight)
+            : region
     );
 }
 
@@ -454,7 +455,7 @@ export function getMatchInfoRegions(
     imageWidth: number = REFERENCE_WIDTH,
     imageHeight: number = REFERENCE_HEIGHT
 ): TextRegion[] {
-    const needsNormalization = 
+    const needsNormalisation =
         imageWidth !== REFERENCE_WIDTH || imageHeight !== REFERENCE_HEIGHT;
     return [
         // Match info
@@ -488,8 +489,9 @@ export function getMatchInfoRegions(
             y: MATCH_INFO.y + 90 + 3 * INFOLINE_H,
             height: INFOLINE_H,
         },
-    ].map(region => needsNormalization 
-        ? normalizeRegion(region, imageWidth, imageHeight)
-        : region
+    ].map((region) =>
+        needsNormalisation
+            ? normaliseRegion(region, imageWidth, imageHeight)
+            : region
     );
 }
