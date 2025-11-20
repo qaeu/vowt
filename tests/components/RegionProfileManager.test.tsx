@@ -12,6 +12,7 @@ vi.mock('#utils/regionProfiles', () => ({
     deleteProfile: vi.fn(),
     setActiveProfile: vi.fn(),
     getActiveProfileId: vi.fn(),
+    getActiveProfileDetails: vi.fn(),
 }));
 
 // Mock the region editor utility
@@ -34,6 +35,9 @@ describe('RegionProfileManager', () => {
         vi.mocked(regionProfiles.listProfiles).mockReturnValue(mockProfiles);
         vi.mocked(regionProfiles.getActiveProfileId).mockReturnValue(
             mockProfiles[1].id
+        );
+        vi.mocked(regionProfiles.getActiveProfileDetails).mockReturnValue(
+            mockProfiles[1]
         );
         vi.mocked(regionEditor.startRegionEditor).mockResolvedValue(undefined);
     });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     saveProfile,
-    loadProfileById,
+    getProfile,
     listProfiles,
     deleteProfile,
     setActiveProfile,
@@ -109,7 +109,7 @@ describe('Region Profiles', () => {
             expect(profileId2).toBe(profileId1);
 
             // Verify the update
-            const loaded = loadProfileById(profileId1);
+            const loaded = getProfile(profileId1);
             expect(loaded).toHaveLength(2);
         });
 
@@ -135,13 +135,13 @@ describe('Region Profiles', () => {
             const profileId = saveProfile(mockRegions, {
                 description: 'Test Profile',
             });
-            const loaded = loadProfileById(profileId);
+            const loaded = getProfile(profileId);
 
             expect(loaded).toEqual(mockRegions);
         });
 
         it('should return null for non-existent profile', () => {
-            const loaded = loadProfileById('non_existent_id');
+            const loaded = getProfile('non_existent_id');
             expect(loaded).toBeNull();
         });
     });
@@ -195,7 +195,7 @@ describe('Region Profiles', () => {
             const deleted = deleteProfile(profileId);
 
             expect(deleted).toBe(true);
-            expect(loadProfileById(profileId)).toBeNull();
+            expect(getProfile(profileId)).toBeNull();
         });
 
         it('should return false for non-existent profile', () => {
@@ -226,7 +226,7 @@ describe('Region Profiles', () => {
 
             deleteProfile(profileId1);
 
-            expect(loadProfileById(profileId2)).toBeDefined();
+            expect(getProfile(profileId2)).toBeDefined();
             expect(getTestProfiles()).toHaveLength(1);
         });
     });
@@ -416,7 +416,7 @@ describe('Region Profiles', () => {
             ).toBe(true);
 
             // Verify the regions were loaded correctly
-            const regions = loadProfileById(profileId);
+            const regions = getProfile(profileId);
             expect(regions).toBeDefined();
         });
 
