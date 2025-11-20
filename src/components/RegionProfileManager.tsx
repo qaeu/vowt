@@ -14,23 +14,20 @@ interface RegionProfileManagerProps {
 
 const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
     const profileList = profiles.listProfiles();
-    const activeProfileId = profiles.getActiveProfileId();
+    const initialActiveProfileId = profiles.getActiveProfileId();
     const { description: activeProfileDescription } = profileList.find(
-        (p) => p.id === activeProfileId
+        (p) => p.id === initialActiveProfileId
     ) || {
         description: '',
     };
 
     const [regions, setRegions] = createSignal<DrawnRegion[]>([]);
     const [profileDetails, setProfileDetails] = createSignal(profileList);
-    const [activeProfile, setActiveProfileId] = createSignal<string | null>(
-        activeProfileId
+    const [activeProfileId, setActiveProfileId] = createSignal<string | null>(
+        initialActiveProfileId
     );
-    const [activatedProfileId, setActivatedProfileId] = createSignal<
-        string | null
-    >(activeProfileId);
     const [editingProfileId, setEditingProfileId] = createSignal(
-        activeProfileId || ''
+        initialActiveProfileId || ''
     );
     const [editingProfileDesc, setEditingProfileDesc] = createSignal(
         activeProfileDescription
@@ -45,8 +42,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         let drawnRegions: DrawnRegion[] | undefined;
 
         // Load the active profile's regions if available
-        if (activeProfileId) {
-            const profileRegions = profiles.loadProfileById(activeProfileId);
+        if (initialActiveProfileId) {
+            const profileRegions = profiles.loadProfileById(
+                initialActiveProfileId
+            );
             if (profileRegions) {
                 drawnRegions = profileRegions.map((r) => ({
                     name: r.name,
@@ -115,7 +114,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                       height: r.height,
                       charSet: '0123456789',
                   }))
-                : profiles.loadProfileById(activatedProfileId()!);
+                : profiles.loadProfileById(activeProfileId()!);
 
         if (!profileRegions || profileRegions.length === 0) {
             alert('No regions to save');
@@ -179,8 +178,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
     const handleDeleteProfile = (profileId: string) => {
         if (confirm('Are you sure you want to delete this profile?')) {
             profiles.deleteProfile(profileId);
-            if (activatedProfileId() === profileId) {
-                setActivatedProfileId(null);
+            if (activeProfileId() === profileId) {
+                setActiveProfileId(null);
             }
         }
     };
@@ -229,7 +228,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                                 {(profile) => (
                                     <div
                                         class={`profile-card ${
-                                            activatedProfileId() === profile.id
+                                            activeProfileId() === profile.id
                                                 ? 'active'
                                                 : ''
                                         }`}
@@ -249,13 +248,14 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                                                     )
                                                 }
                                                 class={`action-btn ${
-                                                    activeProfile() ===
+                                                    activeProfileId() ===
                                                     profile.id
                                                         ? 'active'
                                                         : ''
                                                 }`}
                                             >
-                                                {activeProfile() === profile.id
+                                                {activeProfileId() ===
+                                                profile.id
                                                     ? '✓ Active'
                                                     : 'Set Active'}
                                             </button>
@@ -291,7 +291,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                     <h2>Profile Details</h2>
 
                     <Show
-                        when={activatedProfileId()}
+                        when={activeProfileId()}
                         fallback={
                             <p class="empty-state">
                                 Select a profile to view and edit details
