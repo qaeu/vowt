@@ -1,12 +1,5 @@
 import { Component, createSignal, For, Show, onMount } from 'solid-js';
-import {
-    listProfiles,
-    loadProfileById,
-    saveProfile,
-    deleteProfile,
-    setActiveProfile,
-    getActiveProfileId,
-} from '#utils/regionProfiles';
+import * as profiles from '#utils/regionProfiles';
 import {
     startRegionEditor,
     drawRegions,
@@ -20,8 +13,8 @@ interface RegionProfileManagerProps {
 }
 
 const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
-    const profileList = listProfiles();
-    const activeProfileId = getActiveProfileId();
+    const profileList = profiles.listProfiles();
+    const activeProfileId = profiles.getActiveProfileId();
     const { description: activeProfileDescription } = profileList.find(
         (p) => p.id === activeProfileId
     ) || {
@@ -33,7 +26,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
     const [activeProfile, setActiveProfileId] = createSignal<string | null>(
         activeProfileId
     );
-    const [selectedProfileId, setSelectedProfileId] = createSignal<
+    const [activatedProfileId, setActivatedProfileId] = createSignal<
         string | null
     >(activeProfileId);
     const [editingProfileId, setEditingProfileId] = createSignal(
@@ -53,7 +46,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
         // Load the active profile's regions if available
         if (activeProfileId) {
-            const profileRegions = loadProfileById(activeProfileId);
+            const profileRegions = profiles.loadProfileById(activeProfileId);
             if (profileRegions) {
                 drawnRegions = profileRegions.map((r) => ({
                     name: r.name,
@@ -122,7 +115,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                       height: r.height,
                       charSet: '0123456789',
                   }))
-                : loadProfileById(selectedProfileId()!);
+                : profiles.loadProfileById(activatedProfileId()!);
 
         if (!profileRegions || profileRegions.length === 0) {
             alert('No regions to save');
@@ -130,7 +123,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }
 
         if (canvasRef) {
-            saveProfile(
+            profiles.saveProfile(
                 profileRegions,
                 {
                     id: editingProfileId(),
@@ -142,26 +135,26 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }
 
         // Update selected profile ID to the new/modified ID and refresh profiles list
-        setSelectedProfileId(editingProfileId());
-        setProfileDetails(listProfiles());
+        setActivatedProfileId(editingProfileId());
+        setProfileDetails(profiles.listProfiles());
 
         alert('Profile updated successfully!');
     };
 
-    const handleSelectProfile = (profileId: string) => {
+    const handleActivateProfile = (profileId: string) => {
         setActiveProfileId(profileId);
-        setActiveProfile(profileId);
+        profiles.setActiveProfile(profileId);
     };
 
     const handleEditProfile = (profileId: string) => {
-        setSelectedProfileId(profileId);
+        setActivatedProfileId(profileId);
         const profile = profileDetails().find((p) => p.id === profileId);
         if (profile) {
             setEditingProfileId(profile.id);
             setEditingProfileDesc(profile.description);
         }
 
-        const profileRegions = loadProfileById(profileId);
+        const profileRegions = profiles.loadProfileById(profileId);
         if (!profileRegions) {
             alert('Could not load profile');
             return;
@@ -185,9 +178,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
     const handleDeleteProfile = (profileId: string) => {
         if (confirm('Are you sure you want to delete this profile?')) {
-            deleteProfile(profileId);
-            if (selectedProfileId() === profileId) {
-                setSelectedProfileId(null);
+            profiles.deleteProfile(profileId);
+            if (activatedProfileId() === profileId) {
+                setActivatedProfileId(null);
             }
         }
     };
@@ -236,7 +229,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                                 {(profile) => (
                                     <div
                                         class={`profile-card ${
-                                            selectedProfileId() === profile.id
+                                            activatedProfileId() === profile.id
                                                 ? 'active'
                                                 : ''
                                         }`}
@@ -251,7 +244,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                                         <div class="profile-actions-buttons">
                                             <button
                                                 onClick={() =>
-                                                    handleSelectProfile(
+                                                    handleActivateProfile(
                                                         profile.id
                                                     )
                                                 }
@@ -264,7 +257,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                                             >
                                                 {activeProfile() === profile.id
                                                     ? '✓ Active'
-                                                    : 'Select'}
+                                                    : 'Set Active'}
                                             </button>
                                             <button
                                                 onClick={() =>
@@ -298,7 +291,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                     <h2>Profile Details</h2>
 
                     <Show
-                        when={selectedProfileId()}
+                        when={activatedProfileId()}
                         fallback={
                             <p class="empty-state">
                                 Select a profile to view and edit details
