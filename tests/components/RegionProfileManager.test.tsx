@@ -11,6 +11,7 @@ vi.mock('#utils/regionProfiles', () => ({
     saveProfile: vi.fn(),
     deleteProfile: vi.fn(),
     setActiveProfile: vi.fn(),
+    getActiveProfile: vi.fn(),
     getActiveProfileId: vi.fn(),
     getActiveProfileDetails: vi.fn(),
 }));
@@ -33,6 +34,7 @@ describe('RegionProfileManager', () => {
         localStorage.clear();
         vi.clearAllMocks();
         vi.mocked(regionProfiles.listProfiles).mockReturnValue(mockProfiles);
+        vi.mocked(regionProfiles.getActiveProfile).mockReturnValue([]);
         vi.mocked(regionProfiles.getActiveProfileId).mockReturnValue(
             mockProfiles[1].id
         );
