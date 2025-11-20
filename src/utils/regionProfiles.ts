@@ -15,9 +15,11 @@ const PROFILES_STORAGE_KEY = 'vowt_region_profiles';
 /**
  * Region profile definition with metadata
  */
-interface RegionProfile {
+interface ProfileDetails {
     id: string;
     description: string;
+}
+interface RegionProfile extends ProfileDetails {
     regions: TextRegion[];
     createdAt: string;
     updatedAt: string;
@@ -45,18 +47,18 @@ export interface ExportedProfile {
 /**
  * Generates a unique ID for a new profile
  */
-function generateProfileId(): string {
+function _generateProfileId(): string {
     return `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /**
  * Loads all profiles from localStorage, initializing with defaults if empty
  */
-function loadProfilesFromStorage(): ProfilesStorage {
+function _loadStorage(): ProfilesStorage {
     try {
         const data = localStorage.getItem(PROFILES_STORAGE_KEY);
         if (!data) {
-            return initializeWithDefaults();
+            return _initialiseWithDefaults();
         }
 
         const stored: ProfilesStorage = JSON.parse(data);
@@ -69,30 +71,30 @@ function loadProfilesFromStorage(): ProfilesStorage {
         }
 
         // Ensure all default profiles exist; add any that are missing
-        const updatedProfiles = ensureDefaultProfilesExist(stored);
+        const updatedProfiles = _ensureDefaultProfilesExist(stored);
         if (updatedProfiles.profiles.length > stored.profiles.length) {
-            saveProfilesToStorage(updatedProfiles);
+            _saveProfiles(updatedProfiles);
             return updatedProfiles;
         }
 
         return stored;
     } catch (error) {
         console.error('Error loading profiles from storage:', error);
-        return initializeWithDefaults();
+        return _initialiseWithDefaults();
     }
 }
 
 /**
- * Initializes storage with default profiles
+ * Initialises storage with default profiles
  */
-function initializeWithDefaults(): ProfilesStorage {
-    return ensureDefaultProfilesExist();
+function _initialiseWithDefaults(): ProfilesStorage {
+    return _ensureDefaultProfilesExist();
 }
 
 /**
  * Ensures all default profiles exist in storage; adds missing ones
  */
-function ensureDefaultProfilesExist(
+function _ensureDefaultProfilesExist(
     storage?: ProfilesStorage
 ): ProfilesStorage {
     const profilesToLoad = defaultProfiles.filter(
@@ -116,10 +118,16 @@ function ensureDefaultProfilesExist(
     };
 }
 
+function _loadProfile(profileId: string): RegionProfile | null {
+    const storage = _loadStorage();
+    const profile = storage.profiles.find((p) => p.id === profileId);
+    return profile || null;
+}
+
 /**
  * Saves all profiles to localStorage
  */
-function saveProfilesToStorage(storage: ProfilesStorage): void {
+function _saveProfiles(storage: ProfilesStorage): void {
     const storageData: ProfilesStorage = {
         schemaVersion: PROFILE_SCHEMA_VERSION,
         profiles: storage.profiles,
@@ -143,9 +151,9 @@ export function saveProfile(
     imgHeight?: number
 ): string {
     const now = new Date().toISOString();
-    const profileId = options?.id || generateProfileId();
+    const profileId = options?.id || _generateProfileId();
 
-    const storage = loadProfilesFromStorage();
+    const storage = _loadStorage();
     const existingIndex = storage.profiles.findIndex((p) => p.id === profileId);
 
     if (imgWidth && imgHeight) {
@@ -171,7 +179,7 @@ export function saveProfile(
         storage.profiles.push(savedProfile);
     }
 
-    saveProfilesToStorage(storage);
+    _saveProfiles(storage);
     return profileId;
 }
 
@@ -180,20 +188,22 @@ export function saveProfile(
  * @param profileId - The profile ID to load
  * @returns The regions from the profile, or null if not found
  */
-export function loadProfileById(profileId: string): TextRegion[] | null {
-    const storage = loadProfilesFromStorage();
-    const profile = storage.profiles.find((p) => p.id === profileId);
-    return profile ? profile.regions : null;
+export function getProfile(profileId: string): TextRegion[] | null {
+    const profile = _loadProfile(profileId);
+    return profile?.regions || null;
+}
+
+export function getProfileDetails(profileId: string): ProfileDetails | null {
+    const profile = _loadProfile(profileId);
+    return profile || null;
 }
 
 /**
  * Lists all saved region profiles
  * @returns Array of profile IDs and descriptions sorted by updatedAt descending
  */
-export function listProfiles(): { id: string; description: string }[] {
-    const storage = loadProfilesFromStorage();
-
-    // Sort by updatedAt descending and return only IDs
+export function listProfiles(): ProfileDetails[] {
+    const storage = _loadStorage();
     return storage.profiles
         .sort(
             (a, b) =>
@@ -210,7 +220,7 @@ export function listProfiles(): { id: string; description: string }[] {
  */
 export function deleteProfile(profileId: string): boolean {
     try {
-        const storage = loadProfilesFromStorage();
+        const storage = _loadStorage();
         const index = storage.profiles.findIndex((p) => p.id === profileId);
 
         if (index === -1) {
@@ -224,7 +234,7 @@ export function deleteProfile(profileId: string): boolean {
             storage.activeProfileId = storage.profiles[0].id;
         }
 
-        saveProfilesToStorage(storage);
+        _saveProfiles(storage);
         return true;
     } catch (error) {
         console.error(`Error deleting profile ${profileId}:`, error);
@@ -237,7 +247,7 @@ export function deleteProfile(profileId: string): boolean {
  * @param profileId - The profile ID to set as active
  */
 export function setActiveProfile(profileId: string): void {
-    const profile = loadProfileById(profileId);
+    const profile = getProfile(profileId);
     if (!profile) {
         console.warn(
             `Cannot set active profile: profile ${profileId} not found`
@@ -245,18 +255,9 @@ export function setActiveProfile(profileId: string): void {
         return;
     }
 
-    const storage = loadProfilesFromStorage();
+    const storage = _loadStorage();
     storage.activeProfileId = profileId;
-    saveProfilesToStorage(storage);
-}
-
-/**
- * Gets the ID of the currently active region profile
- * @returns The active profile ID
- */
-export function getActiveProfileId(): string {
-    const storage = loadProfilesFromStorage();
-    return storage.activeProfileId;
+    _saveProfiles(storage);
 }
 
 /**
@@ -266,7 +267,21 @@ export function getActiveProfileId(): string {
 export function getActiveProfile(): TextRegion[] {
     const profileId = getActiveProfileId();
 
-    return loadProfileById(profileId) || [];
+    return getProfile(profileId) || [];
+}
+
+/**
+ * Gets the ID of the currently active region profile
+ * @returns The active profile ID
+ */
+export function getActiveProfileId(): string {
+    const storage = _loadStorage();
+    return storage.activeProfileId;
+}
+
+export function getActiveProfileDetails(): ProfileDetails {
+    const profileId = getActiveProfileId();
+    return getProfileDetails(profileId)!; // Active profile should always exist
 }
 
 /**
@@ -275,7 +290,7 @@ export function getActiveProfile(): TextRegion[] {
  * @returns JSON string representation of the profile, or null if not found
  */
 export function exportProfile(profileId: string): string | null {
-    const storage = loadProfilesFromStorage();
+    const storage = _loadStorage();
     const profile = storage.profiles.find((p) => p.id === profileId);
     if (!profile) {
         return null;
@@ -329,7 +344,7 @@ export function importProfile(jsonData: string): number | null {
             description: importedProfile.description,
         });
 
-        const storage = loadProfilesFromStorage();
+        const storage = _loadStorage();
         return storage.profiles.length;
     } catch (error) {
         console.error('Error importing profile:', error);
