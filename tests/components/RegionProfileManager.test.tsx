@@ -169,7 +169,7 @@ describe('RegionProfileManager', () => {
                 />
             ));
             const selectButtons = screen.getAllByRole('button', {
-                name: /Select/i,
+                name: /Set Active/i,
             });
             expect(selectButtons.length).toBeGreaterThanOrEqual(1);
         });
@@ -209,7 +209,7 @@ describe('RegionProfileManager', () => {
             ));
 
             const selectButtons = screen.getAllByRole('button', {
-                name: /Select/i,
+                name: /Set Active/i,
             });
             (selectButtons[0] as HTMLButtonElement).click();
 
