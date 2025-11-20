@@ -2,14 +2,11 @@
  * Interactive region editor for manually drawing and identifying scoreboard regions
  */
 
-export interface DrawnRegion {
-    name: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
+import { type TextRegion } from '#utils/textRegions';
+
+export type DrawnRegion = TextRegion & {
     color: string;
-}
+};
 
 function drawRegion(ctx: CanvasRenderingContext2D, r: DrawnRegion): void {
     ctx.strokeStyle = r.color;
