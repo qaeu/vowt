@@ -256,7 +256,7 @@ export function setActiveProfile(profileId: string): void {
  */
 export function getActiveProfileId(): string {
     const storage = loadProfilesFromStorage();
-    return storage.activeProfileId!;
+    return storage.activeProfileId;
 }
 
 /**
@@ -266,7 +266,7 @@ export function getActiveProfileId(): string {
 export function getActiveProfile(): TextRegion[] {
     const profileId = getActiveProfileId();
 
-    return loadProfileById(profileId)!;
+    return loadProfileById(profileId) || [];
 }
 
 /**
