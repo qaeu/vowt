@@ -2,7 +2,7 @@
  * Interactive region editor for manually drawing and identifying scoreboard regions
  */
 
-import type { TextRegion, DrawnRegion } from '#/types';
+import type { DrawnRegion } from '#/types';
 
 export type { DrawnRegion };
 
