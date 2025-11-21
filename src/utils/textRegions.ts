@@ -1,15 +1,9 @@
 /**
  * Text element region definition for targeted OCR
  */
-export interface TextRegion {
-    name: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    charSet?: string;
-    isItalic?: boolean;
-}
+import type { TextRegion } from '#/types';
+
+export type { TextRegion };
 
 /**
  * Reference resolution for hardcoded coordinates (1440p)

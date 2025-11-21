@@ -6,10 +6,8 @@ import {
     clearAllGameRecords,
     exportGameRecords,
     importGameRecords,
-    type GameRecord,
-    type PlayerStats,
-    type MatchInfo,
 } from '#utils/gameStorage';
+import type { GameRecord, PlayerStats, MatchInfo } from '#/types';
 import EditableGameData from '#c/EditableGameData';
 import '#styles/GameRecordsTable';
 

@@ -5,8 +5,8 @@ import {
     getMatchInfoRegions,
     REFERENCE_WIDTH,
     REFERENCE_HEIGHT,
-    type TextRegion,
 } from '#utils/textRegions';
+import type { TextRegion } from '#/types';
 
 describe('textRegions', () => {
     describe('normalizeRegion', () => {

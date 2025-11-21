@@ -4,13 +4,8 @@ import EditableGameData from '#c/EditableGameData';
 import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { extractGameStats } from '#utils/postprocess';
 import { normaliseRegion } from '#utils/textRegions';
-import {
-    saveGameRecord,
-    updateGameRecord,
-    type PlayerStats,
-    type MatchInfo,
-    type GameRecord,
-} from '#utils/gameStorage';
+import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
+import type { PlayerStats, MatchInfo, GameRecord } from '#/types';
 import { getActiveProfile } from '#utils/regionProfiles';
 import '#styles/ScoreboardOCR';
 

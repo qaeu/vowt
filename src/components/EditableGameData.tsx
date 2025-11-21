@@ -1,9 +1,9 @@
 import { Component, For, Show, createSignal, mergeProps } from 'solid-js';
-import {
-    PLAYER_STATS_NUMBER_FIELD_NAMES,
+import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
+import type {
     PlayerStats,
     MatchInfo,
-} from '#utils/gameStorage';
+} from '#/types';
 import '#styles/EditableGameData';
 
 interface RecordFieldInputProps {

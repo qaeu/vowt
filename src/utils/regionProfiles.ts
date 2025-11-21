@@ -1,4 +1,5 @@
-import { normaliseRegion, type TextRegion } from './textRegions';
+import type { TextRegion, ExportedProfile } from '#/types';
+import { normaliseRegion } from './textRegions';
 import { defaultProfiles } from '#data/profiles';
 
 /**
@@ -34,15 +35,7 @@ interface ProfilesStorage {
     activeProfileId: string;
 }
 
-/**
- * Export format for a region profile
- */
-export interface ExportedProfile {
-    type: 'vowt-region-profile';
-    schemaVersion: number;
-    profile: RegionProfile;
-    exportedAt: string;
-}
+export type { ExportedProfile };
 
 /**
  * Generates a unique ID for a new profile

@@ -2,7 +2,7 @@
  * Image preprocessing utilities for OCR optimization
  */
 
-import { type TextRegion } from '#utils/textRegions';
+import type { TextRegion } from '#/types';
 import { getActiveProfile } from '#utils/regionProfiles';
 
 /**

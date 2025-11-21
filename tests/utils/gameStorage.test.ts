@@ -7,9 +7,8 @@ import {
     clearAllGameRecords,
     exportGameRecords,
     importGameRecords,
-    type PlayerStats,
-    type MatchInfo,
 } from '#utils/gameStorage';
+import type { PlayerStats, MatchInfo } from '#/types';
 
 describe('gameStorage', () => {
     const mockPlayers: PlayerStats[] = [
