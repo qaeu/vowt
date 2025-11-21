@@ -2,9 +2,7 @@
  * Interactive region editor for manually drawing and identifying scoreboard regions
  */
 
-import type { DrawnRegion } from '#/types';
-
-export type { DrawnRegion };
+import type { DrawnRegion } from '#types';
 
 function drawRegion(ctx: CanvasRenderingContext2D, r: DrawnRegion): void {
     ctx.strokeStyle = r.color;

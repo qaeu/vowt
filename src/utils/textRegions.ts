@@ -1,9 +1,8 @@
 /**
  * Text element region definition for targeted OCR
  */
-import type { TextRegion } from '#/types';
 
-export type { TextRegion };
+import type { TextRegion } from '#types';
 
 /**
  * Reference resolution for hardcoded coordinates (1440p)

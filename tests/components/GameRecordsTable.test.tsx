@@ -1,8 +1,8 @@
+import type { PlayerStats, MatchInfo } from '#types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 import GameRecordsTable from '#c/GameRecordsTable';
 import * as gameStorage from '#utils/gameStorage';
-import type { PlayerStats, MatchInfo } from '#/types';
 
 // Mock gameStorage module
 vi.mock('#utils/gameStorage', () => ({

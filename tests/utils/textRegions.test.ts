@@ -1,3 +1,4 @@
+import type { TextRegion } from '#types';
 import { describe, it, expect } from 'vitest';
 import {
     normaliseRegion,
@@ -6,7 +7,6 @@ import {
     REFERENCE_WIDTH,
     REFERENCE_HEIGHT,
 } from '#utils/textRegions';
-import type { TextRegion } from '#/types';
 
 describe('textRegions', () => {
     describe('normalizeRegion', () => {

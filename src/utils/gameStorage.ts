@@ -2,12 +2,7 @@
  * Storage utilities for managing game data in localStorage
  */
 
-import type {
-    PlayerStatsNumberFields,
-    PlayerStats,
-    MatchInfo,
-    GameRecord,
-} from '#/types';
+import type { PlayerStats, MatchInfo, GameRecord } from '#types';
 
 export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
     'e',
@@ -17,13 +12,6 @@ export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
     'h',
     'mit',
 ] as const;
-
-export type {
-    PlayerStatsNumberFields,
-    PlayerStats,
-    MatchInfo,
-    GameRecord,
-};
 
 const STORAGE_KEY = 'vowt_game_records';
 const SCHEMA_VERSION = 1;

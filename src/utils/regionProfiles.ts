@@ -1,4 +1,4 @@
-import type { TextRegion, ExportedProfile } from '#/types';
+import type { TextRegion, ExportedProfile } from '#types';
 import { normaliseRegion } from './textRegions';
 import { defaultProfiles } from '#data/profiles';
 

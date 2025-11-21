@@ -1,3 +1,4 @@
+import type { PlayerStats, MatchInfo, GameRecord } from '#types';
 import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import EditableGameData from '#c/EditableGameData';
@@ -5,7 +6,6 @@ import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { extractGameStats } from '#utils/postprocess';
 import { normaliseRegion } from '#utils/textRegions';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
-import type { PlayerStats, MatchInfo, GameRecord } from '#/types';
 import { getActiveProfile } from '#utils/regionProfiles';
 import '#styles/ScoreboardOCR';
 

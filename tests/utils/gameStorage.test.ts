@@ -1,3 +1,4 @@
+import type { PlayerStats, MatchInfo } from '#types';
 import { describe, it, expect, assert, beforeEach } from 'vitest';
 import {
     loadGameRecords,
@@ -8,7 +9,6 @@ import {
     exportGameRecords,
     importGameRecords,
 } from '#utils/gameStorage';
-import type { PlayerStats, MatchInfo } from '#/types';
 
 describe('gameStorage', () => {
     const mockPlayers: PlayerStats[] = [

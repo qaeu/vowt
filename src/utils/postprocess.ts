@@ -2,12 +2,8 @@
  * OCR post-processing utilities to extract structured game stats
  */
 
+import type { PlayerStatsNumberFields, PlayerStats, GameRecord } from '#types';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
-import type {
-    PlayerStatsNumberFields,
-    PlayerStats,
-    GameRecord,
-} from '#/types';
 
 /**
  * Extracts game stats from region-based OCR results
