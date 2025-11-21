@@ -1,3 +1,4 @@
+import type { PlayerStats, MatchInfo } from '#types';
 import { describe, it, expect, assert, beforeEach } from 'vitest';
 import {
     loadGameRecords,
@@ -7,8 +8,6 @@ import {
     clearAllGameRecords,
     exportGameRecords,
     importGameRecords,
-    type PlayerStats,
-    type MatchInfo,
 } from '#utils/gameStorage';
 
 describe('gameStorage', () => {

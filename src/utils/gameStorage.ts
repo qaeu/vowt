@@ -2,6 +2,8 @@
  * Storage utilities for managing game data in localStorage
  */
 
+import type { PlayerStats, MatchInfo, GameRecord } from '#types';
+
 export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
     'e',
     'a',
@@ -10,36 +12,6 @@ export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
     'h',
     'mit',
 ] as const;
-export type PlayerStatsNumberFields = Record<
-    (typeof PLAYER_STATS_NUMBER_FIELD_NAMES)[number],
-    string
->;
-type PlayerStatsTextFields = {
-    name: string;
-    team: 'blue' | 'red';
-};
-export interface PlayerStats
-    extends PlayerStatsTextFields,
-        PlayerStatsNumberFields {}
-
-export interface MatchInfo {
-    result: string;
-    final_score: {
-        blue: string;
-        red: string;
-    };
-    date: string;
-    game_mode: string;
-    game_length: string;
-}
-
-export interface GameRecord {
-    id: string;
-    timestamp: number;
-    players: PlayerStats[];
-    matchInfo: MatchInfo;
-    version: number;
-}
 
 const STORAGE_KEY = 'vowt_game_records';
 const SCHEMA_VERSION = 1;

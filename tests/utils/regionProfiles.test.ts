@@ -1,3 +1,4 @@
+import type { TextRegion } from '#types';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     saveProfile,
@@ -10,7 +11,6 @@ import {
     exportProfile,
     importProfile,
 } from '#utils/regionProfiles';
-import { TextRegion } from '#utils/textRegions';
 
 // Mock the default profiles index to avoid errors from ensureDefaultProfilesExist
 // The implementation requires at least one default profile to avoid array access errors
