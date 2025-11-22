@@ -3,6 +3,7 @@ import { createSignal, For, Show, onMount, type Component } from 'solid-js';
 import type { TextRegion, DrawnRegion } from '#types';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
+import EditableRegionsData from '#c/EditableRegionsData';
 import '#styles/RegionProfileManager';
 
 interface RegionProfileManagerProps {
@@ -58,6 +59,11 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }));
     };
 
+    const getTextRegions = (): TextRegion[] => {
+        // Convert DrawnRegion back to TextRegion by removing color field
+        return editingRegions().map(({ color, ...region }) => region);
+    };
+
     const activateProfile = (profileId: string) => {
         setActiveProfileId(profileId);
         Profiles.setActiveProfile(profileId);
@@ -93,15 +99,19 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         alert('Regions copied to clipboard!');
     };
 
-    const handleSaveProfile = () => {
+    const handleSaveProfileDetails = () => {
         if (!editingProfileId()) {
             alert('Profile ID is required');
             return;
         }
 
+        // Get the current regions from storage to keep them unchanged
+        const currentProfile = Profiles.getProfile(editingProfileId());
+        const regionsToSave = currentProfile || editingRegions();
+
         if (canvasRef) {
             Profiles.saveProfile(
-                editingRegions(),
+                regionsToSave,
                 {
                     id: editingProfileId(),
                     description: editingProfileDesc(),
@@ -114,7 +124,34 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         // Refresh profile list
         setProfileList(Profiles.listProfiles());
 
-        alert('Profile saved successfully!');
+        alert('Profile details saved successfully!');
+    };
+
+    const handleSaveRegions = (regions: TextRegion[]) => {
+        // Convert TextRegion to DrawnRegion with color
+        const drawnRegions = makeDrawnRegions(regions);
+        setEditingRegions(drawnRegions);
+
+        // Save only regions, keep current profile details
+        if (canvasRef) {
+            Profiles.saveProfile(
+                regions,
+                {
+                    id: editingProfileId(),
+                    description: editingProfileDesc(),
+                },
+                canvasRef.width,
+                canvasRef.height
+            );
+        }
+
+        // Update the canvas display
+        if (canvasRef && getImageSource()) {
+            drawRegions(canvasRef, drawnRegions, getImageSource() as string);
+        }
+
+        // Refresh profile list
+        setProfileList(Profiles.listProfiles());
     };
 
     const handleActivateProfile = (profileId: string) => {
@@ -291,8 +328,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                         />
 
                         <div class="button-group">
-                            <button onClick={handleSaveProfile} class="success">
-                                Save Changes
+                            <button onClick={handleSaveProfileDetails} class="success">
+                                Save Profile Details
                             </button>
                         </div>
                     </div>
@@ -322,26 +359,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                         <canvas ref={canvasRef} />
                     </div>
 
-                    {editingRegions().length > 0 && (
-                        <div class="regions-display">
-                            <h3>Drawn Regions ({editingRegions().length})</h3>
-                            <pre>
-                                {editingRegions()
-                                    .map((r, i) =>
-                                        [
-                                            `${i}. ${r.name} (${r.color})`,
-                                            `  x: ${r.x}, y: ${r.y}, width: ${r.width}, height: ${r.height}`,
-                                            `  isItalic: ${
-                                                r.isItalic || 'false'
-                                            }, charSet: ${
-                                                r.charSet || 'Default'
-                                            }`,
-                                        ].join('\n')
-                                    )
-                                    .join('\n\n')}
-                            </pre>
-                        </div>
-                    )}
+                    <EditableRegionsData
+                        initialRegions={getTextRegions()}
+                        onSave={handleSaveRegions}
+                    />
                 </div>
             </div>
         </div>
