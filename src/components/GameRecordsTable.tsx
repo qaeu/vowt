@@ -168,6 +168,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                 <th>Result</th>
                                 <th>Score</th>
                                 <th>Mode</th>
+                                <th>Map</th>
                                 <th>Players</th>
                                 <th class="center" />
                             </tr>
@@ -216,6 +217,9 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                             <td>
                                                 {record.matchInfo.game_mode}
                                             </td>
+                                            <td>
+                                                {record.matchInfo.map ?? '-'}
+                                            </td>
                                             <td>{record.players.length}</td>
                                             <td class="center">
                                                 <button
@@ -237,7 +241,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                         >
                                             <tr>
                                                 <td
-                                                    colspan="6"
+                                                    colspan="7"
                                                     class="expanded-details"
                                                 >
                                                     <EditableGameData

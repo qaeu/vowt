@@ -37,6 +37,7 @@ export type PlayerStatsNumberFields = Record<
 export interface PlayerStats extends PlayerStatsNumberFields {
     name: string;
     team: 'blue' | 'red';
+    hero?: string;
 }
 
 export interface MatchInfo {
@@ -48,6 +49,7 @@ export interface MatchInfo {
     date: string;
     game_mode: string;
     game_length: string;
+    map?: string;
 }
 
 export interface GameRecord {

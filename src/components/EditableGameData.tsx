@@ -113,6 +113,7 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Hero</th>
                     <th>E</th>
                     <th>A</th>
                     <th>D</th>
@@ -144,6 +145,30 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                             `${
                                                 props.team
                                             }-player-${index()}-name`
+                                        )
+                                    }
+                                    staticRegisterField={props.registerField}
+                                />
+                            </td>
+                            <td>
+                                <RecordFieldInput
+                                    id={`${props.team}-player-${index()}-hero`}
+                                    value={() =>
+                                        props.savedPlayers()[index()]?.hero ??
+                                        ''
+                                    }
+                                    onInput={(value) =>
+                                        props.onPlayerUpdate(
+                                            index(),
+                                            'hero',
+                                            value
+                                        )
+                                    }
+                                    initialIsJustSaved={() =>
+                                        props.isFieldJustSaved(
+                                            `${
+                                                props.team
+                                            }-player-${index()}-hero`
                                         )
                                     }
                                     staticRegisterField={props.registerField}
@@ -430,6 +455,20 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             }
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-gamelength')
+                            }
+                            staticRegisterField={registerField}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label>Map:</label>
+                        <RecordFieldInput
+                            id="matchinfo-map"
+                            value={() => editableMatchInfo().map ?? ''}
+                            onInput={(value) =>
+                                updateMatchInfoField('map', value)
+                            }
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-map')
                             }
                             staticRegisterField={registerField}
                         />
