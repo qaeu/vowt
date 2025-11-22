@@ -383,7 +383,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             staticRegisterField={registerField}
                         />
                     </div>
-                    <div class="form-group">
+                    <div class="form-group score-field">
                         <label>Score (Blue):</label>
                         <RecordFieldInput
                             id="matchinfo-finalscore-blue"
@@ -400,7 +400,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             staticRegisterField={registerField}
                         />
                     </div>
-                    <div class="form-group">
+                    <div class="form-group score-field">
                         <label>Score (Red):</label>
                         <RecordFieldInput
                             id="matchinfo-finalscore-red"
