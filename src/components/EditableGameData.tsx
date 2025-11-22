@@ -112,8 +112,8 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
         <table>
             <thead>
                 <tr>
-                    <th>Hero</th>
-                    <th>Name</th>
+                    <th class="hero-column">Hero</th>
+                    <th class="name-column">Name</th>
                     <th>E</th>
                     <th>A</th>
                     <th>D</th>
@@ -150,7 +150,7 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                     staticRegisterField={props.registerField}
                                 />
                             </td>
-                            <td>
+                            <td class="name-column">
                                 <RecordFieldInput
                                     id={`${props.team}-player-${index()}-name`}
                                     value={() =>

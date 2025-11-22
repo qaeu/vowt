@@ -140,7 +140,7 @@
         background-color: theme.$background;
         border-bottom: 2px solid theme.$border-default;
 
-        th:first-child {
+        th.name-column {
             text-align: left;
         }
         th {
@@ -157,7 +157,7 @@
         td {
             padding: 0;
 
-            &:first-child {
+            &.name-column {
                 width: 23%;
 
                 input {
