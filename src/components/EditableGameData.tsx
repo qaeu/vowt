@@ -112,8 +112,8 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
                     <th>Hero</th>
+                    <th>Name</th>
                     <th>E</th>
                     <th>A</th>
                     <th>D</th>
@@ -126,30 +126,6 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                 <For each={props.players()}>
                     {(player, index) => (
                         <tr>
-                            <td>
-                                <RecordFieldInput
-                                    id={`${props.team}-player-${index()}-name`}
-                                    value={() =>
-                                        props.savedPlayers()[index()]?.name ??
-                                        ''
-                                    }
-                                    onInput={(value) =>
-                                        props.onPlayerUpdate(
-                                            index(),
-                                            'name',
-                                            value
-                                        )
-                                    }
-                                    initialIsJustSaved={() =>
-                                        props.isFieldJustSaved(
-                                            `${
-                                                props.team
-                                            }-player-${index()}-name`
-                                        )
-                                    }
-                                    staticRegisterField={props.registerField}
-                                />
-                            </td>
                             <td>
                                 <RecordFieldInput
                                     id={`${props.team}-player-${index()}-hero`}
@@ -169,6 +145,30 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                             `${
                                                 props.team
                                             }-player-${index()}-hero`
+                                        )
+                                    }
+                                    staticRegisterField={props.registerField}
+                                />
+                            </td>
+                            <td>
+                                <RecordFieldInput
+                                    id={`${props.team}-player-${index()}-name`}
+                                    value={() =>
+                                        props.savedPlayers()[index()]?.name ??
+                                        ''
+                                    }
+                                    onInput={(value) =>
+                                        props.onPlayerUpdate(
+                                            index(),
+                                            'name',
+                                            value
+                                        )
+                                    }
+                                    initialIsJustSaved={() =>
+                                        props.isFieldJustSaved(
+                                            `${
+                                                props.team
+                                            }-player-${index()}-name`
                                         )
                                     }
                                     staticRegisterField={props.registerField}
