@@ -22,6 +22,7 @@ describe('gameStorage', () => {
             dmg: '5000',
             h: '3000',
             mit: '1000',
+            hero: 'Tracer',
         },
     ];
 
@@ -31,6 +32,7 @@ describe('gameStorage', () => {
         date: '09/15/25 - 02:49',
         game_mode: 'ESCORT',
         game_length: '10:25',
+        map: 'Hollywood',
     };
 
     beforeEach(() => {

@@ -33,6 +33,7 @@
     }
 
     input {
+        width: 100%;
         border: 0;
         padding: 12px;
         font-size: 14px;
@@ -86,15 +87,22 @@
         margin-bottom: 30px;
 
         .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            display: flex;
+            flex-flow: row wrap;
             gap: 15px;
 
             .form-group {
+                min-width: 120px;
                 display: flex;
                 flex-direction: column;
+                flex: 2;
+
+                &.score-field {
+                    flex: 1;
+                }
 
                 label {
+                    height: 100%;
                     font-weight: bold;
                     margin-bottom: 5px;
                     padding: 4px 12px;
@@ -104,7 +112,6 @@
             }
         }
     }
-
     .players-edit {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -140,7 +147,8 @@
         background-color: theme.$background;
         border-bottom: 2px solid theme.$border-default;
 
-        th:first-child {
+        th.hero-column,
+        th.name-column {
             text-align: left;
         }
         th {
@@ -157,12 +165,12 @@
         td {
             padding: 0;
 
-            &:first-child {
+            &.name-column {
                 width: 23%;
-
-                input {
-                    text-align: left;
-                }
+            }
+            &.hero-column input,
+            &.name-column input {
+                text-align: left;
             }
 
             input {

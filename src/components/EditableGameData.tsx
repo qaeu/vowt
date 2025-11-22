@@ -112,7 +112,8 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th class="hero-column">Hero</th>
+                    <th class="name-column">Name</th>
                     <th>E</th>
                     <th>A</th>
                     <th>D</th>
@@ -125,7 +126,31 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                 <For each={props.players()}>
                     {(player, index) => (
                         <tr>
-                            <td>
+                            <td class="hero-column">
+                                <RecordFieldInput
+                                    id={`${props.team}-player-${index()}-hero`}
+                                    value={() =>
+                                        props.savedPlayers()[index()]?.hero ??
+                                        ''
+                                    }
+                                    onInput={(value) =>
+                                        props.onPlayerUpdate(
+                                            index(),
+                                            'hero',
+                                            value
+                                        )
+                                    }
+                                    initialIsJustSaved={() =>
+                                        props.isFieldJustSaved(
+                                            `${
+                                                props.team
+                                            }-player-${index()}-hero`
+                                        )
+                                    }
+                                    staticRegisterField={props.registerField}
+                                />
+                            </td>
+                            <td class="name-column">
                                 <RecordFieldInput
                                     id={`${props.team}-player-${index()}-name`}
                                     value={() =>
@@ -358,7 +383,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             staticRegisterField={registerField}
                         />
                     </div>
-                    <div class="form-group">
+                    <div class="form-group score-field">
                         <label>Score (Blue):</label>
                         <RecordFieldInput
                             id="matchinfo-finalscore-blue"
@@ -375,7 +400,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             staticRegisterField={registerField}
                         />
                     </div>
-                    <div class="form-group">
+                    <div class="form-group score-field">
                         <label>Score (Red):</label>
                         <RecordFieldInput
                             id="matchinfo-finalscore-red"
@@ -430,6 +455,20 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                             }
                             initialIsJustSaved={() =>
                                 isFieldJustSaved('matchinfo-gamelength')
+                            }
+                            staticRegisterField={registerField}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label>Map:</label>
+                        <RecordFieldInput
+                            id="matchinfo-map"
+                            value={() => editableMatchInfo().map ?? ''}
+                            onInput={(value) =>
+                                updateMatchInfoField('map', value)
+                            }
+                            initialIsJustSaved={() =>
+                                isFieldJustSaved('matchinfo-map')
                             }
                             staticRegisterField={registerField}
                         />

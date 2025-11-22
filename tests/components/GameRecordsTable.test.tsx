@@ -59,6 +59,7 @@ describe('GameRecordsTable', () => {
                     dmg: '15000',
                     h: '8000',
                     mit: '12000',
+                    hero: 'Tracer',
                 },
                 {
                     name: 'Player2',
@@ -69,6 +70,7 @@ describe('GameRecordsTable', () => {
                     dmg: '12000',
                     h: '7000',
                     mit: '10000',
+                    hero: 'Winston',
                 },
             ],
             matchInfo: {
@@ -77,6 +79,7 @@ describe('GameRecordsTable', () => {
                 date: '10/21/2025',
                 game_mode: 'ESCORT',
                 game_length: '10:30',
+                map: 'Hollywood',
             },
             createdAt: new Date('2025-11-11T00:00:00.000Z'),
             updatedAt: new Date('2025-11-12T00:00:00.000Z'),
@@ -93,6 +96,7 @@ describe('GameRecordsTable', () => {
                     dmg: '11000',
                     h: '6000',
                     mit: '9000',
+                    hero: 'Reinhardt',
                 },
             ],
             matchInfo: {
@@ -101,6 +105,7 @@ describe('GameRecordsTable', () => {
                 date: '10/22/2025',
                 game_mode: 'PAYLOAD',
                 game_length: '08:15',
+                map: "King's Row",
             },
             createdAt: new Date('2025-11-11T00:00:00.000Z'),
             updatedAt: new Date('2025-11-12T00:00:00.000Z'),

@@ -27,24 +27,26 @@ describe('EditableGameData', () => {
             mit: '10000',
         },
         {
-            name: 'RedPlayer1',
-            team: 'red',
-            e: '7',
-            a: '4',
-            d: '4',
-            dmg: '11000',
+            name: 'Player2',
+            team: 'blue',
+            e: '12',
+            a: '3',
+            d: '8',
+            dmg: '18000',
             h: '6000',
             mit: '9000',
+            hero: 'Reinhardt',
         },
         {
-            name: 'RedPlayer2',
+            name: 'Player3',
             team: 'red',
-            e: '9',
-            a: '7',
+            e: '5',
+            a: '9',
             d: '1',
-            dmg: '13000',
-            h: '5000',
-            mit: '8000',
+            dmg: '8000',
+            h: '4000',
+            mit: '5000',
+            hero: 'Widowmaker',
         },
     ];
 
@@ -54,6 +56,7 @@ describe('EditableGameData', () => {
         date: '10/21/2025',
         game_mode: 'ESCORT',
         game_length: '10:30',
+        map: 'Lijiang Tower',
     };
 
     let onSaveMock: ReturnType<typeof vi.fn>;
@@ -305,11 +308,11 @@ describe('EditableGameData', () => {
         // Check that we have correct number of rows (excluding header)
         const blueTable = tables[0];
         const blueRows = blueTable.querySelectorAll('tbody tr');
-        expect(blueRows.length).toBe(2); // 2 blue players
+        expect(blueRows.length).toBe(3); // 3 blue players
 
         const redTable = tables[1];
         const redRows = redTable.querySelectorAll('tbody tr');
-        expect(redRows.length).toBe(2); // 2 red players
+        expect(redRows.length).toBe(1); // 1 red player
     });
 
     it('should hide action buttons when there are no modified fields', () => {
