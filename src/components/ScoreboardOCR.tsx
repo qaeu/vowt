@@ -130,7 +130,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             // Step 3: Extract game stats from region results
             const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
-            recordId = saveGameRecord(stats.players, stats.matchInfo).id;
+            recordId = saveGameRecord(stats.players, stats.matchInfo);
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Unknown error occurred'
