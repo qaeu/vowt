@@ -1,5 +1,6 @@
+import { createSignal, mergeProps, For, Show, type Component } from 'solid-js';
+
 import type { PlayerStats, MatchInfo } from '#types';
-import { Component, For, Show, createSignal, mergeProps } from 'solid-js';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
 import '#styles/EditableGameData';
 

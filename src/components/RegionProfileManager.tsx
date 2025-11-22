@@ -1,5 +1,6 @@
+import { createSignal, For, Show, onMount, type Component } from 'solid-js';
+
 import type { TextRegion, DrawnRegion } from '#types';
-import { Component, createSignal, For, Show, onMount } from 'solid-js';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import '#styles/RegionProfileManager';

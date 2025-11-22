@@ -1,5 +1,7 @@
+import { createSignal, onMount, For, Show, type Component } from 'solid-js';
+
 import type { GameRecord, PlayerStats, MatchInfo } from '#types';
-import { Component, createSignal, For, Show, onMount } from 'solid-js';
+import EditableGameData from '#c/EditableGameData';
 import {
     loadGameRecords,
     deleteGameRecord,
@@ -8,7 +10,6 @@ import {
     exportGameRecords,
     importGameRecords,
 } from '#utils/gameStorage';
-import EditableGameData from '#c/EditableGameData';
 import '#styles/GameRecordsTable';
 
 interface GameRecordsTableProps {

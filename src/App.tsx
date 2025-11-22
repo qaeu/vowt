@@ -1,5 +1,5 @@
-import type { Component } from 'solid-js';
-import { createSignal, onMount, onCleanup } from 'solid-js';
+import { createSignal, onMount, onCleanup, type Component } from 'solid-js';
+
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
