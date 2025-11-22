@@ -126,7 +126,7 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                 <For each={props.players()}>
                     {(player, index) => (
                         <tr>
-                            <td>
+                            <td class="hero-column">
                                 <RecordFieldInput
                                     id={`${props.team}-player-${index()}-hero`}
                                     value={() =>

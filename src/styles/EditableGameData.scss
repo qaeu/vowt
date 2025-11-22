@@ -147,6 +147,7 @@
         background-color: theme.$background;
         border-bottom: 2px solid theme.$border-default;
 
+        th.hero-column,
         th.name-column {
             text-align: left;
         }
@@ -166,10 +167,10 @@
 
             &.name-column {
                 width: 23%;
-
-                input {
-                    text-align: left;
-                }
+            }
+            &.hero-column input,
+            &.name-column input {
+                text-align: left;
             }
 
             input {
