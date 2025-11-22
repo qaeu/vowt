@@ -1,6 +1,7 @@
-import type { PlayerStats, MatchInfo } from '#types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
+
+import type { PlayerStats, MatchInfo, GameRecord } from '#types';
 import GameRecordsTable from '#c/GameRecordsTable';
 import * as gameStorage from '#utils/gameStorage';
 
@@ -45,10 +46,9 @@ vi.mock('#c/EditableGameData', () => ({
 describe('GameRecordsTable', () => {
     const mockOnUploadClick = vi.fn();
 
-    const mockRecords = [
+    const mockRecords: GameRecord[] = [
         {
             id: 'game_1',
-            timestamp: 1635686400000,
             players: [
                 {
                     name: 'Player1',
@@ -78,11 +78,11 @@ describe('GameRecordsTable', () => {
                 game_mode: 'ESCORT',
                 game_length: '10:30',
             },
-            version: 1,
+            createdAt: new Date('2025-11-11T00:00:00.000Z'),
+            updatedAt: new Date('2025-11-12T00:00:00.000Z'),
         },
         {
             id: 'game_2',
-            timestamp: 1635772800000,
             players: [
                 {
                     name: 'Player3',
@@ -102,7 +102,8 @@ describe('GameRecordsTable', () => {
                 game_mode: 'PAYLOAD',
                 game_length: '08:15',
             },
-            version: 1,
+            createdAt: new Date('2025-11-11T00:00:00.000Z'),
+            updatedAt: new Date('2025-11-12T00:00:00.000Z'),
         },
     ];
 
@@ -308,20 +309,20 @@ describe('GameRecordsTable', () => {
         expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
     });
 
-    it('should disable export button when no records exist', () => {
+    it('should disable export button when records undefined', () => {
         (
             gameStorage.loadGameRecords as ReturnType<typeof vi.fn>
-        ).mockReturnValue([]);
+        ).mockReturnValue(undefined);
         render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
         const exportButton = screen.getByText(/📥 Export/);
         expect((exportButton as HTMLButtonElement).disabled).toBe(true);
     });
 
-    it('should disable clear all button when no records exist', () => {
+    it('should disable clear all button when records undefined', () => {
         (
             gameStorage.loadGameRecords as ReturnType<typeof vi.fn>
-        ).mockReturnValue([]);
+        ).mockReturnValue(undefined);
         render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
         const clearButton = screen.getByText(/🗑️ Clear All/);
@@ -331,9 +332,9 @@ describe('GameRecordsTable', () => {
     it('should format timestamp correctly', () => {
         render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-        const dateTexts = screen.getAllByText(/2021/);
+        const dateTexts = screen.getAllByText(/2025/);
         expect(dateTexts.length).toBeGreaterThanOrEqual(1);
-        expect(dateTexts[0].textContent).toMatch(/\d+\/\d+\/2021/);
+        expect(dateTexts[0].textContent).toMatch(/\d+\/\d+\/2025/);
     });
 
     it('should apply victory and defeat CSS classes to result badges', () => {

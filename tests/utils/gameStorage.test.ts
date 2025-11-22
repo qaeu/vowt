@@ -1,5 +1,6 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+
 import type { PlayerStats, MatchInfo } from '#types';
-import { describe, it, expect, assert, beforeEach } from 'vitest';
 import {
     loadGameRecords,
     saveGameRecord,
@@ -38,15 +39,14 @@ describe('gameStorage', () => {
     });
 
     it('should save and load game records', () => {
-        const record = saveGameRecord(mockPlayers, mockMatchInfo);
-        expect(record.id).toBeDefined();
-        expect(record.timestamp).toBeDefined();
-        expect(record.players).toEqual(mockPlayers);
-        expect(record.matchInfo).toEqual(mockMatchInfo);
+        const recordId = saveGameRecord(mockPlayers, mockMatchInfo);
+        expect(recordId).toBeDefined();
 
         const records = loadGameRecords();
         expect(records.length).toBe(1);
-        expect(records[0].id).toBe(record.id);
+        expect(records[0].id).toBe(recordId);
+        expect(records[0].players).toEqual(mockPlayers);
+        expect(records[0].matchInfo).toEqual(mockMatchInfo);
     });
 
     it('should load empty array when no records exist', () => {
@@ -64,18 +64,18 @@ describe('gameStorage', () => {
     });
 
     it('should delete a game record by id', () => {
-        const record1 = saveGameRecord(mockPlayers, mockMatchInfo);
-        const record2 = saveGameRecord(mockPlayers, mockMatchInfo);
+        const record1Id = saveGameRecord(mockPlayers, mockMatchInfo);
+        const record2Id = saveGameRecord(mockPlayers, mockMatchInfo);
 
-        deleteGameRecord(record1.id);
+        deleteGameRecord(record1Id);
 
         const records = loadGameRecords();
         expect(records.length).toBe(1);
-        expect(records[0].id).toBe(record2.id);
+        expect(records[0].id).toBe(record2Id);
     });
 
     it('should update a game record by id', () => {
-        const record = saveGameRecord(mockPlayers, mockMatchInfo);
+        const recordId = saveGameRecord(mockPlayers, mockMatchInfo);
 
         const updatedPlayers: PlayerStats[] = [
             {
@@ -99,14 +99,13 @@ describe('gameStorage', () => {
         };
 
         const updatedRecord = updateGameRecord(
-            record.id,
+            recordId,
             updatedPlayers,
             updatedMatchInfo
         );
 
         expect(updatedRecord).toBeTruthy();
-        expect(updatedRecord?.id).toBe(record.id);
-        expect(updatedRecord?.timestamp).toBe(record.timestamp);
+        expect(updatedRecord?.id).toBe(recordId);
         expect(updatedRecord?.players).toEqual(updatedPlayers);
         expect(updatedRecord?.matchInfo).toEqual(updatedMatchInfo);
 
@@ -141,12 +140,15 @@ describe('gameStorage', () => {
 
         expect(exported).toBeDefined();
         const parsed = JSON.parse(exported);
-        expect(parsed.length).toBe(1);
-        expect(parsed[0].players).toEqual(mockPlayers);
+        expect(parsed.type).toBe('vowt-game-records');
+        expect(parsed.schemaVersion).toBe(2);
+        expect(parsed.records.length).toBe(1);
+        expect(parsed.records[0].players).toEqual(mockPlayers);
+        expect(parsed.exportedAt).toBeDefined();
     });
 
     it('should import game records from JSON', () => {
-        const record = saveGameRecord(mockPlayers, mockMatchInfo);
+        const recordId = saveGameRecord(mockPlayers, mockMatchInfo);
         const exported = exportGameRecords();
 
         clearAllGameRecords();
@@ -156,7 +158,7 @@ describe('gameStorage', () => {
 
         const records = loadGameRecords();
         expect(records.length).toBe(1);
-        expect(records[0].id).toBe(record.id);
+        expect(records[0].id).toBe(recordId);
     });
 
     it('should not import duplicate records', () => {
@@ -172,23 +174,17 @@ describe('gameStorage', () => {
     });
 
     it('should generate unique IDs for each record', () => {
-        const record1 = saveGameRecord(mockPlayers, mockMatchInfo);
-        const record2 = saveGameRecord(mockPlayers, mockMatchInfo);
+        const record1Id = saveGameRecord(mockPlayers, mockMatchInfo);
+        const record2Id = saveGameRecord(mockPlayers, mockMatchInfo);
 
-        expect(record1.id).not.toBe(record2.id);
+        expect(record1Id).not.toBe(record2Id);
     });
 
     it('should handle corrupted localStorage data gracefully', () => {
         localStorage.setItem('vowt_game_records', 'invalid json');
 
-        let records;
-        try {
-            records = loadGameRecords();
-
-            assert.fail('Expected error');
-        } catch (e) {
-            expect(e).toBeInstanceOf(Error);
-            expect(records).toEqual([]);
-        }
+        // Should return empty array without throwing
+        const records = loadGameRecords();
+        expect(records).toEqual([]);
     });
 });
