@@ -1,4 +1,4 @@
-import { createSignal, createEffect, createMemo, For, Show, type Component } from 'solid-js';
+import { createSignal, createEffect, createMemo, Index, Show, type Component } from 'solid-js';
 
 import type { TextRegion } from '#types';
 import '#styles/EditableRegionsData';
@@ -283,25 +283,25 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                             </tr>
                         </thead>
                         <tbody>
-                            <For each={editableRegions()}>
+                            <Index each={editableRegions()}>
                                 {(region, index) => {
-                                    const savedRegion = () => lastSavedRegions()[index()] || region;
+                                    const savedRegion = () => lastSavedRegions()[index] || region();
                                     return (
                                         <tr>
                                             <td class="name-column">
                                                 <RegionFieldInput
-                                                    id={`region-${index()}-name`}
+                                                    id={`region-${index}-name`}
                                                     value={() => savedRegion().name ?? ''}
                                                     onInput={(value) =>
                                                         updateRegionField(
-                                                            index(),
+                                                            index,
                                                             'name',
                                                             value
                                                         )
                                                     }
                                                     initialIsJustSaved={() =>
                                                         isFieldJustSaved(
-                                                            `region-${index()}-name`
+                                                            `region-${index}-name`
                                                         )
                                                     }
                                                     staticRegisterField={
@@ -311,21 +311,21 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RegionFieldInput
-                                                    id={`region-${index()}-x`}
+                                                    id={`region-${index}-x`}
                                                     value={() =>
                                                         String(savedRegion().x ?? '')
                                                     }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
-                                                            index(),
+                                                            index,
                                                             'x',
                                                             Number(value)
                                                         )
                                                     }
                                                     initialIsJustSaved={() =>
                                                         isFieldJustSaved(
-                                                            `region-${index()}-x`
+                                                            `region-${index}-x`
                                                         )
                                                     }
                                                     staticRegisterField={
@@ -335,21 +335,21 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RegionFieldInput
-                                                    id={`region-${index()}-y`}
+                                                    id={`region-${index}-y`}
                                                     value={() =>
                                                         String(savedRegion().y ?? '')
                                                     }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
-                                                            index(),
+                                                            index,
                                                             'y',
                                                             Number(value)
                                                         )
                                                     }
                                                     initialIsJustSaved={() =>
                                                         isFieldJustSaved(
-                                                            `region-${index()}-y`
+                                                            `region-${index}-y`
                                                         )
                                                     }
                                                     staticRegisterField={
@@ -359,21 +359,21 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RegionFieldInput
-                                                    id={`region-${index()}-width`}
+                                                    id={`region-${index}-width`}
                                                     value={() =>
                                                         String(savedRegion().width ?? '')
                                                     }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
-                                                            index(),
+                                                            index,
                                                             'width',
                                                             Number(value)
                                                         )
                                                     }
                                                     initialIsJustSaved={() =>
                                                         isFieldJustSaved(
-                                                            `region-${index()}-width`
+                                                            `region-${index}-width`
                                                         )
                                                     }
                                                     staticRegisterField={
@@ -383,21 +383,21 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RegionFieldInput
-                                                    id={`region-${index()}-height`}
+                                                    id={`region-${index}-height`}
                                                     value={() =>
                                                         String(savedRegion().height ?? '')
                                                     }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
-                                                            index(),
+                                                            index,
                                                             'height',
                                                             Number(value)
                                                         )
                                                     }
                                                     initialIsJustSaved={() =>
                                                         isFieldJustSaved(
-                                                            `region-${index()}-height`
+                                                            `region-${index}-height`
                                                         )
                                                     }
                                                     staticRegisterField={
@@ -407,18 +407,18 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RegionFieldInput
-                                                    id={`region-${index()}-charSet`}
+                                                    id={`region-${index}-charSet`}
                                                     value={() => savedRegion().charSet ?? ''}
                                                     onInput={(value) =>
                                                         updateRegionField(
-                                                            index(),
+                                                            index,
                                                             'charSet',
                                                             value || undefined
                                                         )
                                                     }
                                                     initialIsJustSaved={() =>
                                                         isFieldJustSaved(
-                                                            `region-${index()}-charSet`
+                                                            `region-${index}-charSet`
                                                         )
                                                     }
                                                     staticRegisterField={
@@ -429,10 +429,10 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             <td>
                                                 <input
                                                     type="checkbox"
-                                                    checked={region.isItalic ?? false}
+                                                    checked={region().isItalic ?? false}
                                                     onChange={(e) =>
                                                         updateRegionField(
-                                                            index(),
+                                                            index,
                                                             'isItalic',
                                                             e.target.checked
                                                         )
@@ -443,7 +443,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             <td class="delete-column">
                                                 <button
                                                     onClick={() =>
-                                                        handleDeleteRegion(index())
+                                                        handleDeleteRegion(index)
                                                     }
                                                     class="delete-button"
                                                     title="Delete region"
@@ -454,7 +454,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                         </tr>
                                     );
                                 }}
-                            </For>
+                            </Index>
                         </tbody>
                     </table>
                 </div>
