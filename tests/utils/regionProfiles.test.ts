@@ -1,3 +1,4 @@
+import type { TextRegion, ExportedProfile } from '#types';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     saveProfile,
@@ -10,12 +11,11 @@ import {
     exportProfile,
     importProfile,
 } from '#utils/regionProfiles';
-import { TextRegion } from '#utils/textRegions';
 
 // Mock the default profiles index to avoid errors from ensureDefaultProfilesExist
 // The implementation requires at least one default profile to avoid array access errors
 vi.mock('#data/profiles', () => ({
-    defaultProfiles: [
+    DEFAULT_PROFILES: [
         {
             type: 'vowt-region-profile',
             schemaVersion: 1,
@@ -23,12 +23,12 @@ vi.mock('#data/profiles', () => ({
                 id: 'mock_profile',
                 description: 'Built-in default profile',
                 regions: [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+                createdAt: '2025-11-11T00:00:00.000Z',
+                updatedAt: '2025-11-12T00:00:00.000Z',
             },
-            exportedAt: new Date().toISOString(),
+            exportedAt: '2025-11-13T00:00:00.000Z',
         },
-    ],
+    ] as ExportedProfile[],
 }));
 
 describe('Region Profiles', () => {
@@ -192,15 +192,9 @@ describe('Region Profiles', () => {
             const profileId = saveProfile(mockRegions, {
                 description: 'Test',
             });
-            const deleted = deleteProfile(profileId);
+            deleteProfile(profileId);
 
-            expect(deleted).toBe(true);
             expect(getProfile(profileId)).toBeNull();
-        });
-
-        it('should return false for non-existent profile', () => {
-            const deleted = deleteProfile('non_existent_id');
-            expect(deleted).toBe(false);
         });
 
         it('should clear active profile if deleting the active one', () => {
@@ -212,7 +206,7 @@ describe('Region Profiles', () => {
             expect(getActiveProfileId()).toBe(profileId);
 
             deleteProfile(profileId);
-            // Active profile should be cleared or changed when deleted
+            // Active profile should be changed when deleted
             expect(getActiveProfileId()).not.toBe(profileId);
         });
 

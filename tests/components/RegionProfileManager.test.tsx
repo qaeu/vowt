@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@solidjs/testing-library';
+
 import RegionProfileManager from '#c/RegionProfileManager';
 import * as regionProfiles from '#utils/regionProfiles';
 import * as regionEditor from '#utils/regionEditor';

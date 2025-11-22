@@ -1,5 +1,3 @@
-# Copilot Instructions for VOWT
-
 ## Project Overview
 
 VOWT is a client-side OCR application for extracting and managing video game scoreboard data. It's a single-page static app built with **SolidJS** and **Vite**, featuring local OCR processing via **Tesseract.js** and browser-based data persistence.
@@ -12,15 +10,15 @@ VOWT is a client-side OCR application for extracting and managing video game sco
 
 ## Technology Stack
 
-| Layer          | Technology                        | Notes                                                   |
-| -------------- | --------------------------------- | ------------------------------------------------------- |
-| **Framework**  | SolidJS 1.9+                      | Fine-grained reactivity, minimal overhead               |
-| **Build Tool** | Vite 7.1+                         | Lightning-fast development, optimized production builds |
-| **Styling**    | SASS/SCSS                         | Module-based with theme variables and mixins            |
-| **OCR Engine** | Tesseract.js 6.0.1                | Client-side text recognition; no API calls              |
-| **Testing**    | Vitest + @solidjs/testing-library | Unit and component testing                              |
-| **Language**   | TypeScript 5.7+                   | Strict type safety across codebase                      |
-| **Hosting**    | GitHub Pages                      | Static site deployment only                             |
+| Layer          | Technology                        |
+| -------------- | --------------------------------- |
+| **Framework**  | SolidJS                           |
+| **Build Tool** | Vite                              |
+| **Styling**    | SASS/SCSS                         |
+| **OCR Engine** | Tesseract.js                      |
+| **Testing**    | Vitest + @solidjs/testing-library |
+| **Language**   | TypeScript                        |
+| **Hosting**    | GitHub Pages                      |
 
 ## Code Organization
 
@@ -29,24 +27,17 @@ src/
 ├── App.tsx                      # Main entry point; layout and debug toggles
 ├── index.tsx                    # SolidJS app initialization
 ├── setupTests.ts                # Test configuration
+├── types.d.ts                   # Global type definition file
+├── data/profiles/
+│   ├── index.ts                 # Import bundler for JSON profile data
+│   └── *.json                   # Default OCR region profiles
 ├── styles/
-│   ├── _theme.scss              # Color variables, typography, and reusable mixins
-│   ├── App.scss                 # App navigation styling
-│   ├── ScoreboardOCR.scss       # OCR component styling
-│   ├── RegionDebugger.scss      # Region debugger styling
-│   ├── GameRecordsTable.scss    # Records table styling
-│   └── EditableGameData.scss    # Editable game data styling
+│   ├── _theme.scss              # Reusable theme styling
+│   └── *.scss                   # Component specific stylings
 ├── components/
-│   ├── ScoreboardOCR.tsx        # Primary OCR processing logic
-│   ├── RegionDebugger.tsx       # Development tool for region visualization
-│   ├── GameRecordsTable.tsx     # Game records display and management
-│   └── EditableGameData.tsx     # Inline editing interface for game records
+│   └── *.tsx                    # SolidJS components
 └── utils/
-    ├── preprocess.ts            # Image preprocessing and enhancement
-    ├── postprocess.ts           # OCR result post-processing and validation
-    ├── textRegions.ts           # Region definitions and OCR area management
-    ├── regionEditor.ts          # Region coordinate management and editing
-    └── gameStorage.ts           # Game record persistence (localStorage)
+    └── *.ts                     # Utility scripts
 ```
 
 ## Development Guidelines
@@ -66,6 +57,23 @@ src/
 -   **Component types**: Always specify `Component` return type or generic interface for SolidJS components.
 -   **Interface over type**: Prefer `interface` for object shapes; use `type` only for unions or primitives.
 
+### Code style
+
+-   **Code structure**: TypeScript files follow this ordered structure:
+    -   File header
+    -   Imports
+        -   External packages
+        -   Types
+        -   Constants
+        -   Components
+        -   Utils
+        -   Stylings
+    -   Exported constants
+    -   Local types
+    -   Local constants
+    -   Local functions
+    -   Exported functions
+
 ### Styling with SASS/SCSS
 
 -   **Module system**: Use `@use` for importing theme variables and mixins.
@@ -78,7 +86,7 @@ src/
 
 ### Browser Storage Patterns
 
--   **Storage choice**: Use `localStorage` for JSON data (simple, synchronous, ~5-10MB limit).
+-   **Storage choice**: Use `localStorage` for persistent data (simple, synchronous, ~5-10MB limit).
 -   **Structured data**: Always serialize/deserialize JSON with try-catch error handling.
 -   **Versioning**: Include a schema version field in stored JSON for future migrations.
 -   **Export format**: When exporting, use `.json` with ISO timestamps for auditability.
@@ -99,14 +107,19 @@ src/
 
 -   **No external APIs**: All image processing uses Canvas API and browser native functions.
 -   **Preprocessing**: Apply contrast enhancement, thresholding, or grayscale conversion as needed for OCR accuracy.
--   **Region extraction**: Use `getScoreboardRegions()` and `getMatchInfoRegions()` to define OCR focus areas.
+-   **Region extraction**: Regions are used to define OCR focus areas.
 -   **Canvas operations**: Be mindful of cross-origin restrictions when loading external images.
 
-## Running Tests
+## Tests
+
+Run individual test files using:
 
 ```bash
-npm test
+npm test -- example.test.ts
 ```
+
+-   **Maintain test coverage**: Add tests for each new feature, update existing tests when the underlying behaviour has changed.
+-   **Test file readability**: Use nested `describe()` blocks to create reasonable sections.
 
 ## Security Considerations
 
@@ -118,10 +131,8 @@ npm test
 ## Performance Optimization
 
 -   **Code splitting**: Vite automatically splits code; avoid large synchronous bundles.
--   **Asset optimization**: Images should be compressed; consider WebP for supported browsers.
--   **Lazy loading**: Only load Tesseract.js when OCR is needed.
--   **Memoization**: Cache region definitions and preprocessed images in signals/memos to avoid recomputation.
--   **Worker pooling**: Consider reusing a single Tesseract worker across multiple recognitions.
+-   **Lazy loading**: Only load expensive data when needed.
+-   **Memoization**: Cache expensive data in signals/memos to avoid recomputation.
 
 ## Contributing Tips
 

@@ -1,4 +1,7 @@
-import { Component, createSignal, For, Show, onMount } from 'solid-js';
+import { createSignal, onMount, For, Show, type Component } from 'solid-js';
+
+import type { GameRecord, PlayerStats, MatchInfo } from '#types';
+import EditableGameData from '#c/EditableGameData';
 import {
     loadGameRecords,
     deleteGameRecord,
@@ -6,11 +9,7 @@ import {
     clearAllGameRecords,
     exportGameRecords,
     importGameRecords,
-    type GameRecord,
-    type PlayerStats,
-    type MatchInfo,
 } from '#utils/gameStorage';
-import EditableGameData from '#c/EditableGameData';
 import '#styles/GameRecordsTable';
 
 interface GameRecordsTableProps {
@@ -120,8 +119,8 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
         }
     };
 
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleString();
+    const formatDate = (date: Date) => {
+        return date.toLocaleString();
     };
 
     return (
@@ -135,7 +134,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                 <button
                     onClick={handleExport}
                     class="primary"
-                    disabled={records().length === 0}
+                    disabled={!records()}
                 >
                     📥 Export
                 </button>
@@ -145,13 +144,13 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                 <button
                     onClick={handleClearAll}
                     class="danger"
-                    disabled={records().length === 0}
+                    disabled={!records()}
                 >
                     🗑️ Clear All
                 </button>
             </div>
 
-            <Show when={records().length === 0}>
+            <Show when={!records() || records().length === 0}>
                 <div class="empty-state">
                     <p>
                         No game records found. Process a scoreboard to create
@@ -160,7 +159,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                 </div>
             </Show>
 
-            <Show when={records().length > 0}>
+            <Show when={records()?.length > 0}>
                 <div class="records-table-wrapper">
                     <table>
                         <thead>
@@ -188,7 +187,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
                                             }
                                         >
                                             <td>
-                                                {formatDate(record.timestamp)}
+                                                {formatDate(record.createdAt)}
                                             </td>
                                             <td>
                                                 <span

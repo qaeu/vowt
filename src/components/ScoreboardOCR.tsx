@@ -1,16 +1,12 @@
 import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
+
+import type { PlayerStats, MatchInfo, GameRecord } from '#types';
 import EditableGameData from '#c/EditableGameData';
 import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { extractGameStats } from '#utils/postprocess';
 import { normaliseRegion } from '#utils/textRegions';
-import {
-    saveGameRecord,
-    updateGameRecord,
-    type PlayerStats,
-    type MatchInfo,
-    type GameRecord,
-} from '#utils/gameStorage';
+import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile } from '#utils/regionProfiles';
 import '#styles/ScoreboardOCR';
 
@@ -134,7 +130,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
             // Step 3: Extract game stats from region results
             const stats = extractGameStats(regionResults);
             setExtractedStats(stats);
-            recordId = saveGameRecord(stats.players, stats.matchInfo).id;
+            recordId = saveGameRecord(stats.players, stats.matchInfo);
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Unknown error occurred'

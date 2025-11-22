@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@solidjs/testing-library';
+
+import type { PlayerStats, MatchInfo } from '#types';
 import EditableGameData from '#c/EditableGameData';
-import { PlayerStats, MatchInfo } from '#utils/gameStorage';
 
 describe('EditableGameData', () => {
     const mockPlayers: PlayerStats[] = [

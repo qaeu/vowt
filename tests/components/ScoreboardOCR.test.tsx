@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@solidjs/testing-library';
+
 import ScoreboardOCR from '#c/ScoreboardOCR';
 
 // Mock Image constructor for image dimension detection
