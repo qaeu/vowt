@@ -82,6 +82,7 @@ src/
     -   **Reusable mixins**: `container`, `card`, `info-box`, `button`, `badge`, `code-block`, `progress-bar-wrapper/fill`, etc.
 -   **Component stylesheets**: Each component has a corresponding `.scss` file using mixins from `_theme.scss`.
 -   **Class naming**: Use BEM-like convention for nested components (e.g., `.progress-container .progress-bar`).
+-   **Selector clarity**: Avoid heavily nested selectors; prefer adding classes or ids if necessary.
 -   **No inline styles**: Avoid inline `style` attributes; use CSS classes and mixins instead.
 
 ### Browser Storage Patterns
