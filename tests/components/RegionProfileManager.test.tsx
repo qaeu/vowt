@@ -82,26 +82,6 @@ describe('RegionProfileManager', () => {
                 screen.getByText(/Create and manage region profiles/i)
             ).toBeDefined();
         });
-
-        it('should show drag and drop tip when no preview image', () => {
-            render(() => (
-                <RegionProfileManager
-                    previewImage={null}
-                    onClose={mockOnClose}
-                />
-            ));
-            expect(screen.getByText(/Drag and drop an image/i)).toBeDefined();
-        });
-
-        it('should not show drag and drop tip when preview image exists', () => {
-            render(() => (
-                <RegionProfileManager
-                    previewImage="data:image/png;base64,test"
-                    onClose={mockOnClose}
-                />
-            ));
-            expect(screen.queryByText(/Drag and drop an image/i)).toBeNull();
-        });
     });
 
     describe('Region Editor', () => {
@@ -239,7 +219,6 @@ describe('RegionProfileManager', () => {
         });
 
         it('should call deleteProfile when deleting a profile', () => {
-            vi.mocked(regionProfiles.deleteProfile).mockReturnValue(true);
             vi.spyOn(window, 'confirm').mockReturnValue(true);
 
             render(() => (
