@@ -60,8 +60,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
     };
 
     const getTextRegions = (): TextRegion[] => {
-        // Convert DrawnRegion back to TextRegion by removing color field
-        return editingRegions().map(({ color, ...region }) => region);
+        return editingRegions();
     };
 
     const activateProfile = (profileId: string) => {
@@ -322,7 +321,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                         />
 
                         <div class="button-group">
-                            <button onClick={handleSaveProfileDetails} class="success">
+                            <button
+                                onClick={handleSaveProfileDetails}
+                                class="success"
+                            >
                                 Save Profile Details
                             </button>
                         </div>
