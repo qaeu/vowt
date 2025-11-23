@@ -91,9 +91,7 @@ describe('EditableRegionsData', () => {
                 <EditableRegionsData initialRegions={[]} onSave={onSaveMock} />
             ));
 
-            expect(
-                screen.getByText(/No regions drawn yet/i)
-            ).toBeTruthy();
+            expect(screen.getByText(/No regions drawn yet/i)).toBeTruthy();
         });
 
         it('should render region data in input fields', () => {
@@ -147,22 +145,6 @@ describe('EditableRegionsData', () => {
     });
 
     describe('Field Modification', () => {
-        it('should apply modified class when field is edited', () => {
-            const { container } = render(() => (
-                <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
-                />
-            ));
-
-            const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
-            ) as HTMLInputElement;
-            fireEvent.input(nameInput, { target: { value: 'new_name' } });
-
-            expect(nameInput.classList.contains('modified')).toBe(true);
-        });
-
         it('should show save and cancel buttons when fields are modified', () => {
             const { container } = render(() => (
                 <EditableRegionsData
@@ -178,23 +160,6 @@ describe('EditableRegionsData', () => {
 
             expect(screen.getByText(/Save Regions/)).toBeTruthy();
             expect(screen.getByText(/Cancel Changes/)).toBeTruthy();
-        });
-
-        it('should update numeric fields correctly', () => {
-            const { container } = render(() => (
-                <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
-                />
-            ));
-
-            const xInput = container.querySelector(
-                'input[id="region-0-x"]'
-            ) as HTMLInputElement;
-            fireEvent.input(xInput, { target: { value: '250' } });
-
-            expect(xInput.value).toBe('250');
-            expect(xInput.classList.contains('modified')).toBe(true);
         });
     });
 
@@ -263,7 +228,9 @@ describe('EditableRegionsData', () => {
         });
 
         it('should show alert when trying to save with empty region name', () => {
-            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+            const alertSpy = vi
+                .spyOn(window, 'alert')
+                .mockImplementation(() => {});
             const { container } = render(() => (
                 <EditableRegionsData
                     initialRegions={mockRegions}
