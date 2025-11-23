@@ -29,6 +29,7 @@ const RegionFieldInput: Component<RegionFieldInputProps> = (_props) => {
         onInput: (value: string) => void;
         id: string;
         value: () => string;
+        baseline: () => string;
         initialIsJustSaved: () => boolean;
     };
 
