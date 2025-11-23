@@ -105,13 +105,16 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
             return;
         }
 
-        // Get the current regions from storage to keep them unchanged
+        // Get the current saved regions from storage to avoid saving unsaved table edits
         const currentProfile = Profiles.getProfile(editingProfileId());
-        const regionsToSave = currentProfile || editingRegions();
+        if (!currentProfile) {
+            alert('Could not load current profile regions');
+            return;
+        }
 
         if (canvasRef) {
             Profiles.saveProfile(
-                regionsToSave,
+                currentProfile,
                 {
                     id: editingProfileId(),
                     description: editingProfileDesc(),
