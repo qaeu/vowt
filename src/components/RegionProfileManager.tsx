@@ -221,18 +221,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
             <div class="info-box">
                 <p>
-                    <strong>Instructions:</strong> Create and manage region
-                    profiles for different scoreboard types. Click "Start Region
-                    Editor" to draw regions, then save as a new profile or
-                    update an existing one. Profiles are saved locally and can
-                    be selected for OCR processing.
-                    {!props.previewImage && (
-                        <>
-                            <br />
-                            <strong>Tip:</strong> Drag and drop an image into
-                            this area to use it for region editing.
-                        </>
-                    )}
+                    Create and manage region profiles for different scoreboard
+                    types. Profiles are saved locally and can be activated for
+                    OCR processing.
                 </p>
             </div>
 
