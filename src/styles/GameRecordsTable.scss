@@ -16,6 +16,7 @@
 
         button {
             @include theme.button(theme.$accent1);
+            flex: 1;
 
             &.primary {
                 @include theme.button(theme.$accent1-light);
