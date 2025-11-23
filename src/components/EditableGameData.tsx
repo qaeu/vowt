@@ -1,95 +1,11 @@
-import { createSignal, mergeProps, For, Show, type Component } from 'solid-js';
+import { createSignal, For, Show, type Component } from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
+import RecordFieldInput from '#c/RecordFieldInput';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
 import '#styles/EditableGameData';
 
-interface RecordFieldInputProps {
-    onInput: (value: string) => void;
-    id: string;
-    staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
-    value: () => Readonly<string>;
-    initialIsJustSaved: () => Readonly<boolean>;
-    staticRegisterField?: (
-        fieldId: string,
-        isModifiedGetter: () => boolean,
-        resetModified: () => void
-    ) => void;
-}
-
-const defaultRecordFieldInputProps: Partial<RecordFieldInputProps> = {
-    staticInputmode: 'text' as const,
-};
-
-const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
-    const props = mergeProps(
-        defaultRecordFieldInputProps,
-        _props
-    ) as Partial<RecordFieldInputProps> & {
-        onInput: (value: string) => void;
-        id: string;
-        value: () => string;
-        initialIsJustSaved: () => boolean;
-    };
-
-    const [isModified, setIsModified] = createSignal<boolean>(false);
-
-    // Register this field's modification state with parent during component initialization
-    if (props.staticRegisterField) {
-        props.staticRegisterField(
-            // eslint-disable-next-line solid/reactivity
-            props.id,
-            // eslint-disable-next-line solid/reactivity
-            () => isModified(),
-            () => setIsModified(false)
-        );
-    }
-
-    const validityPattern =
-        props.staticInputmode === 'numeric' ? '[0-9]*' : undefined;
-
-    const getClassName = () => {
-        const classes = [];
-        if (isModified()) {
-            classes.push('modified');
-        }
-        if (props.initialIsJustSaved()) {
-            classes.push('just-saved');
-        }
-        return classes.join(' ');
-    };
-
-    const handleInput = (
-        e: InputEvent & {
-            currentTarget: HTMLInputElement;
-            target: HTMLInputElement;
-        }
-    ) => {
-        const inputValue = e.currentTarget.value;
-        // Compare against the baseline value to detect modifications
-        if (inputValue !== props.value()) {
-            setIsModified(true);
-        } else {
-            setIsModified(false);
-        }
-        props.onInput(inputValue);
-    };
-
-    return (
-        <input
-            type="text"
-            inputmode={props.staticInputmode || 'text'}
-            pattern={validityPattern}
-            value={props.value()}
-            onInput={handleInput}
-            onFocus={(e) => e.target.select()}
-            class={getClassName()}
-            id={props.id}
-        />
-    );
-};
-
-interface TeamDataTable {
+interface TeamDataTableProps {
     players: () => PlayerStats[];
     savedPlayers: () => PlayerStats[];
     team: PlayerStats['team'];
@@ -107,7 +23,7 @@ interface TeamDataTable {
     ) => void;
 }
 
-const TeamDataTable: Component<TeamDataTable> = (props) => {
+const TeamDataTableProps: Component<TeamDataTableProps> = (props) => {
     return (
         <table>
             <thead>
@@ -130,6 +46,9 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                 <RecordFieldInput
                                     id={`${props.team}-player-${index()}-hero`}
                                     value={() =>
+                                        props.players()[index()]?.hero ?? ''
+                                    }
+                                    baseline={() =>
                                         props.savedPlayers()[index()]?.hero ??
                                         ''
                                     }
@@ -154,6 +73,9 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                 <RecordFieldInput
                                     id={`${props.team}-player-${index()}-name`}
                                     value={() =>
+                                        props.players()[index()]?.name ?? ''
+                                    }
+                                    baseline={() =>
                                         props.savedPlayers()[index()]?.name ??
                                         ''
                                     }
@@ -182,6 +104,13 @@ const TeamDataTable: Component<TeamDataTable> = (props) => {
                                                 props.team
                                             }-player-${index()}-${numericField}`}
                                             value={() =>
+                                                String(
+                                                    props.players()[index()]?.[
+                                                        numericField as keyof PlayerStats
+                                                    ] ?? ''
+                                                )
+                                            }
+                                            baseline={() =>
                                                 String(
                                                     props.savedPlayers()[
                                                         index()
@@ -374,6 +303,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                         <RecordFieldInput
                             id="matchinfo-result"
                             value={() => editableMatchInfo().result}
+                            baseline={() => lastSavedMatchInfo().result}
                             onInput={(value) =>
                                 updateMatchInfoField('result', value)
                             }
@@ -388,6 +318,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                         <RecordFieldInput
                             id="matchinfo-finalscore-blue"
                             value={() => editableMatchInfo().final_score.blue}
+                            baseline={() =>
+                                lastSavedMatchInfo().final_score.blue
+                            }
                             onInput={(value) =>
                                 updateMatchInfoField('final_score', {
                                     ...editableMatchInfo().final_score,
@@ -405,6 +338,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                         <RecordFieldInput
                             id="matchinfo-finalscore-red"
                             value={() => editableMatchInfo().final_score.red}
+                            baseline={() =>
+                                lastSavedMatchInfo().final_score.red
+                            }
                             onInput={(value) =>
                                 updateMatchInfoField('final_score', {
                                     ...editableMatchInfo().final_score,
@@ -422,6 +358,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                         <RecordFieldInput
                             id="matchinfo-date"
                             value={() => editableMatchInfo().date}
+                            baseline={() => lastSavedMatchInfo().date}
                             onInput={(value) =>
                                 updateMatchInfoField('date', value)
                             }
@@ -436,6 +373,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                         <RecordFieldInput
                             id="matchinfo-gamemode"
                             value={() => editableMatchInfo().game_mode}
+                            baseline={() => lastSavedMatchInfo().game_mode}
                             onInput={(value) =>
                                 updateMatchInfoField('game_mode', value)
                             }
@@ -450,6 +388,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                         <RecordFieldInput
                             id="matchinfo-gamelength"
                             value={() => editableMatchInfo().game_length}
+                            baseline={() => lastSavedMatchInfo().game_length}
                             onInput={(value) =>
                                 updateMatchInfoField('game_length', value)
                             }
@@ -464,6 +403,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                         <RecordFieldInput
                             id="matchinfo-map"
                             value={() => editableMatchInfo().map ?? ''}
+                            baseline={() => lastSavedMatchInfo().map ?? ''}
                             onInput={(value) =>
                                 updateMatchInfoField('map', value)
                             }
@@ -480,7 +420,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                 <div class="team-section">
                     <h4 class="blue-team">Blue Team</h4>
                     <div class="table-wrapper">
-                        <TeamDataTable
+                        <TeamDataTableProps
                             players={() =>
                                 editablePlayers().filter(
                                     (player) => player.team === 'blue'
@@ -502,7 +442,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                 <div class="team-section">
                     <h4 class="red-team">Red Team</h4>
                     <div class="table-wrapper">
-                        <TeamDataTable
+                        <TeamDataTableProps
                             players={() =>
                                 editablePlayers().filter(
                                     (player) => player.team === 'red'

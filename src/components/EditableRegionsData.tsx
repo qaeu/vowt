@@ -8,93 +8,8 @@ import {
 } from 'solid-js';
 
 import type { TextRegion } from '#types';
+import RecordFieldInput from '#c/RecordFieldInput';
 import '#styles/EditableRegionsData';
-
-interface RegionFieldInputProps {
-    onInput: (value: string) => void;
-    id: string;
-    staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
-    value: () => Readonly<string>;
-    baseline: () => Readonly<string>; // For comparison to detect modifications
-    initialIsJustSaved: () => Readonly<boolean>;
-    staticRegisterField?: (
-        fieldId: string,
-        isModifiedGetter: () => boolean,
-        resetModified: () => void
-    ) => void;
-}
-
-const defaultRegionFieldInputProps: Partial<RegionFieldInputProps> = {
-    staticInputmode: 'text' as const,
-};
-
-const RegionFieldInput: Component<RegionFieldInputProps> = (_props) => {
-    const props = {
-        ...defaultRegionFieldInputProps,
-        ..._props,
-    } as Partial<RegionFieldInputProps> & {
-        onInput: (value: string) => void;
-        id: string;
-        value: () => string;
-        baseline: () => string;
-        initialIsJustSaved: () => boolean;
-    };
-
-    const [isModified, setIsModified] = createSignal<boolean>(false);
-
-    // Register this field's modification state with parent during component initialization
-    if (props.staticRegisterField) {
-        props.staticRegisterField(
-            props.id,
-            // eslint-disable-next-line solid/reactivity
-            () => isModified(),
-            () => setIsModified(false)
-        );
-    }
-
-    const validityPattern =
-        props.staticInputmode === 'numeric' ? '[0-9]*' : undefined;
-
-    const getClassName = () => {
-        const classes = [];
-        if (isModified()) {
-            classes.push('modified');
-        }
-        if (props.initialIsJustSaved()) {
-            classes.push('just-saved');
-        }
-        return classes.join(' ');
-    };
-
-    const handleInput = (
-        e: InputEvent & {
-            currentTarget: HTMLInputElement;
-            target: HTMLInputElement;
-        }
-    ) => {
-        const inputValue = e.currentTarget.value;
-        // Compare against the baseline value to detect modifications
-        if (inputValue !== props.baseline()) {
-            setIsModified(true);
-        } else {
-            setIsModified(false);
-        }
-        props.onInput(inputValue);
-    };
-
-    return (
-        <input
-            type="text"
-            inputmode={props.staticInputmode || 'text'}
-            pattern={validityPattern}
-            value={props.value()}
-            onInput={handleInput}
-            onFocus={(e) => e.target.select()}
-            class={getClassName()}
-            id={props.id}
-        />
-    );
-};
 
 interface EditableRegionsDataProps {
     initialRegions: TextRegion[];
@@ -312,7 +227,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                     return (
                                         <tr>
                                             <td class="name-column">
-                                                <RegionFieldInput
+                                                <RecordFieldInput
                                                     id={`region-${index}-name`}
                                                     value={() =>
                                                         region().name ?? ''
@@ -338,7 +253,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                 />
                                             </td>
                                             <td>
-                                                <RegionFieldInput
+                                                <RecordFieldInput
                                                     id={`region-${index}-x`}
                                                     value={() =>
                                                         String(region().x ?? '')
@@ -368,7 +283,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                 />
                                             </td>
                                             <td>
-                                                <RegionFieldInput
+                                                <RecordFieldInput
                                                     id={`region-${index}-y`}
                                                     value={() =>
                                                         String(region().y ?? '')
@@ -398,7 +313,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                 />
                                             </td>
                                             <td>
-                                                <RegionFieldInput
+                                                <RecordFieldInput
                                                     id={`region-${index}-width`}
                                                     value={() =>
                                                         String(
@@ -430,7 +345,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                 />
                                             </td>
                                             <td>
-                                                <RegionFieldInput
+                                                <RecordFieldInput
                                                     id={`region-${index}-height`}
                                                     value={() =>
                                                         String(
@@ -463,7 +378,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                 />
                                             </td>
                                             <td>
-                                                <RegionFieldInput
+                                                <RecordFieldInput
                                                     id={`region-${index}-charSet`}
                                                     value={() =>
                                                         region().charSet ?? ''
