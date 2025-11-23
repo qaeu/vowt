@@ -43,7 +43,11 @@
     }
 
     .table-wrapper {
+        max-height: 400px;
         overflow-x: auto;
+        overflow-y: auto;
+        border: 1px solid theme.$border-light;
+        border-radius: 4px;
 
         table {
             width: 100%;
@@ -60,6 +64,10 @@
                     text-align: left;
                     font-weight: bold;
                     color: theme.$foreground-dark;
+                    position: sticky;
+                    top: 0;
+                    background-color: theme.$background;
+                    z-index: 1;
 
                     &.name-column {
                         min-width: 120px;
