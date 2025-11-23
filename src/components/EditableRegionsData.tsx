@@ -228,7 +228,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                         <tr>
                                             <td class="name-column">
                                                 <RecordFieldInput
-                                                    id={`region-${index}-name`}
+                                                    staticId={`region-${index}-name`}
                                                     value={() =>
                                                         region().name ?? ''
                                                     }
@@ -254,7 +254,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RecordFieldInput
-                                                    id={`region-${index}-x`}
+                                                    staticId={`region-${index}-x`}
                                                     value={() =>
                                                         String(region().x ?? '')
                                                     }
@@ -284,7 +284,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RecordFieldInput
-                                                    id={`region-${index}-y`}
+                                                    staticId={`region-${index}-y`}
                                                     value={() =>
                                                         String(region().y ?? '')
                                                     }
@@ -314,7 +314,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RecordFieldInput
-                                                    id={`region-${index}-width`}
+                                                    staticId={`region-${index}-width`}
                                                     value={() =>
                                                         String(
                                                             region().width ?? ''
@@ -346,7 +346,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RecordFieldInput
-                                                    id={`region-${index}-height`}
+                                                    staticId={`region-${index}-height`}
                                                     value={() =>
                                                         String(
                                                             region().height ??
@@ -379,7 +379,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                             </td>
                                             <td>
                                                 <RecordFieldInput
-                                                    id={`region-${index}-charSet`}
+                                                    staticId={`region-${index}-charSet`}
                                                     value={() =>
                                                         region().charSet ?? ''
                                                     }

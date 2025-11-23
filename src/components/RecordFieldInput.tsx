@@ -4,7 +4,7 @@ import '#styles/EditableGameData';
 
 interface RecordFieldInputProps {
     onInput: (value: string) => void;
-    id: string;
+    staticId: Readonly<string>;
     staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
     value: () => Readonly<string>;
     baseline: () => Readonly<string>; // For comparison to detect modifications
@@ -16,29 +16,24 @@ interface RecordFieldInputProps {
     ) => void;
 }
 
-const defaultRecordFieldInputProps: Partial<RecordFieldInputProps> = {
+const defaultRecordFieldInputProps: Required<
+    Pick<RecordFieldInputProps, 'staticInputmode'>
+> = {
     staticInputmode: 'text' as const,
 };
 
 const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
-    const props = mergeProps(
+    const props: RecordFieldInputProps = mergeProps(
         defaultRecordFieldInputProps,
         _props
-    ) as Partial<RecordFieldInputProps> & {
-        onInput: (value: string) => void;
-        id: string;
-        value: () => string;
-        baseline: () => string;
-        initialIsJustSaved: () => boolean;
-    };
+    );
 
     const [isModified, setIsModified] = createSignal<boolean>(false);
 
     // Register this field's modification state with parent during component initialization
     if (props.staticRegisterField) {
         props.staticRegisterField(
-            // eslint-disable-next-line solid/reactivity
-            props.id,
+            props.staticId,
             // eslint-disable-next-line solid/reactivity
             () => isModified(),
             () => setIsModified(false)
@@ -84,7 +79,7 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
             onInput={handleInput}
             onFocus={(e) => e.target.select()}
             class={getClassName()}
-            id={props.id}
+            id={props.staticId}
         />
     );
 };

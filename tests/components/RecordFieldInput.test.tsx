@@ -16,7 +16,7 @@ describe('RecordFieldInput', () => {
         it('should render an input element with correct id', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -33,7 +33,7 @@ describe('RecordFieldInput', () => {
         it('should display the value from the value prop', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -50,7 +50,7 @@ describe('RecordFieldInput', () => {
         it('should have text inputmode by default', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -67,7 +67,7 @@ describe('RecordFieldInput', () => {
         it('should set numeric inputmode when staticInputmode is numeric', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => '123'}
                     baseline={() => '123'}
                     staticInputmode="numeric"
@@ -85,7 +85,7 @@ describe('RecordFieldInput', () => {
         it('should set numeric pattern when staticInputmode is numeric', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => '123'}
                     baseline={() => '123'}
                     staticInputmode="numeric"
@@ -103,7 +103,7 @@ describe('RecordFieldInput', () => {
         it('should not have a pattern for text inputmode', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'text'}
                     baseline={() => 'text'}
                     staticInputmode="text"
@@ -123,7 +123,7 @@ describe('RecordFieldInput', () => {
         it('should not apply modified class initially when value differs from baseline', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'modified value'}
                     baseline={() => 'original value'}
                     onInput={onInputMock}
@@ -141,7 +141,7 @@ describe('RecordFieldInput', () => {
         it('should apply modified class after input differs from baseline', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'original'}
                     baseline={() => 'original'}
                     onInput={onInputMock}
@@ -160,7 +160,7 @@ describe('RecordFieldInput', () => {
         it('should not apply modified class when value equals baseline', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'same value'}
                     baseline={() => 'same value'}
                     onInput={onInputMock}
@@ -177,7 +177,7 @@ describe('RecordFieldInput', () => {
         it('should apply just-saved class when initialIsJustSaved is true', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -194,7 +194,7 @@ describe('RecordFieldInput', () => {
         it('should apply both modified and just-saved classes when both apply', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -216,7 +216,7 @@ describe('RecordFieldInput', () => {
         it('should call onInput when value is entered', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test'}
                     baseline={() => 'test'}
                     onInput={onInputMock}
@@ -235,7 +235,7 @@ describe('RecordFieldInput', () => {
         it('should detect modification when input differs from baseline', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'original'}
                     baseline={() => 'original'}
                     onInput={onInputMock}
@@ -254,7 +254,7 @@ describe('RecordFieldInput', () => {
         it('should remove modified class when input returns to baseline', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'original'}
                     baseline={() => 'original'}
                     onInput={onInputMock}
@@ -278,7 +278,7 @@ describe('RecordFieldInput', () => {
         it('should select all text on focus', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -301,7 +301,7 @@ describe('RecordFieldInput', () => {
         it('should call registerField callback on initialization', () => {
             render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -320,7 +320,7 @@ describe('RecordFieldInput', () => {
         it('should not call registerField if callback is not provided', () => {
             render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'test value'}
                     baseline={() => 'test value'}
                     onInput={onInputMock}
@@ -334,7 +334,7 @@ describe('RecordFieldInput', () => {
         it('should provide isModified getter that reflects current state after input', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'original'}
                     baseline={() => 'original'}
                     onInput={onInputMock}
@@ -359,7 +359,7 @@ describe('RecordFieldInput', () => {
         it('should provide reset function to clear modified state', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'original'}
                     baseline={() => 'original'}
                     onInput={onInputMock}
@@ -388,7 +388,7 @@ describe('RecordFieldInput', () => {
         it('should update displayed value when value prop changes', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'initial'}
                     baseline={() => 'initial'}
                     onInput={onInputMock}
@@ -405,7 +405,7 @@ describe('RecordFieldInput', () => {
         it('should update modification status when baseline changes', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => 'value'}
                     baseline={() => 'value'}
                     onInput={onInputMock}
@@ -424,7 +424,7 @@ describe('RecordFieldInput', () => {
         it('should handle empty string values', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => ''}
                     baseline={() => ''}
                     onInput={onInputMock}
@@ -442,7 +442,7 @@ describe('RecordFieldInput', () => {
         it('should handle numeric string values', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => '12345'}
                     baseline={() => '12345'}
                     staticInputmode="numeric"
@@ -461,7 +461,7 @@ describe('RecordFieldInput', () => {
         it('should handle whitespace in values', () => {
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => '  spaced  '}
                     baseline={() => '  spaced  '}
                     onInput={onInputMock}
@@ -479,7 +479,7 @@ describe('RecordFieldInput', () => {
             const longValue = 'a'.repeat(1000);
             const { container } = render(() => (
                 <RecordFieldInput
-                    id="test-field"
+                    staticId="test-field"
                     value={() => longValue}
                     baseline={() => longValue}
                     onInput={onInputMock}
@@ -499,14 +499,14 @@ describe('RecordFieldInput', () => {
             render(() => (
                 <>
                     <RecordFieldInput
-                        id="field-1"
+                        staticId="field-1"
                         value={() => 'value1'}
                         baseline={() => 'value1'}
                         onInput={onInputMock}
                         initialIsJustSaved={() => false}
                     />
                     <RecordFieldInput
-                        id="field-2"
+                        staticId="field-2"
                         value={() => 'value2'}
                         baseline={() => 'value2'}
                         onInput={onInputMock}
@@ -530,7 +530,7 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <>
                     <RecordFieldInput
-                        id="text-field"
+                        staticId="text-field"
                         value={() => 'text value'}
                         baseline={() => 'text value'}
                         staticInputmode="text"
@@ -538,7 +538,7 @@ describe('RecordFieldInput', () => {
                         initialIsJustSaved={() => false}
                     />
                     <RecordFieldInput
-                        id="numeric-field"
+                        staticId="numeric-field"
                         value={() => '123'}
                         baseline={() => '123'}
                         staticInputmode="numeric"

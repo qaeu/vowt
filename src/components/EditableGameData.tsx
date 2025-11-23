@@ -1,4 +1,4 @@
-import { createSignal, For, Show, type Component } from 'solid-js';
+import { createSignal, Index, Show, type Component } from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import RecordFieldInput from '#c/RecordFieldInput';
@@ -39,31 +39,28 @@ const TeamDataTableProps: Component<TeamDataTableProps> = (props) => {
                 </tr>
             </thead>
             <tbody>
-                <For each={props.players()}>
+                <Index each={props.players()}>
                     {(player, index) => (
                         <tr>
                             <td class="hero-column">
                                 <RecordFieldInput
-                                    id={`${props.team}-player-${index()}-hero`}
+                                    staticId={`${props.team}-player-${index}-hero`}
                                     value={() =>
-                                        props.players()[index()]?.hero ?? ''
+                                        props.players()[index]?.hero ?? ''
                                     }
                                     baseline={() =>
-                                        props.savedPlayers()[index()]?.hero ??
-                                        ''
+                                        props.savedPlayers()[index]?.hero ?? ''
                                     }
                                     onInput={(value) =>
                                         props.onPlayerUpdate(
-                                            index(),
+                                            index,
                                             'hero',
                                             value
                                         )
                                     }
                                     initialIsJustSaved={() =>
                                         props.isFieldJustSaved(
-                                            `${
-                                                props.team
-                                            }-player-${index()}-hero`
+                                            `${props.team}-player-${index}-hero`
                                         )
                                     }
                                     staticRegisterField={props.registerField}
@@ -71,59 +68,56 @@ const TeamDataTableProps: Component<TeamDataTableProps> = (props) => {
                             </td>
                             <td class="name-column">
                                 <RecordFieldInput
-                                    id={`${props.team}-player-${index()}-name`}
+                                    staticId={`${props.team}-player-${index}-name`}
                                     value={() =>
-                                        props.players()[index()]?.name ?? ''
+                                        props.players()[index]?.name ?? ''
                                     }
                                     baseline={() =>
-                                        props.savedPlayers()[index()]?.name ??
-                                        ''
+                                        props.savedPlayers()[index]?.name ?? ''
                                     }
                                     onInput={(value) =>
                                         props.onPlayerUpdate(
-                                            index(),
+                                            index,
                                             'name',
                                             value
                                         )
                                     }
                                     initialIsJustSaved={() =>
                                         props.isFieldJustSaved(
-                                            `${
-                                                props.team
-                                            }-player-${index()}-name`
+                                            `${props.team}-player-${index}-name`
                                         )
                                     }
                                     staticRegisterField={props.registerField}
                                 />
                             </td>
-                            <For each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
+                            <Index each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
                                 {(numericField) => (
                                     <td>
                                         <RecordFieldInput
-                                            id={`${
+                                            staticId={`${
                                                 props.team
-                                            }-player-${index()}-${numericField}`}
+                                            }-player-${index}-${numericField()}`}
                                             value={() =>
                                                 String(
-                                                    props.players()[index()]?.[
-                                                        numericField as keyof PlayerStats
+                                                    props.players()[index]?.[
+                                                        numericField() as keyof PlayerStats
                                                     ] ?? ''
                                                 )
                                             }
                                             baseline={() =>
                                                 String(
                                                     props.savedPlayers()[
-                                                        index()
+                                                        index
                                                     ]?.[
-                                                        numericField as keyof PlayerStats
+                                                        numericField() as keyof PlayerStats
                                                     ] ?? ''
                                                 )
                                             }
                                             staticInputmode="numeric"
                                             onInput={(value) =>
                                                 props.onPlayerUpdate(
-                                                    index(),
-                                                    numericField as keyof PlayerStats,
+                                                    index,
+                                                    numericField() as keyof PlayerStats,
                                                     value
                                                 )
                                             }
@@ -131,7 +125,7 @@ const TeamDataTableProps: Component<TeamDataTableProps> = (props) => {
                                                 props.isFieldJustSaved(
                                                     `${
                                                         props.team
-                                                    }-player-${index()}-${numericField}`
+                                                    }-player-${index}-${numericField()}`
                                                 )
                                             }
                                             staticRegisterField={
@@ -140,10 +134,10 @@ const TeamDataTableProps: Component<TeamDataTableProps> = (props) => {
                                         />
                                     </td>
                                 )}
-                            </For>
+                            </Index>
                         </tr>
                     )}
-                </For>
+                </Index>
             </tbody>
         </table>
     );
@@ -301,7 +295,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group">
                         <label>Result:</label>
                         <RecordFieldInput
-                            id="matchinfo-result"
+                            staticId="matchinfo-result"
                             value={() => editableMatchInfo().result}
                             baseline={() => lastSavedMatchInfo().result}
                             onInput={(value) =>
@@ -316,7 +310,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group score-field">
                         <label>Score (Blue):</label>
                         <RecordFieldInput
-                            id="matchinfo-finalscore-blue"
+                            staticId="matchinfo-finalscore-blue"
                             value={() => editableMatchInfo().final_score.blue}
                             baseline={() =>
                                 lastSavedMatchInfo().final_score.blue
@@ -336,7 +330,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group score-field">
                         <label>Score (Red):</label>
                         <RecordFieldInput
-                            id="matchinfo-finalscore-red"
+                            staticId="matchinfo-finalscore-red"
                             value={() => editableMatchInfo().final_score.red}
                             baseline={() =>
                                 lastSavedMatchInfo().final_score.red
@@ -356,7 +350,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group">
                         <label>Date:</label>
                         <RecordFieldInput
-                            id="matchinfo-date"
+                            staticId="matchinfo-date"
                             value={() => editableMatchInfo().date}
                             baseline={() => lastSavedMatchInfo().date}
                             onInput={(value) =>
@@ -371,7 +365,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group">
                         <label>Game Mode:</label>
                         <RecordFieldInput
-                            id="matchinfo-gamemode"
+                            staticId="matchinfo-gamemode"
                             value={() => editableMatchInfo().game_mode}
                             baseline={() => lastSavedMatchInfo().game_mode}
                             onInput={(value) =>
@@ -386,7 +380,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group">
                         <label>Length:</label>
                         <RecordFieldInput
-                            id="matchinfo-gamelength"
+                            staticId="matchinfo-gamelength"
                             value={() => editableMatchInfo().game_length}
                             baseline={() => lastSavedMatchInfo().game_length}
                             onInput={(value) =>
@@ -401,7 +395,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
                     <div class="form-group">
                         <label>Map:</label>
                         <RecordFieldInput
-                            id="matchinfo-map"
+                            staticId="matchinfo-map"
                             value={() => editableMatchInfo().map ?? ''}
                             baseline={() => lastSavedMatchInfo().map ?? ''}
                             onInput={(value) =>
