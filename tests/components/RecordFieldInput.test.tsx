@@ -18,7 +18,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -35,7 +35,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -52,7 +52,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -69,7 +69,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'123'}
-                    baseline={'123'}
+                    baseline={() => '123'}
                     staticInputmode="numeric"
                     onInput={onInputMock}
                     initialIsJustSaved={false}
@@ -87,7 +87,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'123'}
-                    baseline={'123'}
+                    baseline={() => '123'}
                     staticInputmode="numeric"
                     onInput={onInputMock}
                     initialIsJustSaved={false}
@@ -105,7 +105,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'text'}
-                    baseline={'text'}
+                    baseline={() => 'text'}
                     staticInputmode="text"
                     onInput={onInputMock}
                     initialIsJustSaved={false}
@@ -125,7 +125,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'modified value'}
-                    baseline={'original value'}
+                    baseline={() => 'original value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -143,7 +143,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'original'}
-                    baseline={'original'}
+                    baseline={() => 'original'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -162,7 +162,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'same value'}
-                    baseline={'same value'}
+                    baseline={() => 'same value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -179,7 +179,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={true}
                 />
@@ -196,7 +196,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={true}
                 />
@@ -218,7 +218,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test'}
-                    baseline={'test'}
+                    baseline={() => 'test'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -237,7 +237,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'original'}
-                    baseline={'original'}
+                    baseline={() => 'original'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -256,7 +256,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'original'}
-                    baseline={'original'}
+                    baseline={() => 'original'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -280,7 +280,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -303,7 +303,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                     staticRegisterField={registerFieldMock}
@@ -322,7 +322,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'test value'}
-                    baseline={'test value'}
+                    baseline={() => 'test value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -336,7 +336,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'original'}
-                    baseline={'original'}
+                    baseline={() => 'original'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                     staticRegisterField={registerFieldMock}
@@ -361,7 +361,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'original'}
-                    baseline={'original'}
+                    baseline={() => 'original'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                     staticRegisterField={registerFieldMock}
@@ -390,7 +390,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'initial'}
-                    baseline={'initial'}
+                    baseline={() => 'initial'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -407,7 +407,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'value'}
-                    baseline={'value'}
+                    baseline={() => 'value'}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -426,7 +426,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={''}
-                    baseline={''}
+                    baseline={() => ''}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -444,7 +444,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'12345'}
-                    baseline={'12345'}
+                    baseline={() => '12345'}
                     staticInputmode="numeric"
                     onInput={onInputMock}
                     initialIsJustSaved={false}
@@ -463,7 +463,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={'  spaced  '}
-                    baseline={'  spaced  '}
+                    baseline={() => '  spaced  '}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -481,7 +481,7 @@ describe('RecordFieldInput', () => {
                 <RecordFieldInput
                     staticId="test-field"
                     initialValue={longValue}
-                    baseline={longValue}
+                    baseline={() => longValue}
                     onInput={onInputMock}
                     initialIsJustSaved={false}
                 />
@@ -501,14 +501,14 @@ describe('RecordFieldInput', () => {
                     <RecordFieldInput
                         staticId="field-1"
                         initialValue={'value1'}
-                        baseline={'value1'}
+                        baseline={() => 'value1'}
                         onInput={onInputMock}
                         initialIsJustSaved={false}
                     />
                     <RecordFieldInput
                         staticId="field-2"
                         initialValue={'value2'}
-                        baseline={'value2'}
+                        baseline={() => 'value2'}
                         onInput={onInputMock}
                         initialIsJustSaved={false}
                     />
@@ -532,7 +532,7 @@ describe('RecordFieldInput', () => {
                     <RecordFieldInput
                         staticId="text-field"
                         initialValue={'text value'}
-                        baseline={'text value'}
+                        baseline={() => 'text value'}
                         staticInputmode="text"
                         onInput={onInputMock}
                         initialIsJustSaved={false}
@@ -540,7 +540,7 @@ describe('RecordFieldInput', () => {
                     <RecordFieldInput
                         staticId="numeric-field"
                         initialValue={'123'}
-                        baseline={'123'}
+                        baseline={() => '123'}
                         staticInputmode="numeric"
                         onInput={onInputMock}
                         initialIsJustSaved={false}
