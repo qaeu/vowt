@@ -1,4 +1,11 @@
-import { createSignal, For, Show, onMount, type Component } from 'solid-js';
+import {
+    createSignal,
+    batch,
+    For,
+    Show,
+    onMount,
+    type Component,
+} from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
 import * as Profiles from '#utils/regionProfiles';
@@ -18,6 +25,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         description: initialActiveProfileDesc,
     } = Profiles.getActiveProfileDetails();
 
+    const [savedRegions, setSavedRegions] = createSignal<DrawnRegion[]>([]);
     const [editingRegions, setEditingRegions] = createSignal<DrawnRegion[]>([]);
     const [profileList, setProfileList] = createSignal(initialProfileList);
     const [activeProfileId, setActiveProfileId] = createSignal<string>(
@@ -37,8 +45,15 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         if (!canvasRef) return;
 
         const activeRegions = Profiles.getActiveProfile();
-        const drawnRegions = makeDrawnRegions(activeRegions);
-        setEditingRegions(drawnRegions);
+        const drawnRegions = makeDrawnRegions(
+            activeRegions,
+            editingProfileId()
+        );
+
+        batch(() => {
+            setSavedRegions(drawnRegions);
+            setEditingRegions(drawnRegions);
+        });
 
         try {
             await startRegionEditor(
@@ -52,15 +67,12 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }
     });
 
-    const makeDrawnRegions = (textRegions: TextRegion[]) => {
-        return textRegions.map((r) => ({
+    const makeDrawnRegions = (textRegions: TextRegion[], profileId: string) => {
+        return textRegions.map((r, index) => ({
             ...r,
+            id: `${profileId}-${index}`,
             color: r.isItalic ? '#4caf50' : '#ff0000',
         }));
-    };
-
-    const getTextRegions = (): TextRegion[] => {
-        return editingRegions();
     };
 
     const activateProfile = (profileId: string) => {
@@ -68,9 +80,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         Profiles.setActiveProfile(profileId);
     };
 
-    const handleRegionComplete = (region: DrawnRegion) => {
-        setEditingRegions((prev) => [...prev, region]);
-
+    const redrawRegions = () => {
         if (canvasRef && getImageSource()) {
             drawRegions(
                 canvasRef,
@@ -80,16 +90,14 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }
     };
 
+    const handleRegionComplete = (region: DrawnRegion) => {
+        setEditingRegions((prev) => [...prev, region]);
+        redrawRegions();
+    };
+
     const handleClearRegions = () => {
         setEditingRegions([]);
-
-        if (canvasRef && getImageSource()) {
-            drawRegions(
-                canvasRef,
-                editingRegions(),
-                getImageSource() as string
-            );
-        }
+        redrawRegions();
     };
 
     const handleCopyRegionsCode = () => {
@@ -98,22 +106,17 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         alert('Regions copied to clipboard!');
     };
 
-    const handleSaveProfileDetails = () => {
+    const handleSaveProfile = () => {
         if (!editingProfileId()) {
             alert('Profile ID is required');
             return;
         }
 
-        // Get the current saved regions from storage to avoid saving unsaved table edits
-        const currentProfile = Profiles.getProfile(editingProfileId());
-        if (!currentProfile) {
-            alert('Could not load current profile regions');
-            return;
-        }
+        setSavedRegions(editingRegions());
 
         if (canvasRef) {
             Profiles.saveProfile(
-                currentProfile,
+                editingRegions(),
                 {
                     id: editingProfileId(),
                     description: editingProfileDesc(),
@@ -126,34 +129,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         // Refresh profile list
         setProfileList(Profiles.listProfiles());
 
-        alert('Profile details saved successfully!');
-    };
-
-    const handleSaveRegions = (regions: TextRegion[]) => {
-        // Convert TextRegion to DrawnRegion with color
-        const drawnRegions = makeDrawnRegions(regions);
-        setEditingRegions(drawnRegions);
-
-        // Save only regions, keep current profile details
-        if (canvasRef) {
-            Profiles.saveProfile(
-                regions,
-                {
-                    id: editingProfileId(),
-                    description: editingProfileDesc(),
-                },
-                canvasRef.width,
-                canvasRef.height
-            );
-        }
-
-        // Update the canvas display
-        if (canvasRef && getImageSource()) {
-            drawRegions(canvasRef, drawnRegions, getImageSource() as string);
-        }
-
-        // Refresh profile list
-        setProfileList(Profiles.listProfiles());
+        alert('Profile saved successfully!');
     };
 
     const handleActivateProfile = (profileId: string) => {
@@ -161,25 +137,28 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
     };
 
     const handleEditProfile = (profileId: string) => {
-        const profileDetails = profileList().find((p) => p.id === profileId);
-        if (profileDetails) {
-            setEditingProfileId(profileDetails.id);
-            setEditingProfileDesc(profileDetails.description);
-        }
-
+        // Set regions first as region table tracks profile ID
         const profileRegions = Profiles.getProfile(profileId);
         if (!profileRegions) {
             alert('Could not load profile');
             return;
         }
 
-        const drawnRegions = makeDrawnRegions(profileRegions);
-        setEditingRegions(drawnRegions);
+        batch(() => {
+            const drawnRegions = makeDrawnRegions(profileRegions, profileId);
+            setSavedRegions(drawnRegions);
+            setEditingRegions(drawnRegions);
 
-        // Redraw the regions on canvas
-        if (canvasRef && getImageSource()) {
-            drawRegions(canvasRef, drawnRegions, getImageSource()!); // TODO: review non-null assertion
-        }
+            const profileDetails = profileList().find(
+                (p) => p.id === profileId
+            );
+            if (profileDetails) {
+                setEditingProfileId(profileDetails.id);
+                setEditingProfileDesc(profileDetails.description);
+            }
+        });
+
+        redrawRegions();
     };
 
     const handleDeleteProfile = (profileId: string) => {
@@ -202,6 +181,12 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
             // Refresh profile list
             setProfileList(Profiles.listProfiles());
         }
+    };
+
+    const handleRegionChange = (regions: TextRegion[]) => {
+        const drawnRegions = makeDrawnRegions(regions, editingProfileId());
+        setEditingRegions(drawnRegions);
+        redrawRegions();
     };
 
     return (
@@ -321,11 +306,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                         />
 
                         <div class="button-group">
-                            <button
-                                onClick={handleSaveProfileDetails}
-                                class="success"
-                            >
-                                Save Profile Details
+                            <button onClick={handleSaveProfile} class="success">
+                                Save Profile
                             </button>
                         </div>
                     </div>
@@ -356,8 +338,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                     </div>
 
                     <EditableRegionsData
-                        initialRegions={getTextRegions()}
-                        onSave={handleSaveRegions}
+                        profileId={editingProfileId()}
+                        currentRegions={editingRegions()}
+                        savedRegions={savedRegions()}
+                        onChange={handleRegionChange}
                     />
                 </div>
             </div>
