@@ -2,78 +2,78 @@
 
 // Global styles - always show scrollbar to prevent layout shift
 html {
-    overflow-y: scroll;
+	overflow-y: scroll;
 }
 
 body {
-    margin: 0;
-    padding: 0;
+	margin: 0;
+	padding: 0;
 }
 
 // Drag and drop overlay
 .drag-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(theme.$accent1, 0.2);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 4px dashed theme.$accent1;
-    pointer-events: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(theme.$accent1, 0.2);
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 4px dashed theme.$accent1;
+	pointer-events: none;
 }
 
 .drag-overlay-content {
-    background-color: theme.$background-light;
-    padding: 40px 60px;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px theme.$shadow-subtle;
-    text-align: center;
+	background-color: theme.$background-light;
+	padding: 40px 60px;
+	border-radius: 12px;
+	box-shadow: 0 8px 24px theme.$shadow-subtle;
+	text-align: center;
 }
 
 .drag-overlay-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+	font-size: 48px;
+	margin-bottom: 16px;
 }
 
 .drag-overlay-text {
-    font-size: 24px;
-    font-weight: bold;
-    color: theme.$accent1;
+	font-size: 24px;
+	font-weight: bold;
+	color: theme.$accent1;
 }
 
 // Navigation container
 .nav-container {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 1000;
-    display: flex;
-    gap: 10px;
+	position: fixed;
+	top: 10px;
+	right: 10px;
+	z-index: 1000;
+	display: flex;
+	gap: 10px;
 }
 
 .nav-button {
-    padding: 8px 16px;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-    box-shadow: 0 2px 4px theme.$shadow-subtle;
+	padding: 8px 16px;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: bold;
+	box-shadow: 0 2px 4px theme.$shadow-subtle;
 
-    &.ocr-button {
-        background-color: theme.$accent1;
-    }
+	&.ocr-button {
+		background-color: theme.$accent1;
+	}
 
-    &.records-button {
-        background-color: theme.$accent2-success;
-    }
+	&.records-button {
+		background-color: theme.$accent2-success;
+	}
 
-    &.debugger-button {
-        background-color: theme.$accent2-warning;
-    }
+	&.debugger-button {
+		background-color: theme.$accent2-warning;
+	}
 }

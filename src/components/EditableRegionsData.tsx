@@ -1,11 +1,11 @@
 import {
-    createSignal,
-    createEffect,
-    createMemo,
-    batch,
-    For,
-    Show,
-    type Component,
+	createSignal,
+	createEffect,
+	createMemo,
+	batch,
+	For,
+	Show,
+	type Component,
 } from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
@@ -13,448 +13,342 @@ import RecordFieldInput from '#c/RecordFieldInput';
 import '#styles/EditableRegionsData';
 
 interface EditableRegionsDataProps {
-    profileId: string;
-    currentRegions: DrawnRegion[];
-    savedRegions: DrawnRegion[];
-    onChange: (regions: DrawnRegion[]) => void;
+	profileId: string;
+	currentRegions: DrawnRegion[];
+	savedRegions: DrawnRegion[];
+	onChange: (regions: DrawnRegion[]) => void;
 }
 
 const findRegionIndex = (regionList: DrawnRegion[], regionId: string) => {
-    return regionList.findIndex((region) => region.id === regionId);
+	return regionList.findIndex((region) => region.id === regionId);
 };
 const findRegion = (regionList: DrawnRegion[], regionId: string) => {
-    return regionList[findRegionIndex(regionList, regionId)] || undefined;
+	return regionList[findRegionIndex(regionList, regionId)] || undefined;
 };
 
 const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
-    // Track the working state
-    const [editableRegions, setEditableRegions] = createSignal<DrawnRegion[]>(
-        []
-    );
+	// Track the working state
+	const [editableRegions, setEditableRegions] = createSignal<DrawnRegion[]>([]);
 
-    // Track the IDs seperately for For rendering
-    const [editableRegionIds, setEditableRegionIds] = createSignal<string[]>(
-        []
-    );
+	// Track the IDs seperately for For rendering
+	const [editableRegionIds, setEditableRegionIds] = createSignal<string[]>([]);
 
-    // Track the last saved regions
-    const [savedRegions, setSavedRegions] = createSignal<DrawnRegion[]>([]);
+	// Track the last saved regions
+	const [savedRegions, setSavedRegions] = createSignal<DrawnRegion[]>([]);
 
-    // Track which fields are currently showing "just-saved" state
-    const [justSavedFieldIds, setJustSavedFieldIds] = createSignal(
-        new Set<string>()
-    );
+	// Track which fields are currently showing "just-saved" state
+	const [justSavedFieldIds, setJustSavedFieldIds] = createSignal(new Set<string>());
 
-    // Registry to track all input fields' modification state and reset functions
-    const [fieldRegistry, setFieldRegistry] = createSignal<
-        Map<string, { isModified: () => boolean; reset: () => void }>
-    >(new Map());
+	// Registry to track all input fields' modification state and reset functions
+	const [fieldRegistry, setFieldRegistry] = createSignal<
+		Map<string, { isModified: () => boolean; reset: () => void }>
+	>(new Map());
 
-    createEffect(
-        ({ prevProfileId, prevRegionsCount }) => {
-            console.log('Effect');
-            // Sync saved regions on profile save or change
-            if (savedRegions() !== props.savedRegions) {
-                console.log('  save');
-                setSavedRegions(props.savedRegions);
-                setJustSavedFieldIds(getModifiedFieldIds());
-                resetAllModifiedFields();
+	createEffect(
+		({ prevProfileId, prevRegionsCount }) => {
+			console.log('Effect');
+			// Sync saved regions on profile save or change
+			if (savedRegions() !== props.savedRegions) {
+				console.log('  save');
+				setSavedRegions(props.savedRegions);
+				setJustSavedFieldIds(getModifiedFieldIds());
+				resetAllModifiedFields();
 
-                // Clear the saved state after animation completes
-                setTimeout(() => {
-                    setJustSavedFieldIds(new Set<string>());
-                }, 2000);
-            }
+				// Clear the saved state after animation completes
+				setTimeout(() => {
+					setJustSavedFieldIds(new Set<string>());
+				}, 2000);
+			}
 
-            // Sync on profile change
-            if (prevProfileId !== props.profileId) {
-                setFieldRegistry(new Map());
-                setJustSavedFieldIds(new Set<string>());
-                setEditableRegions(structuredClone(props.currentRegions));
-                syncEditableRegionIds();
-            }
+			// Sync on profile change
+			if (prevProfileId !== props.profileId) {
+				setFieldRegistry(new Map());
+				setJustSavedFieldIds(new Set<string>());
+				setEditableRegions(structuredClone(props.currentRegions));
+				syncEditableRegionIds();
+			}
 
-            // Sync on region added or removed
-            else if (props.currentRegions.length !== prevRegionsCount) {
-                setEditableRegions(props.currentRegions);
-                syncEditableRegionIds();
-            }
+			// Sync on region added or removed
+			else if (props.currentRegions.length !== prevRegionsCount) {
+				setEditableRegions(props.currentRegions);
+				syncEditableRegionIds();
+			}
 
-            return {
-                prevProfileId: props.profileId,
-                prevRegionsCount: props.currentRegions.length,
-            };
-        },
-        { prevProfileId: '', prevRegionsCount: 0 }
-    );
+			return {
+				prevProfileId: props.profileId,
+				prevRegionsCount: props.currentRegions.length,
+			};
+		},
+		{ prevProfileId: '', prevRegionsCount: 0 }
+	);
 
-    const syncEditableRegionIds = () => {
-        setEditableRegionIds(editableRegions().map((region) => region.id));
-    };
+	const syncEditableRegionIds = () => {
+		setEditableRegionIds(editableRegions().map((region) => region.id));
+	};
 
-    const registerField = (
-        fieldId: string,
-        isModifiedGetter: () => boolean,
-        resetModified: () => void
-    ) => {
-        setFieldRegistry((prev) =>
-            new Map(prev).set(fieldId, {
-                isModified: isModifiedGetter,
-                reset: resetModified,
-            })
-        );
-    };
+	const registerField = (
+		fieldId: string,
+		isModifiedGetter: () => boolean,
+		resetModified: () => void
+	) => {
+		setFieldRegistry((prev) =>
+			new Map(prev).set(fieldId, {
+				isModified: isModifiedGetter,
+				reset: resetModified,
+			})
+		);
+	};
 
-    const unregisterField = (regionId: string) => {
-        const newRegistry = new Map(fieldRegistry());
-        const fieldsToDelete: string[] = [];
-        newRegistry.forEach((_, fieldId) => {
-            if (fieldId.startsWith(`region-${regionId}-`)) {
-                fieldsToDelete.push(fieldId);
-            }
-        });
-        fieldsToDelete.forEach((fieldId) => newRegistry.delete(fieldId));
-        setFieldRegistry(newRegistry);
-    };
+	const unregisterField = (regionId: string) => {
+		const newRegistry = new Map(fieldRegistry());
+		const fieldsToDelete: string[] = [];
+		newRegistry.forEach((_, fieldId) => {
+			if (fieldId.startsWith(`region-${regionId}-`)) {
+				fieldsToDelete.push(fieldId);
+			}
+		});
+		fieldsToDelete.forEach((fieldId) => newRegistry.delete(fieldId));
+		setFieldRegistry(newRegistry);
+	};
 
-    const getModifiedFieldIds = (): Set<string> => {
-        const modified = new Set<string>();
-        fieldRegistry().forEach((field, fieldId) => {
-            if (field.isModified()) {
-                modified.add(fieldId);
-            }
-        });
-        return modified;
-    };
+	const getModifiedFieldIds = (): Set<string> => {
+		const modified = new Set<string>();
+		fieldRegistry().forEach((field, fieldId) => {
+			if (field.isModified()) {
+				modified.add(fieldId);
+			}
+		});
+		return modified;
+	};
 
-    const resetAllModifiedFields = () => {
-        fieldRegistry().forEach((field) => {
-            field.reset();
-        });
-    };
+	const resetAllModifiedFields = () => {
+		fieldRegistry().forEach((field) => {
+			field.reset();
+		});
+	};
 
-    const handleCancel = () => {
-        batch(() => {
-            setEditableRegions(structuredClone(savedRegions()));
-            syncEditableRegionIds();
+	const handleCancel = () => {
+		batch(() => {
+			setEditableRegions(structuredClone(savedRegions()));
+			syncEditableRegionIds();
 
-            resetAllModifiedFields();
-            setJustSavedFieldIds(new Set<string>());
-        });
+			resetAllModifiedFields();
+			setJustSavedFieldIds(new Set<string>());
+		});
 
-        props.onChange(editableRegions());
-    };
+		props.onChange(editableRegions());
+	};
 
-    const handleDeleteRegion = (regionId: string) => {
-        const regions = [...editableRegions()];
-        const index = findRegionIndex(regions, regionId);
+	const handleDeleteRegion = (regionId: string) => {
+		const regions = [...editableRegions()];
+		const index = findRegionIndex(regions, regionId);
 
-        if (index == -1) {
-            return;
-        }
+		if (index == -1) {
+			return;
+		}
 
-        regions.splice(index, 1);
+		regions.splice(index, 1);
 
-        batch(() => {
-            unregisterField(regionId);
-            setEditableRegions(regions);
-            syncEditableRegionIds();
-        });
+		batch(() => {
+			unregisterField(regionId);
+			setEditableRegions(regions);
+			syncEditableRegionIds();
+		});
 
-        props.onChange(regions);
-    };
+		props.onChange(regions);
+	};
 
-    const isFieldJustSaved = (fieldId: string) => {
-        return justSavedFieldIds().has(fieldId);
-    };
+	const isFieldJustSaved = (fieldId: string) => {
+		return justSavedFieldIds().has(fieldId);
+	};
 
-    // Derive unsaved state from fieldRegistry
-    const hasUnsavedChanges = () => {
-        let hasChanges = false;
-        fieldRegistry().forEach((field) => {
-            if (field.isModified()) {
-                hasChanges = true;
-            }
-        });
-        // Also check if regions were deleted or added
-        return hasChanges || editableRegions().length !== savedRegions().length;
-    };
+	// Derive unsaved state from fieldRegistry
+	const hasUnsavedChanges = () => {
+		let hasChanges = false;
+		fieldRegistry().forEach((field) => {
+			if (field.isModified()) {
+				hasChanges = true;
+			}
+		});
+		// Also check if regions were deleted or added
+		return hasChanges || editableRegions().length !== savedRegions().length;
+	};
 
-    const updateRegionField = <K extends keyof TextRegion>(
-        id: string,
-        field: K,
-        value: TextRegion[K]
-    ) => {
-        const regions = editableRegions();
-        const index = findRegionIndex(regions, id);
+	const updateRegionField = <K extends keyof TextRegion>(
+		id: string,
+		field: K,
+		value: TextRegion[K]
+	) => {
+		const regions = editableRegions();
+		const index = findRegionIndex(regions, id);
 
-        if (index == -1) {
-            console.error(`Region with id ${id} not found for update.`);
-            return;
-        }
+		if (index == -1) {
+			console.error(`Region with id ${id} not found for update.`);
+			return;
+		}
 
-        // Modify in place to avoid re-render
-        regions[index][field] = value as DrawnRegion[K];
+		// Modify in place to avoid re-render
+		regions[index][field] = value as DrawnRegion[K];
 
-        props.onChange(editableRegions());
-    };
+		props.onChange(editableRegions());
+	};
 
-    return (
-        <div class="editable-regions-container">
-            <div class="editable-header">
-                <h3>Drawn Regions ({editableRegionIds().length})</h3>
+	return (
+		<div class="editable-regions-container">
+			<div class="editable-header">
+				<h3>Drawn Regions ({editableRegionIds().length})</h3>
 
-                <div class="action-buttons">
-                    <Show when={hasUnsavedChanges()}>
-                        <button onClick={handleCancel} class="cancel-button">
-                            Cancel Changes
-                        </button>
-                    </Show>
-                </div>
-            </div>
+				<div class="action-buttons">
+					<Show when={hasUnsavedChanges()}>
+						<button onClick={handleCancel} class="cancel-button">
+							Cancel Changes
+						</button>
+					</Show>
+				</div>
+			</div>
 
-            <Show
-                when={editableRegionIds().length > 0}
-                fallback={
-                    <div class="empty-state">
-                        <p>
-                            No regions drawn yet. Use the region editor to draw
-                            regions.
-                        </p>
-                    </div>
-                }
-            >
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="name-column">Name</th>
-                                <th>X</th>
-                                <th>Y</th>
-                                <th>Width</th>
-                                <th>Height</th>
-                                <th>Char Set</th>
-                                <th>Italic</th>
-                                <th class="delete-column">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <For each={editableRegionIds()}>
-                                {(regionId) => {
-                                    const region = findRegion(
-                                        editableRegions(),
-                                        regionId
-                                    );
-                                    const savedRegion = createMemo(
-                                        () =>
-                                            findRegion(
-                                                savedRegions(),
-                                                regionId
-                                            ) || region
-                                    );
-                                    return (
-                                        <tr>
-                                            <td class="name-column">
-                                                <RecordFieldInput
-                                                    staticId={`region-${region.id}-name`}
-                                                    initialValue={
-                                                        region.name ?? ''
-                                                    }
-                                                    baseline={() =>
-                                                        savedRegion()?.name ??
-                                                        ''
-                                                    }
-                                                    onInput={(value) =>
-                                                        updateRegionField(
-                                                            region.id,
-                                                            'name',
-                                                            value
-                                                        )
-                                                    }
-                                                    initialIsJustSaved={isFieldJustSaved(
-                                                        `region-${region.id}-name`
-                                                    )}
-                                                    staticRegisterField={
-                                                        registerField
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <RecordFieldInput
-                                                    staticId={`region-${region.id}-x`}
-                                                    initialValue={String(
-                                                        region.x ?? ''
-                                                    )}
-                                                    baseline={() =>
-                                                        String(
-                                                            savedRegion()?.x ??
-                                                                ''
-                                                        )
-                                                    }
-                                                    staticInputmode="numeric"
-                                                    onInput={(value) =>
-                                                        updateRegionField(
-                                                            region.id,
-                                                            'x',
-                                                            Number(value)
-                                                        )
-                                                    }
-                                                    initialIsJustSaved={isFieldJustSaved(
-                                                        `region-${region.id}-x`
-                                                    )}
-                                                    staticRegisterField={
-                                                        registerField
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <RecordFieldInput
-                                                    staticId={`region-${region.id}-y`}
-                                                    initialValue={String(
-                                                        region.y ?? ''
-                                                    )}
-                                                    baseline={() =>
-                                                        String(
-                                                            savedRegion()?.y ??
-                                                                ''
-                                                        )
-                                                    }
-                                                    staticInputmode="numeric"
-                                                    onInput={(value) =>
-                                                        updateRegionField(
-                                                            region.id,
-                                                            'y',
-                                                            Number(value)
-                                                        )
-                                                    }
-                                                    initialIsJustSaved={isFieldJustSaved(
-                                                        `region-${region.id}-y`
-                                                    )}
-                                                    staticRegisterField={
-                                                        registerField
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <RecordFieldInput
-                                                    staticId={`region-${region.id}-width`}
-                                                    initialValue={String(
-                                                        region.width ?? ''
-                                                    )}
-                                                    baseline={() =>
-                                                        String(
-                                                            savedRegion()
-                                                                ?.width ?? ''
-                                                        )
-                                                    }
-                                                    staticInputmode="numeric"
-                                                    onInput={(value) =>
-                                                        updateRegionField(
-                                                            region.id,
-                                                            'width',
-                                                            Number(value)
-                                                        )
-                                                    }
-                                                    initialIsJustSaved={isFieldJustSaved(
-                                                        `region-${region.id}-width`
-                                                    )}
-                                                    staticRegisterField={
-                                                        registerField
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <RecordFieldInput
-                                                    staticId={`region-${region.id}-height`}
-                                                    initialValue={String(
-                                                        region.height ?? ''
-                                                    )}
-                                                    baseline={() =>
-                                                        String(
-                                                            savedRegion()
-                                                                ?.height ?? ''
-                                                        )
-                                                    }
-                                                    staticInputmode="numeric"
-                                                    onInput={(value) =>
-                                                        updateRegionField(
-                                                            region.id,
-                                                            'height',
-                                                            Number(value)
-                                                        )
-                                                    }
-                                                    initialIsJustSaved={isFieldJustSaved(
-                                                        `region-${region.id}-height`
-                                                    )}
-                                                    staticRegisterField={
-                                                        registerField
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <RecordFieldInput
-                                                    staticId={`region-${region.id}-charSet`}
-                                                    initialValue={
-                                                        region.charSet ?? ''
-                                                    }
-                                                    baseline={() =>
-                                                        savedRegion()
-                                                            ?.charSet ?? ''
-                                                    }
-                                                    onInput={(value) =>
-                                                        updateRegionField(
-                                                            region.id,
-                                                            'charSet',
-                                                            value || undefined
-                                                        )
-                                                    }
-                                                    initialIsJustSaved={isFieldJustSaved(
-                                                        `region-${region.id}-charSet`
-                                                    )}
-                                                    staticRegisterField={
-                                                        registerField
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={
-                                                        region.isItalic ?? false
-                                                    }
-                                                    onChange={(e) =>
-                                                        updateRegionField(
-                                                            region.id,
-                                                            'isItalic',
-                                                            e.target.checked
-                                                        )
-                                                    }
-                                                    class="italic-checkbox"
-                                                />
-                                            </td>
-                                            <td class="delete-column">
-                                                <button
-                                                    onClick={() =>
-                                                        handleDeleteRegion(
-                                                            region.id
-                                                        )
-                                                    }
-                                                    class="delete-button"
-                                                    title="Delete region"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                }}
-                            </For>
-                        </tbody>
-                    </table>
-                </div>
-            </Show>
-        </div>
-    );
+			<Show
+				when={editableRegionIds().length > 0}
+				fallback={
+					<div class="empty-state">
+						<p>No regions drawn yet. Use the region editor to draw regions.</p>
+					</div>
+				}
+			>
+				<div class="table-wrapper">
+					<table>
+						<thead>
+							<tr>
+								<th class="name-column">Name</th>
+								<th>X</th>
+								<th>Y</th>
+								<th>Width</th>
+								<th>Height</th>
+								<th>Char Set</th>
+								<th>Italic</th>
+								<th class="delete-column">Delete</th>
+							</tr>
+						</thead>
+						<tbody>
+							<For each={editableRegionIds()}>
+								{(regionId) => {
+									const region = findRegion(editableRegions(), regionId);
+									const savedRegion = createMemo(
+										() => findRegion(savedRegions(), regionId) || region
+									);
+									return (
+										<tr>
+											<td class="name-column">
+												<RecordFieldInput
+													staticId={`region-${region.id}-name`}
+													initialValue={region.name ?? ''}
+													baseline={() => savedRegion()?.name ?? ''}
+													onInput={(value) => updateRegionField(region.id, 'name', value)}
+													initialIsJustSaved={isFieldJustSaved(
+														`region-${region.id}-name`
+													)}
+													staticRegisterField={registerField}
+												/>
+											</td>
+											<td>
+												<RecordFieldInput
+													staticId={`region-${region.id}-x`}
+													initialValue={String(region.x ?? '')}
+													baseline={() => String(savedRegion()?.x ?? '')}
+													staticInputmode="numeric"
+													onInput={(value) =>
+														updateRegionField(region.id, 'x', Number(value))
+													}
+													initialIsJustSaved={isFieldJustSaved(`region-${region.id}-x`)}
+													staticRegisterField={registerField}
+												/>
+											</td>
+											<td>
+												<RecordFieldInput
+													staticId={`region-${region.id}-y`}
+													initialValue={String(region.y ?? '')}
+													baseline={() => String(savedRegion()?.y ?? '')}
+													staticInputmode="numeric"
+													onInput={(value) =>
+														updateRegionField(region.id, 'y', Number(value))
+													}
+													initialIsJustSaved={isFieldJustSaved(`region-${region.id}-y`)}
+													staticRegisterField={registerField}
+												/>
+											</td>
+											<td>
+												<RecordFieldInput
+													staticId={`region-${region.id}-width`}
+													initialValue={String(region.width ?? '')}
+													baseline={() => String(savedRegion()?.width ?? '')}
+													staticInputmode="numeric"
+													onInput={(value) =>
+														updateRegionField(region.id, 'width', Number(value))
+													}
+													initialIsJustSaved={isFieldJustSaved(
+														`region-${region.id}-width`
+													)}
+													staticRegisterField={registerField}
+												/>
+											</td>
+											<td>
+												<RecordFieldInput
+													staticId={`region-${region.id}-height`}
+													initialValue={String(region.height ?? '')}
+													baseline={() => String(savedRegion()?.height ?? '')}
+													staticInputmode="numeric"
+													onInput={(value) =>
+														updateRegionField(region.id, 'height', Number(value))
+													}
+													initialIsJustSaved={isFieldJustSaved(
+														`region-${region.id}-height`
+													)}
+													staticRegisterField={registerField}
+												/>
+											</td>
+											<td>
+												<RecordFieldInput
+													staticId={`region-${region.id}-charSet`}
+													initialValue={region.charSet ?? ''}
+													baseline={() => savedRegion()?.charSet ?? ''}
+													onInput={(value) =>
+														updateRegionField(region.id, 'charSet', value || undefined)
+													}
+													initialIsJustSaved={isFieldJustSaved(
+														`region-${region.id}-charSet`
+													)}
+													staticRegisterField={registerField}
+												/>
+											</td>
+											<td>
+												<input
+													type="checkbox"
+													checked={region.isItalic ?? false}
+													onChange={(e) =>
+														updateRegionField(region.id, 'isItalic', e.target.checked)
+													}
+													class="italic-checkbox"
+												/>
+											</td>
+											<td class="delete-column">
+												<button
+													onClick={() => handleDeleteRegion(region.id)}
+													class="delete-button"
+													title="Delete region"
+												>
+													✕
+												</button>
+											</td>
+										</tr>
+									);
+								}}
+							</For>
+						</tbody>
+					</table>
+				</div>
+			</Show>
+		</div>
+	);
 };
 
 export default EditableRegionsData;

@@ -1,151 +1,142 @@
 @use 'theme';
 
 .scoreboard-container {
-    @include theme.container;
+	@include theme.container;
 
-    .ocr-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
+	.ocr-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20px;
 
-        .scoreboard-title {
-            margin: 0;
-        }
+		.scoreboard-title {
+			margin: 0;
+		}
 
-        .close-button {
-            @include theme.button(theme.$foreground-light);
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-    }
+		.close-button {
+			@include theme.button(theme.$foreground-light);
+			padding: 8px 16px;
+			font-size: 14px;
+		}
+	}
 
-    .scoreboard-title {
-        color: theme.$accent1;
-    }
+	.scoreboard-title {
+		color: theme.$accent1;
+	}
 
-    .upload-button {
-        @include theme.button(theme.$accent2-success);
-    }
+	.upload-button {
+		@include theme.button(theme.$accent2-success);
+	}
 
-    .info-box {
-        @include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
-    }
+	.info-box {
+		@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
+	}
 
-    .error-box {
-        @include theme.info-box(
-            theme.$accent2-error-light,
-            theme.$accent2-error-border
-        );
+	.error-box {
+		@include theme.info-box(theme.$accent2-error-light, theme.$accent2-error-border);
 
-        color: theme.$accent2-error-dark;
-    }
+		color: theme.$accent2-error-dark;
+	}
 
-    .progress-container {
-        margin-bottom: 30px;
+	.progress-container {
+		margin-bottom: 30px;
 
-        .progress-text {
-            font-weight: bold;
-            color: theme.$accent1;
-        }
+		.progress-text {
+			font-weight: bold;
+			color: theme.$accent1;
+		}
 
-        .progress-bar-wrapper {
-            @include theme.progress-bar-wrapper;
-        }
+		.progress-bar-wrapper {
+			@include theme.progress-bar-wrapper;
+		}
 
-        .progress-bar {
-            @include theme.progress-bar-fill;
-        }
-    }
+		.progress-bar {
+			@include theme.progress-bar-fill;
+		}
+	}
 
-    .image-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
-        margin-bottom: 30px;
-    }
+	.image-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 30px;
+		margin-bottom: 30px;
+	}
 
-    .image-container {
-        @include theme.card(theme.$background);
+	.image-container {
+		@include theme.card(theme.$background);
 
-        h2 {
-            margin-top: 0;
-            color: theme.$foreground-dark;
-        }
+		h2 {
+			margin-top: 0;
+			color: theme.$foreground-dark;
+		}
 
-        img {
-            max-width: 100%;
-            border: 2px solid theme.$border-light;
-            border-radius: 4px;
-            display: block;
-        }
+		img {
+			max-width: 100%;
+			border: 2px solid theme.$border-light;
+			border-radius: 4px;
+			display: block;
+		}
 
-        p {
-            font-size: 13px;
-            color: theme.$foreground-light;
-            margin-top: 10px;
-        }
-    }
+		p {
+			font-size: 13px;
+			color: theme.$foreground-light;
+			margin-top: 10px;
+		}
+	}
 
-    .stats-box {
-        @include theme.card(theme.$accent2-success-light);
+	.stats-box {
+		@include theme.card(theme.$accent2-success-light);
 
-        h2 {
-            margin-top: 0;
-            color: theme.$accent2-success;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            user-select: none;
-        }
+		h2 {
+			margin-top: 0;
+			color: theme.$accent2-success;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			user-select: none;
+		}
 
-        span {
-            font-size: 20px;
-        }
+		span {
+			font-size: 20px;
+		}
 
-        pre {
-            @include theme.code-block(
-                theme.$background-light,
-                theme.$accent2-success-border
-            );
+		pre {
+			@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
 
-            font-size: 16px;
-            padding: 20px;
-        }
+			font-size: 16px;
+			padding: 20px;
+		}
 
-        .stats-message {
-            font-size: 13px;
-            color: theme.$accent2-success;
-            margin-top: 15px;
-            margin-bottom: 0;
-        }
-    }
+		.stats-message {
+			font-size: 13px;
+			color: theme.$accent2-success;
+			margin-top: 15px;
+			margin-bottom: 0;
+		}
+	}
 
-    .ocr-output-box {
-        @include theme.card(theme.$background);
+	.ocr-output-box {
+		@include theme.card(theme.$background);
 
-        h2 {
-            margin-top: 0;
-            color: theme.$foreground-dark;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            user-select: none;
-        }
+		h2 {
+			margin-top: 0;
+			color: theme.$foreground-dark;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			user-select: none;
+		}
 
-        span {
-            font-size: 20px;
-        }
+		span {
+			font-size: 20px;
+		}
 
-        pre {
-            @include theme.code-block(
-                theme.$background-light,
-                theme.$border-light
-            );
+		pre {
+			@include theme.code-block(theme.$background-light, theme.$border-light);
 
-            font-size: 14px;
-        }
-    }
+			font-size: 14px;
+		}
+	}
 }
