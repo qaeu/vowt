@@ -78,6 +78,7 @@ export interface TextRegion {
 }
 
 export type DrawnRegion = TextRegion & {
+    id: string;
     color: string;
 };
 

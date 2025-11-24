@@ -1,8 +1,16 @@
-import { createSignal, For, Show, onMount, type Component } from 'solid-js';
+import {
+    createSignal,
+    batch,
+    For,
+    Show,
+    onMount,
+    type Component,
+} from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
+import EditableRegionsData from '#c/EditableRegionsData';
 import '#styles/RegionProfileManager';
 
 interface RegionProfileManagerProps {
@@ -17,6 +25,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         description: initialActiveProfileDesc,
     } = Profiles.getActiveProfileDetails();
 
+    const [savedRegions, setSavedRegions] = createSignal<DrawnRegion[]>([]);
     const [editingRegions, setEditingRegions] = createSignal<DrawnRegion[]>([]);
     const [profileList, setProfileList] = createSignal(initialProfileList);
     const [activeProfileId, setActiveProfileId] = createSignal<string>(
@@ -36,8 +45,15 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         if (!canvasRef) return;
 
         const activeRegions = Profiles.getActiveProfile();
-        const drawnRegions = makeDrawnRegions(activeRegions);
-        setEditingRegions(drawnRegions);
+        const drawnRegions = makeDrawnRegions(
+            activeRegions,
+            editingProfileId()
+        );
+
+        batch(() => {
+            setSavedRegions(drawnRegions);
+            setEditingRegions(drawnRegions);
+        });
 
         try {
             await startRegionEditor(
@@ -51,9 +67,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }
     });
 
-    const makeDrawnRegions = (textRegions: TextRegion[]) => {
-        return textRegions.map((r) => ({
+    const makeDrawnRegions = (textRegions: TextRegion[], profileId: string) => {
+        return textRegions.map((r, index) => ({
             ...r,
+            id: `${profileId}-${index}`,
             color: r.isItalic ? '#4caf50' : '#ff0000',
         }));
     };
@@ -63,9 +80,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         Profiles.setActiveProfile(profileId);
     };
 
-    const handleRegionComplete = (region: DrawnRegion) => {
-        setEditingRegions((prev) => [...prev, region]);
-
+    const redrawRegions = () => {
         if (canvasRef && getImageSource()) {
             drawRegions(
                 canvasRef,
@@ -75,16 +90,14 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }
     };
 
+    const handleRegionComplete = (region: DrawnRegion) => {
+        setEditingRegions((prev) => [...prev, region]);
+        redrawRegions();
+    };
+
     const handleClearRegions = () => {
         setEditingRegions([]);
-
-        if (canvasRef && getImageSource()) {
-            drawRegions(
-                canvasRef,
-                editingRegions(),
-                getImageSource() as string
-            );
-        }
+        redrawRegions();
     };
 
     const handleCopyRegionsCode = () => {
@@ -98,6 +111,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
             alert('Profile ID is required');
             return;
         }
+
+        setSavedRegions(editingRegions());
 
         if (canvasRef) {
             Profiles.saveProfile(
@@ -122,25 +137,28 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
     };
 
     const handleEditProfile = (profileId: string) => {
-        const profileDetails = profileList().find((p) => p.id === profileId);
-        if (profileDetails) {
-            setEditingProfileId(profileDetails.id);
-            setEditingProfileDesc(profileDetails.description);
-        }
-
+        // Set regions first as region table tracks profile ID
         const profileRegions = Profiles.getProfile(profileId);
         if (!profileRegions) {
             alert('Could not load profile');
             return;
         }
 
-        const drawnRegions = makeDrawnRegions(profileRegions);
-        setEditingRegions(drawnRegions);
+        batch(() => {
+            const drawnRegions = makeDrawnRegions(profileRegions, profileId);
+            setSavedRegions(drawnRegions);
+            setEditingRegions(drawnRegions);
 
-        // Redraw the regions on canvas
-        if (canvasRef && getImageSource()) {
-            drawRegions(canvasRef, drawnRegions, getImageSource()!); // TODO: review non-null assertion
-        }
+            const profileDetails = profileList().find(
+                (p) => p.id === profileId
+            );
+            if (profileDetails) {
+                setEditingProfileId(profileDetails.id);
+                setEditingProfileDesc(profileDetails.description);
+            }
+        });
+
+        redrawRegions();
     };
 
     const handleDeleteProfile = (profileId: string) => {
@@ -165,6 +183,12 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
         }
     };
 
+    const handleRegionChange = (regions: TextRegion[]) => {
+        const drawnRegions = makeDrawnRegions(regions, editingProfileId());
+        setEditingRegions(drawnRegions);
+        redrawRegions();
+    };
+
     return (
         <div class="region-profile-manager-container">
             <div class="ocr-header">
@@ -181,18 +205,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
             <div class="info-box">
                 <p>
-                    <strong>Instructions:</strong> Create and manage region
-                    profiles for different scoreboard types. Click "Start Region
-                    Editor" to draw regions, then save as a new profile or
-                    update an existing one. Profiles are saved locally and can
-                    be selected for OCR processing.
-                    {!props.previewImage && (
-                        <>
-                            <br />
-                            <strong>Tip:</strong> Drag and drop an image into
-                            this area to use it for region editing.
-                        </>
-                    )}
+                    Create and manage region profiles for different scoreboard
+                    types. Profiles are saved locally and can be activated for
+                    OCR processing.
                 </p>
             </div>
 
@@ -292,7 +307,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
                         <div class="button-group">
                             <button onClick={handleSaveProfile} class="success">
-                                Save Changes
+                                Save Profile
                             </button>
                         </div>
                     </div>
@@ -322,26 +337,12 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
                         <canvas ref={canvasRef} />
                     </div>
 
-                    {editingRegions().length > 0 && (
-                        <div class="regions-display">
-                            <h3>Drawn Regions ({editingRegions().length})</h3>
-                            <pre>
-                                {editingRegions()
-                                    .map((r, i) =>
-                                        [
-                                            `${i}. ${r.name} (${r.color})`,
-                                            `  x: ${r.x}, y: ${r.y}, width: ${r.width}, height: ${r.height}`,
-                                            `  isItalic: ${
-                                                r.isItalic || 'false'
-                                            }, charSet: ${
-                                                r.charSet || 'Default'
-                                            }`,
-                                        ].join('\n')
-                                    )
-                                    .join('\n\n')}
-                            </pre>
-                        </div>
-                    )}
+                    <EditableRegionsData
+                        profileId={editingProfileId()}
+                        currentRegions={editingRegions()}
+                        savedRegions={savedRegions()}
+                        onChange={handleRegionChange}
+                    />
                 </div>
             </div>
         </div>

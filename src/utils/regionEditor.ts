@@ -137,6 +137,7 @@ export async function startRegionEditor(
 
                 if (width > 5 && height > 5) {
                     const region: DrawnRegion = {
+                        id: `drawn-${regionCount}`, // TODO: match existing IDs
                         name: `region_${regionCount}`,
                         x: Math.round(x),
                         y: Math.round(y),
