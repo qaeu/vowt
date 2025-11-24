@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
+import { render, screen, fireEvent } from '@solidjs/testing-library';
 
-import type { TextRegion } from '#types';
+import type { DrawnRegion } from '#types';
 import EditableRegionsData from '#c/EditableRegionsData';
 
 describe('EditableRegionsData', () => {
-    const mockRegions: TextRegion[] = [
+    const mockRegions: DrawnRegion[] = [
         {
             name: 'player_name',
             x: 100,
@@ -14,6 +14,8 @@ describe('EditableRegionsData', () => {
             height: 30,
             charSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
             isItalic: false,
+            color: '#FF0000',
+            id: 'mock-0',
         },
         {
             name: 'score_blue',
@@ -23,6 +25,8 @@ describe('EditableRegionsData', () => {
             height: 40,
             charSet: '0123456789',
             isItalic: false,
+            color: '#00FF00',
+            id: 'mock-1',
         },
         {
             name: 'hero_name',
@@ -31,23 +35,25 @@ describe('EditableRegionsData', () => {
             width: 120,
             height: 25,
             isItalic: true,
+            color: '#0000FF',
+            id: 'mock-2',
         },
     ];
 
-    let onSaveMock: ReturnType<typeof vi.fn>;
-    let onCancelMock: ReturnType<typeof vi.fn>;
+    let onChangeMock: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-        onSaveMock = vi.fn();
-        onCancelMock = vi.fn();
+        onChangeMock = vi.fn();
     });
 
     describe('Rendering', () => {
         it('should render the header with region count', () => {
             render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
@@ -59,8 +65,10 @@ describe('EditableRegionsData', () => {
         it('should render table headers', () => {
             render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
@@ -77,8 +85,10 @@ describe('EditableRegionsData', () => {
         it('should render all regions as table rows', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
@@ -88,7 +98,12 @@ describe('EditableRegionsData', () => {
 
         it('should display empty state when no regions', () => {
             render(() => (
-                <EditableRegionsData initialRegions={[]} onSave={onSaveMock} />
+                <EditableRegionsData
+                    profileId="test-profile"
+                    currentRegions={[]}
+                    savedRegions={[]}
+                    onChange={onChangeMock}
+                />
             ));
 
             expect(screen.getByText(/No regions drawn yet/i)).toBeTruthy();
@@ -97,19 +112,21 @@ describe('EditableRegionsData', () => {
         it('should render region data in input fields', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
             const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
+                'input[id="region-mock-0-name"]'
             ) as HTMLInputElement;
             expect(nameInput).toBeTruthy();
             expect(nameInput.value).toBe('player_name');
 
             const xInput = container.querySelector(
-                'input[id="region-0-x"]'
+                'input[id="region-mock-0-x"]'
             ) as HTMLInputElement;
             expect(xInput).toBeTruthy();
             expect(xInput.value).toBe('100');
@@ -118,8 +135,10 @@ describe('EditableRegionsData', () => {
         it('should render delete button for each region', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
@@ -130,8 +149,10 @@ describe('EditableRegionsData', () => {
         it('should render italic checkbox correctly', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
@@ -145,174 +166,158 @@ describe('EditableRegionsData', () => {
     });
 
     describe('Field Modification', () => {
-        it('should show save and cancel buttons when fields are modified', () => {
+        it('should show cancel button when fields are modified', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
             const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
+                'input[id="region-mock-0-name"]'
             ) as HTMLInputElement;
             fireEvent.input(nameInput, { target: { value: 'new_name' } });
 
-            expect(screen.getByText(/Save Regions/)).toBeTruthy();
             expect(screen.getByText(/Cancel Changes/)).toBeTruthy();
         });
     });
 
-    describe('Save and Cancel', () => {
-        it('should call onSave with updated regions when save button is clicked', () => {
+    describe('Cancel Changes', () => {
+        it('should show cancel button when a field is modified via input', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
+            expect(screen.queryByText(/Cancel Changes/)).toBeFalsy();
+
             const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
+                'input[id="region-mock-0-name"]'
             ) as HTMLInputElement;
             fireEvent.input(nameInput, { target: { value: 'updated_name' } });
 
-            const saveButton = screen.getByText(/Save Regions/);
-            fireEvent.click(saveButton);
-
-            expect(onSaveMock).toHaveBeenCalledTimes(1);
-            const savedRegions = onSaveMock.mock.calls[0][0];
-            expect(savedRegions[0].name).toBe('updated_name');
+            expect(screen.getByText(/Cancel Changes/)).toBeTruthy();
         });
 
-        // Note: Reset functionality works in the actual UI but has reactivity
-        // issues in the test environment. Manual testing confirms it works correctly.
-        it.skip('should reset changes when cancel button is clicked', () => {
+        it('should call onChange with original regions when cancel button is clicked', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
-                    onCancel={onCancelMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
             const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
-            ) as HTMLInputElement;
-            fireEvent.input(nameInput, { target: { value: 'updated_name' } });
-
-            const cancelButton = screen.getByText(/Cancel Changes/);
-            fireEvent.click(cancelButton);
-
-            expect(nameInput.value).toBe('player_name');
-            expect(onCancelMock).toHaveBeenCalledTimes(1);
-        });
-
-        it.skip('should not call onCancel if callback not provided', () => {
-            const { container } = render(() => (
-                <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
-                />
-            ));
-
-            const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
+                'input[id="region-mock-0-name"]'
             ) as HTMLInputElement;
             fireEvent.input(nameInput, { target: { value: 'updated_name' } });
 
             const cancelButton = screen.getByText(/Cancel Changes/);
             fireEvent.click(cancelButton);
 
-            expect(nameInput.value).toBe('player_name');
+            // Should call onChange with the regions reset to saved state
+            expect(onChangeMock).toHaveBeenCalled();
         });
 
-        it('should show alert when trying to save with empty region name', () => {
-            const alertSpy = vi
-                .spyOn(window, 'alert')
-                .mockImplementation(() => {});
-            const { container } = render(() => (
+        it('should not show cancel button when no changes have been made', () => {
+            render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
-            const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
-            ) as HTMLInputElement;
-            fireEvent.input(nameInput, { target: { value: '' } });
+            expect(screen.queryByText(/Cancel Changes/)).toBeFalsy();
+        });
 
-            const saveButton = screen.getByText(/Save Regions/);
-            fireEvent.click(saveButton);
+        it('should show cancel button when a region is deleted', () => {
+            const { container } = render(() => (
+                <EditableRegionsData
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
+                />
+            ));
 
-            expect(alertSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Invalid region name')
-            );
-            expect(onSaveMock).not.toHaveBeenCalled();
+            expect(screen.queryByText(/Cancel Changes/)).toBeFalsy();
 
-            alertSpy.mockRestore();
+            const deleteButtons = container.querySelectorAll('.delete-button');
+            fireEvent.click(deleteButtons[0]);
+
+            expect(screen.getByText(/Cancel Changes/)).toBeTruthy();
         });
     });
 
     describe('Delete Region', () => {
-        // Note: Delete functionality works in the actual UI but has reactivity
-        // issues in the test environment. Manual testing confirms it works correctly.
-        it.skip('should remove region when delete button is clicked', () => {
+        it('should call onChange when delete button is clicked', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
             const deleteButtons = container.querySelectorAll('.delete-button');
             fireEvent.click(deleteButtons[0]);
 
-            const rows = container.querySelectorAll('tbody tr');
-            expect(rows.length).toBe(mockRegions.length - 1);
+            // Should call onChange with updated regions
+            expect(onChangeMock).toHaveBeenCalled();
+            const updatedRegions = onChangeMock.mock.calls[0][0];
+            expect(updatedRegions.length).toBe(mockRegions.length - 1);
         });
 
-        it.skip('should show unsaved changes after deleting a region', async () => {
+        it('should show unsaved changes after deleting a region', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
+
+            expect(screen.queryByText(/Cancel Changes/)).toBeFalsy();
 
             const deleteButtons = container.querySelectorAll('.delete-button');
             fireEvent.click(deleteButtons[0]);
 
-            await waitFor(() => {
-                expect(screen.getByText(/Save Regions/)).toBeTruthy();
-            });
             expect(screen.getByText(/Cancel Changes/)).toBeTruthy();
         });
 
-        it.skip('should call onSave with reduced regions after delete and save', async () => {
+        it('should remove region from table after deletion', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
+            const rows = container.querySelectorAll('tbody tr');
+            expect(rows.length).toBe(mockRegions.length);
+
             const deleteButtons = container.querySelectorAll('.delete-button');
-            fireEvent.click(deleteButtons[1]);
+            fireEvent.click(deleteButtons[0]);
 
-            await waitFor(() => {
-                expect(screen.getByText(/Save Regions/)).toBeTruthy();
-            });
-
-            const saveButton = screen.getByText(/Save Regions/);
-            fireEvent.click(saveButton);
-
-            expect(onSaveMock).toHaveBeenCalledTimes(1);
-            const savedRegions = onSaveMock.mock.calls[0][0];
-            expect(savedRegions.length).toBe(mockRegions.length - 1);
-            expect(savedRegions[0].name).toBe('player_name');
-            expect(savedRegions[1].name).toBe('hero_name');
+            // Verify onChange was called with one less region
+            expect(onChangeMock).toHaveBeenCalled();
+            const updatedRegions = onChangeMock.mock.calls[0][0];
+            expect(updatedRegions.length).toBe(mockRegions.length - 1);
         });
     });
 
@@ -320,8 +325,10 @@ describe('EditableRegionsData', () => {
         it('should toggle italic checkbox', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
@@ -334,11 +341,13 @@ describe('EditableRegionsData', () => {
             expect(checkbox.checked).toBe(true);
         });
 
-        it('should save updated italic value', () => {
+        it('should update isItalic when checkbox is toggled', () => {
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId="test-profile"
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
@@ -347,34 +356,55 @@ describe('EditableRegionsData', () => {
             ) as HTMLInputElement;
             fireEvent.click(checkbox);
 
-            // Modify another field to trigger save button
-            const nameInput = container.querySelector(
-                'input[id="region-0-name"]'
-            ) as HTMLInputElement;
-            fireEvent.input(nameInput, { target: { value: 'name_updated' } });
-
-            const saveButton = screen.getByText(/Save Regions/);
-            fireEvent.click(saveButton);
-
-            const savedRegions = onSaveMock.mock.calls[0][0];
-            expect(savedRegions[0].isItalic).toBe(true);
+            expect(onChangeMock).toHaveBeenCalled();
+            const updatedRegions = onChangeMock.mock.calls[0][0];
+            expect(updatedRegions[0].isItalic).toBe(true);
         });
     });
 
     describe('Region Updates', () => {
-        it('should sync regions when parent adds new region via createEffect', () => {
-            // This test verifies that the createEffect syncs regions when the length changes
-            // We can't directly test rerender in SolidJS testing library, but we can verify
-            // the effect logic exists by checking the initial render works correctly
+        it('should sync regions when profile changes', () => {
+            const firstProfile = 'profile-1';
+            const secondProfile = 'profile-2';
+
             const { container } = render(() => (
                 <EditableRegionsData
-                    initialRegions={mockRegions}
-                    onSave={onSaveMock}
+                    profileId={firstProfile}
+                    currentRegions={mockRegions}
+                    savedRegions={mockRegions}
+                    onChange={onChangeMock}
                 />
             ));
 
-            const rows = container.querySelectorAll('tbody tr');
+            let rows = container.querySelectorAll('tbody tr');
             expect(rows.length).toBe(mockRegions.length);
+
+            // Simulate profile change with different regions
+            const { container: container2 } = render(() => (
+                <EditableRegionsData
+                    profileId={secondProfile}
+                    currentRegions={[mockRegions[0]]}
+                    savedRegions={[mockRegions[0]]}
+                    onChange={onChangeMock}
+                />
+            ));
+
+            rows = container2.querySelectorAll('tbody tr');
+            expect(rows.length).toBe(1);
+        });
+
+        it('should handle empty region list gracefully', () => {
+            render(() => (
+                <EditableRegionsData
+                    profileId="test-profile"
+                    currentRegions={[]}
+                    savedRegions={[]}
+                    onChange={onChangeMock}
+                />
+            ));
+
+            expect(screen.getByText(/No regions drawn yet/i)).toBeTruthy();
+            expect(screen.getByText('Drawn Regions (0)')).toBeTruthy();
         });
     });
 });

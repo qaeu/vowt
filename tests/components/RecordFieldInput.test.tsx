@@ -17,10 +17,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -34,10 +34,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -51,10 +51,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -68,11 +68,11 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => '123'}
-                    baseline={() => '123'}
+                    initialValue={'123'}
+                    baseline={'123'}
                     staticInputmode="numeric"
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -86,11 +86,11 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => '123'}
-                    baseline={() => '123'}
+                    initialValue={'123'}
+                    baseline={'123'}
                     staticInputmode="numeric"
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -104,11 +104,11 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'text'}
-                    baseline={() => 'text'}
+                    initialValue={'text'}
+                    baseline={'text'}
                     staticInputmode="text"
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -124,10 +124,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'modified value'}
-                    baseline={() => 'original value'}
+                    initialValue={'modified value'}
+                    baseline={'original value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -142,10 +142,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'original'}
-                    baseline={() => 'original'}
+                    initialValue={'original'}
+                    baseline={'original'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -161,10 +161,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'same value'}
-                    baseline={() => 'same value'}
+                    initialValue={'same value'}
+                    baseline={'same value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -178,10 +178,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => true}
+                    initialIsJustSaved={true}
                 />
             ));
 
@@ -195,10 +195,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => true}
+                    initialIsJustSaved={true}
                 />
             ));
 
@@ -217,10 +217,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test'}
-                    baseline={() => 'test'}
+                    initialValue={'test'}
+                    baseline={'test'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -236,10 +236,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'original'}
-                    baseline={() => 'original'}
+                    initialValue={'original'}
+                    baseline={'original'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -255,10 +255,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'original'}
-                    baseline={() => 'original'}
+                    initialValue={'original'}
+                    baseline={'original'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -279,10 +279,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -302,10 +302,10 @@ describe('RecordFieldInput', () => {
             render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                     staticRegisterField={registerFieldMock}
                 />
             ));
@@ -321,10 +321,10 @@ describe('RecordFieldInput', () => {
             render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'test value'}
-                    baseline={() => 'test value'}
+                    initialValue={'test value'}
+                    baseline={'test value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -335,10 +335,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'original'}
-                    baseline={() => 'original'}
+                    initialValue={'original'}
+                    baseline={'original'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                     staticRegisterField={registerFieldMock}
                 />
             ));
@@ -360,10 +360,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'original'}
-                    baseline={() => 'original'}
+                    initialValue={'original'}
+                    baseline={'original'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                     staticRegisterField={registerFieldMock}
                 />
             ));
@@ -389,10 +389,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'initial'}
-                    baseline={() => 'initial'}
+                    initialValue={'initial'}
+                    baseline={'initial'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -406,10 +406,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => 'value'}
-                    baseline={() => 'value'}
+                    initialValue={'value'}
+                    baseline={'value'}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -425,10 +425,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => ''}
-                    baseline={() => ''}
+                    initialValue={''}
+                    baseline={''}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -443,11 +443,11 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => '12345'}
-                    baseline={() => '12345'}
+                    initialValue={'12345'}
+                    baseline={'12345'}
                     staticInputmode="numeric"
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -462,10 +462,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => '  spaced  '}
-                    baseline={() => '  spaced  '}
+                    initialValue={'  spaced  '}
+                    baseline={'  spaced  '}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -480,10 +480,10 @@ describe('RecordFieldInput', () => {
             const { container } = render(() => (
                 <RecordFieldInput
                     staticId="test-field"
-                    value={() => longValue}
-                    baseline={() => longValue}
+                    initialValue={longValue}
+                    baseline={longValue}
                     onInput={onInputMock}
-                    initialIsJustSaved={() => false}
+                    initialIsJustSaved={false}
                 />
             ));
 
@@ -500,17 +500,17 @@ describe('RecordFieldInput', () => {
                 <>
                     <RecordFieldInput
                         staticId="field-1"
-                        value={() => 'value1'}
-                        baseline={() => 'value1'}
+                        initialValue={'value1'}
+                        baseline={'value1'}
                         onInput={onInputMock}
-                        initialIsJustSaved={() => false}
+                        initialIsJustSaved={false}
                     />
                     <RecordFieldInput
                         staticId="field-2"
-                        value={() => 'value2'}
-                        baseline={() => 'value2'}
+                        initialValue={'value2'}
+                        baseline={'value2'}
                         onInput={onInputMock}
-                        initialIsJustSaved={() => false}
+                        initialIsJustSaved={false}
                     />
                 </>
             ));
@@ -531,19 +531,19 @@ describe('RecordFieldInput', () => {
                 <>
                     <RecordFieldInput
                         staticId="text-field"
-                        value={() => 'text value'}
-                        baseline={() => 'text value'}
+                        initialValue={'text value'}
+                        baseline={'text value'}
                         staticInputmode="text"
                         onInput={onInputMock}
-                        initialIsJustSaved={() => false}
+                        initialIsJustSaved={false}
                     />
                     <RecordFieldInput
                         staticId="numeric-field"
-                        value={() => '123'}
-                        baseline={() => '123'}
+                        initialValue={'123'}
+                        baseline={'123'}
                         staticInputmode="numeric"
                         onInput={onInputMock}
-                        initialIsJustSaved={() => false}
+                        initialIsJustSaved={false}
                     />
                 </>
             ));
