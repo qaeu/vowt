@@ -1,9 +1,4 @@
-import {
-    createEffect,
-    createSignal,
-    mergeProps,
-    type Component,
-} from 'solid-js';
+import { createSignal, onMount, mergeProps, type Component } from 'solid-js';
 
 import '#styles/EditableGameData';
 
@@ -11,7 +6,7 @@ interface RecordFieldInputProps {
     staticId: Readonly<string>;
     staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
     initialValue: Readonly<string>;
-    baseline: Readonly<string>; // For comparison to detect modifications
+    baseline: () => Readonly<string>; // For comparison to detect modifications
     initialIsJustSaved: Readonly<boolean>;
     staticRegisterField?: (
         fieldId: string,
@@ -37,12 +32,11 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
     const [value, setValue] = createSignal<string>(props.initialValue);
 
     // Register this field's modification state with parent during component initialization
-    createEffect(() => {
+    onMount(() => {
         if (props.staticRegisterField) {
-            const baseline = props.baseline;
             props.staticRegisterField(props.staticId, isModified, () => {
                 setIsModified(false);
-                setValue(baseline);
+                setValue(props.baseline);
             });
         }
     });
@@ -73,7 +67,7 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
         setValue(inputValue);
 
         // Compare against the baseline value to detect modifications
-        if (inputValue !== props.baseline) {
+        if (inputValue !== props.baseline()) {
             setIsModified(true);
         } else {
             setIsModified(false);

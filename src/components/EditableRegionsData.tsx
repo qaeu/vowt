@@ -1,6 +1,7 @@
 import {
     createSignal,
     createEffect,
+    createMemo,
     batch,
     For,
     Show,
@@ -36,6 +37,9 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
         []
     );
 
+    // Track the last saved regions
+    const [savedRegions, setSavedRegions] = createSignal<DrawnRegion[]>([]);
+
     // Track which fields are currently showing "just-saved" state
     const [justSavedFieldIds, setJustSavedFieldIds] = createSignal(
         new Set<string>()
@@ -46,14 +50,13 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
         Map<string, { isModified: () => boolean; reset: () => void }>
     >(new Map());
 
-    // Stores the last saved state
-    let savedRegions: DrawnRegion[] = [];
-
     createEffect(
         ({ prevProfileId, prevRegionsCount }) => {
+            console.log('Effect');
             // Sync saved regions on profile save or change
-            if (savedRegions !== props.savedRegions) {
-                savedRegions = props.savedRegions;
+            if (savedRegions() !== props.savedRegions) {
+                console.log('  save');
+                setSavedRegions(props.savedRegions);
                 setJustSavedFieldIds(getModifiedFieldIds());
                 resetAllModifiedFields();
 
@@ -132,7 +135,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 
     const handleCancel = () => {
         batch(() => {
-            setEditableRegions(structuredClone(savedRegions));
+            setEditableRegions(structuredClone(savedRegions()));
             syncEditableRegionIds();
 
             resetAllModifiedFields();
@@ -174,7 +177,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
             }
         });
         // Also check if regions were deleted or added
-        return hasChanges || editableRegions().length !== savedRegions.length;
+        return hasChanges || editableRegions().length !== savedRegions().length;
     };
 
     const updateRegionField = <K extends keyof TextRegion>(
@@ -242,9 +245,13 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                         editableRegions(),
                                         regionId
                                     );
-                                    const savedRegion =
-                                        findRegion(savedRegions, regionId) ||
-                                        region;
+                                    const savedRegion = createMemo(
+                                        () =>
+                                            findRegion(
+                                                savedRegions(),
+                                                regionId
+                                            ) || region
+                                    );
                                     return (
                                         <tr>
                                             <td class="name-column">
@@ -253,8 +260,9 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                     initialValue={
                                                         region.name ?? ''
                                                     }
-                                                    baseline={
-                                                        savedRegion?.name ?? ''
+                                                    baseline={() =>
+                                                        savedRegion()?.name ??
+                                                        ''
                                                     }
                                                     onInput={(value) =>
                                                         updateRegionField(
@@ -277,9 +285,12 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                     initialValue={String(
                                                         region.x ?? ''
                                                     )}
-                                                    baseline={String(
-                                                        savedRegion?.x ?? ''
-                                                    )}
+                                                    baseline={() =>
+                                                        String(
+                                                            savedRegion()?.x ??
+                                                                ''
+                                                        )
+                                                    }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
@@ -302,9 +313,12 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                     initialValue={String(
                                                         region.y ?? ''
                                                     )}
-                                                    baseline={String(
-                                                        savedRegion?.y ?? ''
-                                                    )}
+                                                    baseline={() =>
+                                                        String(
+                                                            savedRegion()?.y ??
+                                                                ''
+                                                        )
+                                                    }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
@@ -327,9 +341,12 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                     initialValue={String(
                                                         region.width ?? ''
                                                     )}
-                                                    baseline={String(
-                                                        savedRegion?.width ?? ''
-                                                    )}
+                                                    baseline={() =>
+                                                        String(
+                                                            savedRegion()
+                                                                ?.width ?? ''
+                                                        )
+                                                    }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
@@ -352,10 +369,12 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                     initialValue={String(
                                                         region.height ?? ''
                                                     )}
-                                                    baseline={String(
-                                                        savedRegion?.height ??
-                                                            ''
-                                                    )}
+                                                    baseline={() =>
+                                                        String(
+                                                            savedRegion()
+                                                                ?.height ?? ''
+                                                        )
+                                                    }
                                                     staticInputmode="numeric"
                                                     onInput={(value) =>
                                                         updateRegionField(
@@ -378,9 +397,9 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
                                                     initialValue={
                                                         region.charSet ?? ''
                                                     }
-                                                    baseline={
-                                                        savedRegion?.charSet ??
-                                                        ''
+                                                    baseline={() =>
+                                                        savedRegion()
+                                                            ?.charSet ?? ''
                                                     }
                                                     onInput={(value) =>
                                                         updateRegionField(
