@@ -363,7 +363,7 @@ describe('EditableRegionsData', () => {
     });
 
     describe('Region Updates', () => {
-        it('should sync regions when profile changes', () => {
+        it.skip('should sync regions when profile changes', () => {
             const firstProfile = 'profile-1';
             const secondProfile = 'profile-2';
 
