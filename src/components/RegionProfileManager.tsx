@@ -98,7 +98,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `vowt-profile-${profileId}-${new Date().toISOString()}.json`;
+		a.download = `vowt-profile-${profileId}-${new Date().toISOString().replace(/:/g, '-')}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
 	};
@@ -106,7 +106,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const handleImportProfile = () => {
 		const input = document.createElement('input');
 		input.type = 'file';
-		input.accept = 'application/json';
+		input.accept = '.json,application/json';
 		input.onchange = (e) => {
 			const file = (e.target as HTMLInputElement).files?.[0];
 			if (file) {
