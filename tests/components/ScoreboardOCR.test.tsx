@@ -111,7 +111,7 @@ describe('ScoreboardOCR', () => {
 		const { getByText } = render(() => (
 			<ScoreboardOCR onClose={() => {}} onOpenRegionManager={() => {}} />
 		));
-		expect(getByText('Upload Scoreboard Screenshot')).toBeDefined();
+		expect(getByText('Image Processing')).toBeDefined();
 	});
 
 	it('should not render original image section', () => {
