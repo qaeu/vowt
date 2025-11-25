@@ -223,8 +223,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 	return (
 		<div class="region-profile-manager-container">
-			<div class="ocr-header">
-				<h1>Region Profile Manager</h1>
+			<header>
+				<h1>Image Region Profiles</h1>
 				<button
 					onClick={() => {
 						props.onClose();
@@ -233,7 +233,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				>
 					✕ Close
 				</button>
-			</div>
+			</header>
 
 			<div class="info-box">
 				<p>

@@ -70,7 +70,7 @@ const App: Component = () => {
 	};
 
 	return (
-		<div>
+		<main>
 			{isDragging() && (
 				<div class="drag-overlay">
 					<div class="drag-overlay-content">
@@ -93,7 +93,7 @@ const App: Component = () => {
 					onClose={() => setViewMode('ocr')}
 				/>
 			)}
-		</div>
+		</main>
 	);
 };
 

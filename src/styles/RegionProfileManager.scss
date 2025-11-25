@@ -7,15 +7,10 @@
 		background-color: rgba(theme.$accent1, 0.02);
 	}
 
-	.ocr-header {
+	header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 20px;
-
-		h1 {
-			margin: 0;
-		}
 
 		.close-button {
 			@include theme.button(theme.$foreground-light);
@@ -43,15 +38,11 @@
 		border-radius: 8px;
 
 		h2 {
-			margin-top: 0;
-			margin-bottom: 15px;
 			color: theme.$foreground;
-			font-size: 18px;
 		}
 
 		h3 {
 			color: theme.$foreground;
-			font-size: 16px;
 		}
 	}
 
@@ -153,7 +144,6 @@
 		margin-top: 20px;
 
 		h3 {
-			margin-top: 0;
 			color: theme.$accent2-success;
 		}
 
@@ -216,11 +206,9 @@
 		width: 100%;
 		border: 0;
 		padding: 12px;
-		font-size: 14px;
 		box-sizing: border-box;
 		background-color: transparent;
 		color: theme.$foreground;
-		font-family: inherit;
 		min-height: 80px;
 		resize: vertical;
 		transition: all 0.15s ease;
@@ -266,18 +254,14 @@
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			margin-bottom: 8px;
 
 			h3 {
-				margin: 0;
 				flex: 1;
-				word-break: break-word;
-				font-size: 15px;
 			}
 		}
 
 		.profile-description {
-			margin: 8px 0;
+			margin: 0 0 22px;
 			font-size: 13px;
 			color: theme.$accent1-light;
 			min-height: 18px;

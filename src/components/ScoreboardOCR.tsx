@@ -140,8 +140,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 	return (
 		<div class="scoreboard-container">
-			<div class="ocr-header">
-				<h1 class="scoreboard-title">Upload Scoreboard Screenshot</h1>
+			<header>
+				<h1>Image Processing</h1>
+
 				<div class="header-buttons">
 					<button
 						onClick={() => {
@@ -160,7 +161,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 						✕ Close
 					</button>
 				</div>
-			</div>
+			</header>
 
 			<Show when={error()}>
 				<div class="error-box">

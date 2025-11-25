@@ -113,7 +113,9 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 	return (
 		<div class="records-container">
-			<h1 class="records-title">Game History</h1>
+			<header>
+				<h1>Game History</h1>
+			</header>
 
 			<div class="button-group">
 				<button onClick={() => props.onUploadClick()} class="primary">
