@@ -13,6 +13,7 @@ import '#styles/ScoreboardOCR';
 interface ScoreboardOCRProps {
 	uploadedImage?: string | null;
 	onClose: () => void;
+	onOpenRegionManager: () => void;
 }
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
@@ -139,17 +140,28 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 	return (
 		<div class="scoreboard-container">
-			<div class="ocr-header">
-				<h1 class="scoreboard-title">Upload Scoreboard Screenshot</h1>
-				<button
-					onClick={() => {
-						props.onClose();
-					}}
-					class="close-button"
-				>
-					✕ Close
-				</button>
-			</div>
+			<header>
+				<h1>Image Processing</h1>
+
+				<div class="header-buttons">
+					<button
+						onClick={() => {
+							props.onOpenRegionManager();
+						}}
+						class="region-button"
+					>
+						Region Profiles
+					</button>
+					<button
+						onClick={() => {
+							props.onClose();
+						}}
+						class="close-button"
+					>
+						✕ Close
+					</button>
+				</div>
+			</header>
 
 			<Show when={error()}>
 				<div class="error-box">

@@ -70,7 +70,7 @@ const App: Component = () => {
 	};
 
 	return (
-		<div>
+		<main>
 			{isDragging() && (
 				<div class="drag-overlay">
 					<div class="drag-overlay-content">
@@ -79,30 +79,21 @@ const App: Component = () => {
 					</div>
 				</div>
 			)}
-
 			{viewMode() === 'ocr' && (
-				<>
-					<div class="nav-container">
-						<button
-							onClick={() => setViewMode('regions')}
-							class="nav-button records-button"
-						>
-							Region Profiles
-						</button>
-					</div>
-					<ScoreboardOCR uploadedImage={uploadedImage()} onClose={handleCloseOCR} />
-				</>
-			)}
-
+				<ScoreboardOCR
+					uploadedImage={uploadedImage()}
+					onClose={handleCloseOCR}
+					onOpenRegionManager={() => setViewMode('regions')}
+				/>
+			)}{' '}
 			{viewMode() === 'records' && <GameRecordsTable onUploadClick={handleUploadClick} />}
-
 			{viewMode() === 'regions' && (
 				<RegionProfileManager
 					previewImage={uploadedImage()}
 					onClose={() => setViewMode('ocr')}
 				/>
 			)}
-		</div>
+		</main>
 	);
 };
 

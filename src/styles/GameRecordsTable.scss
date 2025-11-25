@@ -3,10 +3,6 @@
 .records-container {
 	@include theme.container;
 
-	.records-title {
-		color: theme.$accent1;
-	}
-
 	.button-group {
 		display: flex;
 		gap: 10px;
@@ -164,7 +160,7 @@
 
 			table {
 				width: 100%;
-				font-size: 13px;
+				font-size: 14px;
 
 				.right {
 					text-align: right;

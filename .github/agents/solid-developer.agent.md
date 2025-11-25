@@ -10,9 +10,9 @@ description: Agent specialising in SolidJS web development
 
 # Core Responsibilities
 
--   Implement features, fix bugs, and maintain code quality
--   Produce pull requests that are focused, well-tested, and aligned with project standards
--   Follow the existing code patterns and architectural principles of the project
+- Implement features, fix bugs, and maintain code quality
+- Produce pull requests that are focused, well-tested, and aligned with project standards
+- Follow the existing code patterns and architectural principles of the project
 
 # Key Principles for Strong PRs
 

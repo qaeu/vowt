@@ -60,6 +60,14 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		}));
 	};
 
+	const makeTextRegions = (drawnRegions: DrawnRegion[]) => {
+		return drawnRegions.map((r) => ({
+			...r,
+			id: undefined,
+			color: undefined,
+		}));
+	};
+
 	const activateProfile = (profileId: string) => {
 		setActiveProfileId(profileId);
 		Profiles.setActiveProfile(profileId);
@@ -81,10 +89,55 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		redrawRegions();
 	};
 
-	const handleCopyRegionsCode = () => {
-		const code = JSON.stringify(editingRegions());
-		navigator.clipboard.writeText(code);
-		alert('Regions copied to clipboard!');
+	const handleExportProfile = () => {
+		const profileId = editingProfileId();
+		if (!profileId) {
+			alert('No profile selected to export');
+			return;
+		}
+
+		const data = Profiles.exportProfile(profileId);
+		if (!data) {
+			alert('Could not export profile. Please save it first.');
+			return;
+		}
+
+		const blob = new Blob([data], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `vowt-profile-${profileId}-${new Date().toISOString().replace(/:/g, '-')}.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+	};
+
+	const handleImportProfile = () => {
+		const input = document.createElement('input');
+		input.type = 'file';
+		input.accept = '.json,application/json';
+		input.onchange = (e) => {
+			const file = (e.target as HTMLInputElement).files?.[0];
+			if (file) {
+				const reader = new FileReader();
+				reader.onload = (event) => {
+					try {
+						const data = event.target?.result as string;
+						const profileCount = Profiles.importProfile(data);
+						if (profileCount === null) {
+							alert('Error importing profile. Please check the file format.');
+							return;
+						}
+						alert('Profile imported successfully!');
+						setProfileList(Profiles.listProfiles());
+					} catch (error) {
+						alert('Error importing profile. Please check the file format.');
+						console.error('Import error:', error);
+					}
+				};
+				reader.readAsText(file);
+			}
+		};
+		input.click();
 	};
 
 	const handleSaveProfile = () => {
@@ -97,7 +150,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 		if (canvasRef) {
 			Profiles.saveProfile(
-				editingRegions(),
+				makeTextRegions(editingRegions()),
 				{
 					id: editingProfileId(),
 					description: editingProfileDesc(),
@@ -170,8 +223,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 	return (
 		<div class="region-profile-manager-container">
-			<div class="ocr-header">
-				<h1>Region Profile Manager</h1>
+			<header>
+				<h1>Image Region Profiles</h1>
 				<button
 					onClick={() => {
 						props.onClose();
@@ -180,7 +233,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				>
 					✕ Close
 				</button>
-			</div>
+			</header>
 
 			<div class="info-box">
 				<p>
@@ -274,12 +327,12 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 							Clear All
 						</button>
 
-						<button
-							onClick={handleCopyRegionsCode}
-							disabled={editingRegions().length === 0}
-							class="primary"
-						>
-							Copy Code
+						<button onClick={handleExportProfile} class="primary">
+							Export
+						</button>
+
+						<button onClick={handleImportProfile} class="primary">
+							Import
 						</button>
 					</div>
 

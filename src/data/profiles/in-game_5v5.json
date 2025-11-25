@@ -1,0 +1,591 @@
+{
+	"type": "vowt-region-profile",
+	"schemaVersion": 1,
+	"profile": {
+		"id": "In-game_5v5",
+		"description": "In-game Tab scoreboard screen (5v5)",
+		"regions": [
+			{
+				"name": "blue_player1_name",
+				"x": 510,
+				"y": 290,
+				"width": 240,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "blue_player1_e",
+				"y": 290,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "blue_player1_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 290
+			},
+			{
+				"name": "blue_player1_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 290
+			},
+			{
+				"name": "blue_player1_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 290
+			},
+			{
+				"name": "blue_player1_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 290
+			},
+			{
+				"name": "blue_player1_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 290
+			},
+			{
+				"name": "blue_player2_name",
+				"x": 510,
+				"y": 370,
+				"width": 240,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "blue_player2_e",
+				"y": 370,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "blue_player2_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 370
+			},
+			{
+				"name": "blue_player2_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 370
+			},
+			{
+				"name": "blue_player2_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 370
+			},
+			{
+				"name": "blue_player2_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 370
+			},
+			{
+				"name": "blue_player2_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 370
+			},
+			{
+				"name": "blue_player3_name",
+				"x": 510,
+				"y": 450,
+				"width": 240,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "blue_player3_e",
+				"y": 450,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "blue_player3_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 450
+			},
+			{
+				"name": "blue_player3_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 450
+			},
+			{
+				"name": "blue_player3_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 450
+			},
+			{
+				"name": "blue_player3_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 450
+			},
+			{
+				"name": "blue_player3_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 450
+			},
+			{
+				"name": "blue_player4_name",
+				"x": 510,
+				"y": 530,
+				"width": 240,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "blue_player4_e",
+				"y": 530,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "blue_player4_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 530
+			},
+			{
+				"name": "blue_player4_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 530
+			},
+			{
+				"name": "blue_player4_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 530
+			},
+			{
+				"name": "blue_player4_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 530
+			},
+			{
+				"name": "blue_player4_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 530
+			},
+			{
+				"name": "blue_player5_name",
+				"x": 510,
+				"y": 610,
+				"width": 240,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "blue_player5_e",
+				"y": 610,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "blue_player5_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 610
+			},
+			{
+				"name": "blue_player5_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 610
+			},
+			{
+				"name": "blue_player5_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 610
+			},
+			{
+				"name": "blue_player5_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 610
+			},
+			{
+				"name": "blue_player5_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 610
+			},
+			{
+				"name": "red_player1_name",
+				"x": 450,
+				"y": 810,
+				"width": 300,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "red_player1_e",
+				"y": 810,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "red_player1_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 810
+			},
+			{
+				"name": "red_player1_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 810
+			},
+			{
+				"name": "red_player1_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 810
+			},
+			{
+				"name": "red_player1_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 810
+			},
+			{
+				"name": "red_player1_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 810
+			},
+			{
+				"name": "red_player2_name",
+				"x": 450,
+				"y": 890,
+				"width": 300,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "red_player2_e",
+				"y": 890,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "red_player2_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 890
+			},
+			{
+				"name": "red_player2_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 890
+			},
+			{
+				"name": "red_player2_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 890
+			},
+			{
+				"name": "red_player2_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 890
+			},
+			{
+				"name": "red_player2_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 890
+			},
+			{
+				"name": "red_player3_name",
+				"x": 450,
+				"y": 970,
+				"width": 300,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "red_player3_e",
+				"y": 970,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "red_player3_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 970
+			},
+			{
+				"name": "red_player3_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 970
+			},
+			{
+				"name": "red_player3_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 970
+			},
+			{
+				"name": "red_player3_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 970
+			},
+			{
+				"name": "red_player3_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 970
+			},
+			{
+				"name": "red_player4_name",
+				"x": 450,
+				"y": 1050,
+				"width": 300,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "red_player4_e",
+				"y": 1050,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "red_player4_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 1050
+			},
+			{
+				"name": "red_player4_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 1050
+			},
+			{
+				"name": "red_player4_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 1050
+			},
+			{
+				"name": "red_player4_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 1050
+			},
+			{
+				"name": "red_player4_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 1050
+			},
+			{
+				"name": "red_player5_name",
+				"x": 450,
+				"y": 1130,
+				"width": 300,
+				"height": 60,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+				"isItalic": true
+			},
+			{
+				"name": "red_player5_e",
+				"y": 1130,
+				"x": 930,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789"
+			},
+			{
+				"name": "red_player5_a",
+				"x": 1000,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 1130
+			},
+			{
+				"name": "red_player5_d",
+				"x": 1070,
+				"width": 70,
+				"height": 60,
+				"charSet": "0123456789",
+				"y": 1130
+			},
+			{
+				"name": "red_player5_dmg",
+				"x": 1155,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 1130
+			},
+			{
+				"name": "red_player5_h",
+				"x": 1290,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 1130
+			},
+			{
+				"name": "red_player5_mit",
+				"x": 1425,
+				"width": 135,
+				"height": 60,
+				"charSet": "0123456789,",
+				"y": 1130
+			},
+			{
+				"name": "ingame_infoline",
+				"x": 1720,
+				"y": 55,
+				"width": 620,
+				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ |-",
+				"height": 40
+			}
+		],
+		"createdAt": "2025-11-25T00:00:00.000Z",
+		"updatedAt": "2025-11-25T00:00:00.000Z"
+	},
+	"exportedAt": "2025-11-25T00:00:00.000Z"
+}
