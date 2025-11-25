@@ -15,6 +15,9 @@ vi.mock('#utils/regionProfiles', () => ({
     getActiveProfile: vi.fn(),
     getActiveProfileId: vi.fn(),
     getActiveProfileDetails: vi.fn(),
+    getProfile: vi.fn(),
+    exportProfile: vi.fn(),
+    importProfile: vi.fn(),
 }));
 
 // Mock the region editor utility
@@ -111,17 +114,69 @@ describe('RegionProfileManager', () => {
             expect(clearButton.disabled).toBe(true);
         });
 
-        it('should have Copy Code button disabled when no regions', () => {
+        it('should have Export button', () => {
             render(() => (
                 <RegionProfileManager
                     previewImage={null}
                     onClose={mockOnClose}
                 />
             ));
-            const copyButton = screen.getByRole('button', {
-                name: /Copy Code/i,
+            const button = screen.getByRole('button', {
+                name: /Export/i,
+            });
+            expect(button).toBeDefined();
+        });
+
+        it('should have Import button', () => {
+            render(() => (
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
+            ));
+            const button = screen.getByRole('button', {
+                name: /Import/i,
+            });
+            expect(button).toBeDefined();
+        });
+
+        it('should call exportProfile when Export button clicked', () => {
+            window.URL.createObjectURL = vi.fn(() => 'blob:mock');
+            window.URL.revokeObjectURL = vi.fn();
+            vi.mocked(regionProfiles.exportProfile).mockReturnValue('{"test": "data"}');
+
+            render(() => (
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
+            ));
+
+            const button = screen.getByRole('button', {
+                name: /Export/i,
             }) as HTMLButtonElement;
-            expect(copyButton.disabled).toBe(true);
+            button.click();
+
+            expect(regionProfiles.exportProfile).toHaveBeenCalledWith(mockProfiles[1].id);
+        });
+
+        it('should show alert if exportProfile returns null', () => {
+            vi.spyOn(window, 'alert').mockImplementation(() => {});
+            vi.mocked(regionProfiles.exportProfile).mockReturnValue(null);
+
+            render(() => (
+                <RegionProfileManager
+                    previewImage={null}
+                    onClose={mockOnClose}
+                />
+            ));
+
+            const button = screen.getByRole('button', {
+                name: /Export/i,
+            }) as HTMLButtonElement;
+            button.click();
+
+            expect(window.alert).toHaveBeenCalledWith('Could not export profile. Please save it first.');
         });
     });
 
