@@ -1,6 +1,6 @@
 import { createSignal, onMount, mergeProps, type Component } from 'solid-js';
 
-import '#styles/EditableGameData';
+import '#styles/RecordFieldInput';
 
 interface RecordFieldInputProps {
 	staticId: Readonly<string>;

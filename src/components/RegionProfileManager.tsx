@@ -208,7 +208,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 										</div>
 										<p class="profile-description">{profile.description}</p>
 
-										<div class="profile-actions-buttons">
+										<div class="button-group">
 											<button
 												onClick={() => handleActivateProfile(profile.id)}
 												class={`action-btn ${activeProfileId() === profile.id ? 'active' : ''}`}

@@ -117,16 +117,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 			<div class="button-group">
 				<button onClick={() => props.onUploadClick()} class="primary">
-					📤 Upload Image
+					Upload Image
 				</button>
 				<button onClick={handleExport} class="primary" disabled={!records()}>
-					📥 Export
+					Export
 				</button>
 				<button onClick={handleImport} class="primary">
-					📤 Import
+					Import
 				</button>
 				<button onClick={handleClearAll} class="danger" disabled={!records()}>
-					🗑️ Clear All
+					Clear All
 				</button>
 			</div>
 
@@ -146,7 +146,6 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 								<th>Score</th>
 								<th>Mode</th>
 								<th>Map</th>
-								<th>Players</th>
 								<th class="center" />
 							</tr>
 						</thead>
@@ -174,7 +173,6 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 											</td>
 											<td>{record.matchInfo.game_mode}</td>
 											<td>{record.matchInfo.map ?? '-'}</td>
-											<td>{record.players.length}</td>
 											<td class="center">
 												<button
 													onClick={(e) => {

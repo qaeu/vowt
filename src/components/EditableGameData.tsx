@@ -236,10 +236,10 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 					<div class="action-buttons">
 						<Show when={hasUnsavedChanges()}>
 							<button onClick={handleSave} class="save-button">
-								💾 Save to Records
+								Save to Records
 							</button>
 							<button onClick={handleReset} class="cancel-button">
-								↺ Reset Changes
+								Reset Changes
 							</button>
 						</Show>
 					</div>

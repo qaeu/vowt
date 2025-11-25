@@ -59,56 +59,52 @@
 			border-collapse: collapse;
 		}
 
-		thead {
-			tr {
-				background-color: theme.$accent1;
-				color: white;
+		thead tr {
+			background-color: theme.$accent1;
+			color: white;
 
-				th {
-					padding: 12px;
-					text-align: left;
-					font-weight: bold;
+			th {
+				padding: 12px;
+				text-align: left;
+				font-weight: bold;
 
-					&.center {
-						text-align: center;
-					}
+				&.center {
+					text-align: center;
 				}
 			}
 		}
 
-		tbody {
-			tr {
-				border-bottom: 1px solid theme.$border-default;
-				cursor: pointer;
-				background-color: white;
+		tbody tr {
+			border-bottom: 1px solid theme.$border-default;
+			cursor: pointer;
+			background-color: white;
 
-				&.expanded {
-					background-color: theme.$background;
+			&.expanded {
+				background-color: theme.$background;
+			}
+
+			td {
+				padding: 12px;
+
+				&.center {
+					text-align: center;
 				}
 
-				td {
-					padding: 12px;
+				&.expanded-details {
+					cursor: default;
+				}
+			}
 
-					&.center {
-						text-align: center;
-					}
+			button {
+				@include theme.button-small(theme.$accent2-error);
 
-					&.expanded-details {
-						cursor: default;
-					}
+				&.edit-button {
+					@include theme.button-small(theme.$accent1);
+					margin-right: 5px;
 				}
 
-				button {
+				&.delete-button {
 					@include theme.button-small(theme.$accent2-error);
-
-					&.edit-button {
-						@include theme.button-small(theme.$accent1);
-						margin-right: 5px;
-					}
-
-					&.delete-button {
-						@include theme.button-small(theme.$accent2-error);
-					}
 				}
 			}
 		}
@@ -132,8 +128,8 @@
 		border-bottom: 1px solid theme.$border-default;
 
 		h3 {
-			margin-top: 0;
 			color: theme.$foreground-dark;
+			margin-top: 0;
 		}
 
 		h4 {
@@ -170,35 +166,27 @@
 				width: 100%;
 				font-size: 13px;
 
-				thead {
-					tr {
-						background-color: transparent;
+				.right {
+					text-align: right;
+				}
 
-						th {
-							text-align: left;
-							padding: 4px;
-							font-weight: bold;
-							border-bottom: 1px solid theme.$border-light;
+				thead tr {
+					background-color: transparent;
 
-							&.right {
-								text-align: right;
-							}
-						}
+					th {
+						text-align: left;
+						padding: 4px;
+						font-weight: bold;
+						border-bottom: 1px solid theme.$border-light;
 					}
 				}
 
-				tbody {
-					tr {
-						border-bottom: 1px solid theme.$border-default;
+				tbody tr {
+					border-bottom: 1px solid theme.$border-default;
 
-						td {
-							padding: 4px;
-							text-align: left;
-
-							&.right {
-								text-align: right;
-							}
-						}
+					td {
+						padding: 4px;
+						text-align: left;
 					}
 				}
 			}

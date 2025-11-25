@@ -82,9 +82,7 @@
 			}
 
 			tbody tr {
-				border-bottom: 1px solid theme.$border-light;
-
-				&:hover {
+				&:focus-within {
 					background-color: theme.$background-alt;
 				}
 
@@ -110,12 +108,9 @@
 
 					.delete-button {
 						@include theme.button-small(theme.$accent2-error);
-						padding: 4px 8px;
-						font-size: 12px;
 
-						&:hover {
-							background-color: theme.$accent2-error-dark;
-						}
+						padding: 4px 8px;
+						font-size: 11px;
 					}
 				}
 			}
