@@ -3,15 +3,11 @@
 .scoreboard-container {
 	@include theme.container;
 
-	.ocr-header {
+	header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 20px;
-
-		.scoreboard-title {
-			margin: 0;
-		}
 
 		.header-buttons {
 			display: flex;
