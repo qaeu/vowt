@@ -60,6 +60,14 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		}));
 	};
 
+	const makeTextRegions = (drawnRegions: DrawnRegion[]) => {
+		return drawnRegions.map((r) => ({
+			...r,
+			id: undefined,
+			color: undefined,
+		}));
+	};
+
 	const activateProfile = (profileId: string) => {
 		setActiveProfileId(profileId);
 		Profiles.setActiveProfile(profileId);
@@ -142,7 +150,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 		if (canvasRef) {
 			Profiles.saveProfile(
-				editingRegions(),
+				makeTextRegions(editingRegions()),
 				{
 					id: editingProfileId(),
 					description: editingProfileDesc(),
