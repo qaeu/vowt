@@ -18,18 +18,18 @@ export function extractGameStats(
 	players.push(...extractTeamPlayers('red', regionResults));
 
 	// Extract match info
-	const finalRaw = regionResults.get('final_score')?.trim().toUpperCase() || ': VS ';
+	const finalRaw = regionResults.get('final_score')?.trim()?.toUpperCase() || ': VS ';
 	const [beforeVS, afterVS] = finalRaw.split('VS');
 
 	const matchInfo: GameRecord['matchInfo'] = {
-		result: regionResults.get('result')?.trim().toUpperCase() || '',
+		result: regionResults.get('result')?.trim()?.toUpperCase() || '',
 		final_score: {
 			blue: beforeVS.split(':')[1].trim(),
 			red: afterVS.trim(),
 		},
-		date: regionResults.get('date')?.split('DATE:')[1].trim() || '',
-		game_mode: regionResults.get('game_mode')?.split(':')[1].trim() || '',
-		game_length: regionResults.get('game_length')?.split('LENGTH:')[1].trim() || '',
+		date: regionResults.get('date')?.split('DATE:')[1]?.trim() || '',
+		game_mode: regionResults.get('game_mode')?.split(':')[1]?.trim() || '',
+		game_length: regionResults.get('game_length')?.split('LENGTH:')[1]?.trim() || '',
 	};
 
 	return { players, matchInfo };
