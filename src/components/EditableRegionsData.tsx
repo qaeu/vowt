@@ -46,10 +46,8 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 
 	createEffect(
 		({ prevProfileId, prevRegionsCount }) => {
-			console.log('Effect');
 			// Sync saved regions on profile save or change
 			if (savedRegions() !== props.savedRegions) {
-				console.log('  save');
 				setSavedRegions(props.savedRegions);
 				setJustSavedFieldIds(getModifiedFieldIds());
 				resetAllModifiedFields();
