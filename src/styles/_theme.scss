@@ -1,18 +1,20 @@
+@use 'sass:color';
+
 // Foreground - Primary text and key UI elements
 $foreground: #4a5568;
 $foreground-dark: #2d3748;
 $foreground-light: #718096;
 
 // Background - Container and surface colors
-$background: #f7fafc;
+$background: #f7f7fc;
 $background-light: #fff;
-$background-alt: #edf2f7;
+$background-alt: #edeff7;
 
 // Accent1 - Primary brand color (softer blue)
-$accent1: #5a7fa3;
-$accent1-light: #7fa3c3;
-$accent1-lighter: #e8f0f7;
-$accent1-border: #5a7fa3;
+$accent1: #8b94ac;
+$accent1-light: color.scale($accent1, $lightness: 30%);
+$accent1-lighter: color.scale($accent1, $lightness: 80%);
+$accent1-border: color.scale($accent1, $lightness: -80%);
 
 // Accent2 - Secondary action colors (success, warning, error)
 $accent2-success: #68a36a;
@@ -34,104 +36,106 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
 
 // Container mixin for main content areas
 @mixin container {
-    padding: 20px;
-    font-family: Arial, sans-serif;
-    max-width: 1400px;
-    margin: 0 auto;
+	padding: 20px;
+	font-family: Arial, sans-serif;
+	max-width: 1400px;
+	margin: 0 auto;
 }
 
 // Card/box styling with shadow and rounded corners
 @mixin card($bg-color: $background, $shadow-size: 0 2px 4px) {
-    padding: 20px;
-    margin-bottom: 30px;
-    background-color: $bg-color;
-    border-radius: 8px;
-    box-shadow: $shadow-size $shadow;
+	padding: 20px;
+	margin-bottom: 30px;
+	background-color: $bg-color;
+	border-radius: 8px;
+	box-shadow: $shadow-size $shadow;
 }
 
 // Info box styling with left border accent
 @mixin info-box($bg-color, $border-color) {
-    padding: 15px;
-    background-color: $bg-color;
-    border-left: 4px solid $border-color;
-    margin-bottom: 20px;
-    border-radius: 4px;
+	padding: 15px;
+	background-color: $bg-color;
+	border-left: 4px solid $border-color;
+	margin-bottom: 20px;
+	border-radius: 4px;
 
-    p {
-        margin: 0;
-        font-size: 14px;
-    }
+	p {
+		margin: 0;
+		font-size: 14px;
+	}
 }
 
 // Button styling
-@mixin button($bg-color) {
-    padding: 10px 20px;
-    color: white;
-    border: solid $foreground-light;
-    border-width: 0;
-    margin-top: 2px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
-    background-color: $bg-color;
+@mixin button($accent-color: theme.$accent1) {
+	padding: 8px 12px;
+	border: 1px solid $border-light;
+	border-radius: 4px;
+	background-color: transparent;
+	color: $foreground;
+	cursor: pointer;
+	font-size: 13px;
+	transition: all 0.2s ease;
 
-    &:hover {
-        border-width: 0 0 2px 0;
-        margin-top: 0;
-    }
-    &:active {
-        border-width: 0;
-        margin-top: 2px;
-    }
+	&:hover {
+		background-color: rgba($accent-color, 0.1);
+		border-color: $accent-color;
+		color: $accent-color;
+	}
 }
 
 // Small button styling (for delete/action buttons)
-@mixin button-small($bg-color) {
-    padding: 6px 12px;
-    background-color: $bg-color;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
+@mixin button-small($accent-color) {
+	padding: 6px 10px;
+	background-color: transparent;
+	border: 1px solid $border-light;
+	border-radius: 3px;
+	color: $foreground;
+	cursor: pointer;
+	font-size: 12px;
+	transition: all 0.2s ease;
+
+	&:hover {
+		background-color: rgba($accent-color, 0.1);
+		border-color: $accent-color;
+		color: $accent-color;
+	}
 }
 
 // Badge styling
 @mixin badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
+	padding: 4px 8px;
+	border-radius: 4px;
+	color: white;
+	font-size: 12px;
+	font-weight: bold;
 }
 
 // Pre/code block styling
 @mixin code-block($bg: $background-light, $border-color: $border-light) {
-    background-color: $bg;
-    padding: 15px;
-    border-radius: 4px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    border: 1px solid $border-color;
-    font-family: monospace;
-    font-size: 12px;
-    line-height: 1.5;
+	background-color: $bg;
+	padding: 15px;
+	border-radius: 4px;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	border: 1px solid $border-color;
+	font-family: monospace;
+	font-size: 12px;
+	line-height: 1.5;
 }
 
 // Progress bar styling
 @mixin progress-bar-wrapper {
-    width: 100%;
-    height: 24px;
-    background-color: $border-default;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: inset 0 1px 3px $shadow-subtle;
+	width: 100%;
+	height: 24px;
+	background-color: $border-default;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: inset 0 1px 3px $shadow-subtle;
 }
 
 @mixin progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, $accent1, $accent1-light);
-    transition: width 0.3s ease;
-    box-shadow: 0 0 10px rgba(66, 165, 245, 0.5);
+	height: 100%;
+	background: linear-gradient(90deg, $accent1, $accent1-light);
+	transition: width 0.3s ease;
+	box-shadow: 0 0 10px rgba(66, 165, 245, 0.5);
 }

@@ -11,262 +11,229 @@ import { getActiveProfile } from '#utils/regionProfiles';
 import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
-    uploadedImage?: string | null;
-    onClose: () => void;
+	uploadedImage?: string | null;
+	onClose: () => void;
 }
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
-    const [isProcessing, setIsProcessing] = createSignal(false);
-    const [preprocessedImagePreview, setPreprocessedImagePreview] =
-        createSignal<string>('');
-    const [rawOcrText, setRawOcrText] = createSignal<string>('');
-    const [extractedStats, setExtractedStats] = createSignal<
-        Pick<GameRecord, 'players' | 'matchInfo'>
-    >({ players: [], matchInfo: {} as MatchInfo });
-    const [error, setError] = createSignal<string>('');
-    const [progress, setProgress] = createSignal<number>(0);
-    const [currentImage, setCurrentImage] = createSignal<string>();
-    const [showJsonStats, setShowJsonStats] = createSignal(false);
-    const [showRawText, setShowRawText] = createSignal(false);
+	const [isProcessing, setIsProcessing] = createSignal(false);
+	const [preprocessedImagePreview, setPreprocessedImagePreview] =
+		createSignal<string>('');
+	const [rawOcrText, setRawOcrText] = createSignal<string>('');
+	const [extractedStats, setExtractedStats] = createSignal<
+		Pick<GameRecord, 'players' | 'matchInfo'>
+	>({ players: [], matchInfo: {} as MatchInfo });
+	const [error, setError] = createSignal<string>('');
+	const [progress, setProgress] = createSignal<number>(0);
+	const [currentImage, setCurrentImage] = createSignal<string>();
+	const [showJsonStats, setShowJsonStats] = createSignal(false);
+	const [showRawText, setShowRawText] = createSignal(false);
 
-    let recordId: string;
+	let recordId: string;
 
-    onMount(async () => {
-        if (props.uploadedImage) {
-            setCurrentImage(props.uploadedImage);
-            await processImage(props.uploadedImage);
-        }
-    });
+	onMount(async () => {
+		if (props.uploadedImage) {
+			setCurrentImage(props.uploadedImage);
+			await processImage(props.uploadedImage);
+		}
+	});
 
-    // React to changes in uploadedImage prop (e.g., drag-and-drop while on OCR page)
-    createEffect(() => {
-        const uploaded = props.uploadedImage;
-        if (uploaded && uploaded !== currentImage()) {
-            setCurrentImage(uploaded);
-            processImage(uploaded);
-        }
-    });
+	// React to changes in uploadedImage prop (e.g., drag-and-drop while on OCR page)
+	createEffect(() => {
+		const uploaded = props.uploadedImage;
+		if (uploaded && uploaded !== currentImage()) {
+			setCurrentImage(uploaded);
+			processImage(uploaded);
+		}
+	});
 
-    const processImage = async (imagePath?: string) => {
-        const imageToProcess = (imagePath || currentImage()) as string;
-        try {
-            setIsProcessing(true);
-            setError('');
+	const processImage = async (imagePath?: string) => {
+		const imageToProcess = (imagePath || currentImage()) as string;
+		try {
+			setIsProcessing(true);
+			setError('');
 
-            // Step 0: Get image dimensions
-            const imageDimensions = await new Promise<{
-                width: number;
-                height: number;
-            }>((resolve, reject) => {
-                const img = new Image();
-                img.onload = () =>
-                    resolve({ width: img.width, height: img.height });
-                img.onerror = () => reject(new Error('Failed to load image'));
-                img.src = imageToProcess;
-            });
+			// Step 0: Get image dimensions
+			const imageDimensions = await new Promise<{
+				width: number;
+				height: number;
+			}>((resolve, reject) => {
+				const img = new Image();
+				img.onload = () => resolve({ width: img.width, height: img.height });
+				img.onerror = () => reject(new Error('Failed to load image'));
+				img.src = imageToProcess;
+			});
 
-            // Step 1: Preprocess the full image
-            const preprocessed = await preprocessImageForOCR(imageToProcess);
+			// Step 1: Preprocess the full image
+			const preprocessed = await preprocessImageForOCR(imageToProcess);
 
-            // Preview preprocessed image with regions
-            const preprocessedPreview = await drawRegionsOnImage(
-                preprocessed,
-                imageToProcess
-            );
-            setPreprocessedImagePreview(preprocessedPreview);
+			// Preview preprocessed image with regions
+			const preprocessedPreview = await drawRegionsOnImage(preprocessed, imageToProcess);
+			setPreprocessedImagePreview(preprocessedPreview);
 
-            // Step 2: Perform region-based OCR using Tesseract.js
-            const ocrTextParts: string[] = [];
-            const regionResults = new Map<string, string>();
+			// Step 2: Perform region-based OCR using Tesseract.js
+			const ocrTextParts: string[] = [];
+			const regionResults = new Map<string, string>();
 
-            const worker = await Tesseract.createWorker('eng', 1);
+			const worker = await Tesseract.createWorker('eng', 1);
 
-            const scoreboardRegions = getActiveProfile().map((region) =>
-                normaliseRegion(
-                    region,
-                    imageDimensions.width,
-                    imageDimensions.height
-                )
-            );
-            const regionCount = scoreboardRegions.length;
+			const scoreboardRegions = getActiveProfile().map((region) =>
+				normaliseRegion(region, imageDimensions.width, imageDimensions.height)
+			);
+			const regionCount = scoreboardRegions.length;
 
-            if (!scoreboardRegions || regionCount === 0) {
-                setError(
-                    'No scoreboard regions defined in the active profile.'
-                );
-                return;
-            }
+			if (!scoreboardRegions || regionCount === 0) {
+				setError('No scoreboard regions defined in the active profile.');
+				return;
+			}
 
-            for (let i = 0; i < regionCount; i++) {
-                const region = scoreboardRegions[i];
-                setProgress(Math.round((i / regionCount) * 100));
+			for (let i = 0; i < regionCount; i++) {
+				const region = scoreboardRegions[i];
+				setProgress(Math.round((i / regionCount) * 100));
 
-                await worker.setParameters({
-                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
-                    tessedit_char_whitelist: region.charSet,
-                });
+				await worker.setParameters({
+					tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
+					tessedit_char_whitelist: region.charSet,
+				});
 
-                // Recognize text in this region
-                const result = await worker.recognize(preprocessed, {
-                    rectangle: {
-                        left: region.x,
-                        top: region.y,
-                        width: region.width,
-                        height: region.height,
-                    },
-                });
+				// Recognize text in this region
+				const result = await worker.recognize(preprocessed, {
+					rectangle: {
+						left: region.x,
+						top: region.y,
+						width: region.width,
+						height: region.height,
+					},
+				});
 
-                const text = result.data.text.trim();
-                const confidence = result.data.confidence;
-                ocrTextParts.push(`${region.name} (${confidence}%): ${text}`);
-                regionResults.set(region.name, text);
-            }
+				const text = result.data.text.trim();
+				const confidence = result.data.confidence;
+				ocrTextParts.push(`${region.name} (${confidence}%): ${text}`);
+				regionResults.set(region.name, text);
+			}
 
-            await worker.terminate();
+			await worker.terminate();
 
-            // Combine all OCR results for display
-            setRawOcrText(ocrTextParts.join('\n'));
+			// Combine all OCR results for display
+			setRawOcrText(ocrTextParts.join('\n'));
 
-            // Step 3: Extract game stats from region results
-            const stats = extractGameStats(regionResults);
-            setExtractedStats(stats);
-            recordId = saveGameRecord(stats.players, stats.matchInfo);
-        } catch (err) {
-            setError(
-                err instanceof Error ? err.message : 'Unknown error occurred'
-            );
-            console.error('Processing error:', err);
-        } finally {
-            setIsProcessing(false);
-        }
-    };
+			// Step 3: Extract game stats from region results
+			const stats = extractGameStats(regionResults);
+			setExtractedStats(stats);
+			recordId = saveGameRecord(stats.players, stats.matchInfo);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Unknown error occurred');
+			console.error('Processing error:', err);
+		} finally {
+			setIsProcessing(false);
+		}
+	};
 
-    const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
-        try {
-            updateGameRecord(recordId, players, matchInfo);
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : 'Failed to save game record'
-            );
-        }
-    };
+	const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
+		try {
+			updateGameRecord(recordId, players, matchInfo);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Failed to save game record');
+		}
+	};
 
-    return (
-        <div class="scoreboard-container">
-            <div class="ocr-header">
-                <h1 class="scoreboard-title">Upload Scoreboard Screenshot</h1>
-                <button
-                    onClick={() => {
-                        props.onClose();
-                    }}
-                    class="close-button"
-                >
-                    ✕ Close
-                </button>
-            </div>
+	return (
+		<div class="scoreboard-container">
+			<div class="ocr-header">
+				<h1 class="scoreboard-title">Upload Scoreboard Screenshot</h1>
+				<button
+					onClick={() => {
+						props.onClose();
+					}}
+					class="close-button"
+				>
+					✕ Close
+				</button>
+			</div>
 
-            <Show when={error()}>
-                <div class="error-box">
-                    <strong>Error:</strong> {error()}
-                </div>
-            </Show>
+			<Show when={error()}>
+				<div class="error-box">
+					<strong>Error:</strong> {error()}
+				</div>
+			</Show>
 
-            <Show when={isProcessing()}>
-                <div class="progress-container">
-                    <p class="progress-text">
-                        Processing image... {progress()}%
-                    </p>
-                    <div class="progress-bar-wrapper">
-                        <div
-                            class="progress-bar"
-                            style={{ width: `${progress()}%` }}
-                        />
-                    </div>
-                </div>
-            </Show>
+			<Show when={isProcessing()}>
+				<div class="progress-container">
+					<p class="progress-text">Processing image... {progress()}%</p>
+					<div class="progress-bar-wrapper">
+						<div class="progress-bar" style={{ width: `${progress()}%` }} />
+					</div>
+				</div>
+			</Show>
 
-            <div class="image-grid">
-                <Show when={currentImage()}>
-                    <div class="image-container">
-                        <h2>Uploaded Image</h2>
-                        <img src={currentImage()} alt="Uploaded Image" />
-                    </div>
-                </Show>
+			<div class="image-grid">
+				<Show when={currentImage()}>
+					<div class="image-container">
+						<h2>Uploaded Image</h2>
+						<img src={currentImage()} alt="Uploaded Image" />
+					</div>
+				</Show>
 
-                <Show when={preprocessedImagePreview()}>
-                    <div class="image-container">
-                        <h2>Pre-processed Image</h2>
-                        <img
-                            src={preprocessedImagePreview()}
-                            alt="Pre-processed scoreboard with regions and unskew applied"
-                        />
-                        <p>
-                            Filtered for OCR clarity. Red boxes show scoreboard
-                            regions. Green boxes show scoreboard regions with
-                            transformed italic text.
-                        </p>
-                    </div>
-                </Show>
-            </div>
+				<Show when={preprocessedImagePreview()}>
+					<div class="image-container">
+						<h2>Pre-processed Image</h2>
+						<img
+							src={preprocessedImagePreview()}
+							alt="Pre-processed scoreboard with regions and unskew applied"
+						/>
+						<p>
+							Filtered for OCR clarity. Red boxes show scoreboard regions. Green boxes
+							show scoreboard regions with transformed italic text.
+						</p>
+					</div>
+				</Show>
+			</div>
 
-            <Show
-                when={
-                    extractedStats().players &&
-                    extractedStats().players.length > 0
-                }
-            >
-                <EditableGameData
-                    initialPlayers={extractedStats().players || []}
-                    initialMatchInfo={
-                        extractedStats().matchInfo || {
-                            result: '',
-                            final_score: { blue: '', red: '' },
-                            date: '',
-                            game_mode: '',
-                            game_length: '',
-                        }
-                    }
-                    onSave={handleSaveData}
-                />
-            </Show>
+			<Show when={extractedStats().players && extractedStats().players.length > 0}>
+				<EditableGameData
+					initialPlayers={extractedStats().players || []}
+					initialMatchInfo={
+						extractedStats().matchInfo || {
+							result: '',
+							final_score: { blue: '', red: '' },
+							date: '',
+							game_mode: '',
+							game_length: '',
+						}
+					}
+					onSave={handleSaveData}
+				/>
+			</Show>
 
-            <Show
-                when={
-                    extractedStats().players &&
-                    extractedStats().players.length > 0
-                }
-            >
-                <div class="stats-box">
-                    <h2 onClick={() => setShowJsonStats(!showJsonStats())}>
-                        <span>Extracted Game Stats (JSON)</span>
-                        <span>{showJsonStats() ? '▼' : '▶'}</span>
-                    </h2>
-                    <Show when={showJsonStats()}>
-                        <pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
-                        <p class="stats-message">
-                            ✓ Successfully parsed{' '}
-                            {Object.keys(extractedStats()).length} data fields
-                            from the scoreboard
-                        </p>
-                    </Show>
-                </div>
-            </Show>
+			<Show when={extractedStats().players && extractedStats().players.length > 0}>
+				<div class="stats-box">
+					<h2 onClick={() => setShowJsonStats(!showJsonStats())}>
+						<span>Extracted Game Stats (JSON)</span>
+						<span>{showJsonStats() ? '▼' : '▶'}</span>
+					</h2>
+					<Show when={showJsonStats()}>
+						<pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
+						<p class="stats-message">
+							✓ Successfully parsed {Object.keys(extractedStats()).length} data fields
+							from the scoreboard
+						</p>
+					</Show>
+				</div>
+			</Show>
 
-            <Show when={rawOcrText()}>
-                <div class="ocr-output-box">
-                    <h2 onClick={() => setShowRawText(!showRawText())}>
-                        <span>Raw OCR Text Output</span>
-                        <span>{showRawText() ? '▼' : '▶'}</span>
-                    </h2>
-                    <Show when={showRawText()}>
-                        <pre>{rawOcrText()}</pre>
-                    </Show>
-                </div>
-            </Show>
-        </div>
-    );
+			<Show when={rawOcrText()}>
+				<div class="ocr-output-box">
+					<h2 onClick={() => setShowRawText(!showRawText())}>
+						<span>Raw OCR Text Output</span>
+						<span>{showRawText() ? '▼' : '▶'}</span>
+					</h2>
+					<Show when={showRawText()}>
+						<pre>{rawOcrText()}</pre>
+					</Show>
+				</div>
+			</Show>
+		</div>
+	);
 };
 
 export default ScoreboardOCR;

@@ -11,49 +11,41 @@ import { getActiveProfile } from '#utils/regionProfiles';
  * @param skewAngle - Angle in degrees to unskew (negative for italic correction)
  * @returns Processed image data
  */
-function unskewItalicText(
-    imageData: ImageData,
-    skewAngle: number = -14
-): ImageData {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+function unskewItalicText(imageData: ImageData, skewAngle: number = -14): ImageData {
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d');
 
-    if (!ctx) {
-        return imageData;
-    }
+	if (!ctx) {
+		return imageData;
+	}
 
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
+	canvas.width = imageData.width;
+	canvas.height = imageData.height;
 
-    // Put the image data on canvas
-    ctx.putImageData(imageData, 0, 0);
+	// Put the image data on canvas
+	ctx.putImageData(imageData, 0, 0);
 
-    // Create a new canvas for the transformed image
-    const outputCanvas = document.createElement('canvas');
-    const outputCtx = outputCanvas.getContext('2d');
+	// Create a new canvas for the transformed image
+	const outputCanvas = document.createElement('canvas');
+	const outputCtx = outputCanvas.getContext('2d');
 
-    if (!outputCtx) {
-        return imageData;
-    }
+	if (!outputCtx) {
+		return imageData;
+	}
 
-    outputCanvas.width = imageData.width;
-    outputCanvas.height = imageData.height;
+	outputCanvas.width = imageData.width;
+	outputCanvas.height = imageData.height;
 
-    // Fill background with gray before transformation
-    outputCtx.fillStyle = '#444444';
-    outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+	// Fill background with gray before transformation
+	outputCtx.fillStyle = '#444444';
+	outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
-    // Apply skew transformation to counteract italic
-    const angleRad = (skewAngle * Math.PI) / 180;
-    outputCtx.transform(1, 0, -Math.tan(angleRad), 1, 0, 0);
-    outputCtx.drawImage(canvas, 0, 0);
+	// Apply skew transformation to counteract italic
+	const angleRad = (skewAngle * Math.PI) / 180;
+	outputCtx.transform(1, 0, -Math.tan(angleRad), 1, 0, 0);
+	outputCtx.drawImage(canvas, 0, 0);
 
-    return outputCtx.getImageData(
-        0,
-        0,
-        outputCanvas.width,
-        outputCanvas.height
-    );
+	return outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
 }
 
 /**
@@ -62,53 +54,49 @@ function unskewItalicText(
  * @returns Promise resolving to a data URL of the preprocessed image
  */
 export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
+	return new Promise((resolve, reject) => {
+		const img = new Image();
 
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+		img.onload = () => {
+			const canvas = document.createElement('canvas');
+			const ctx = canvas.getContext('2d');
 
-            if (!ctx) {
-                reject(new Error('Failed to get canvas context'));
-                return;
-            }
+			if (!ctx) {
+				reject(new Error('Failed to get canvas context'));
+				return;
+			}
 
-            canvas.width = img.width;
-            canvas.height = img.height;
+			canvas.width = img.width;
+			canvas.height = img.height;
 
-            ctx.drawImage(img, 0, 0);
+			ctx.drawImage(img, 0, 0);
 
-            const regions = getActiveProfile();
-            for (const region of regions) {
-                // Extract region image data
-                const regionImageData = ctx.getImageData(
-                    region.x,
-                    region.y,
-                    region.width,
-                    region.height
-                );
-                const imageData = preprocessRegionForOCR(
-                    regionImageData,
-                    region
-                );
-                ctx.putImageData(imageData, region.x, region.y);
-            }
+			const regions = getActiveProfile();
+			for (const region of regions) {
+				// Extract region image data
+				const regionImageData = ctx.getImageData(
+					region.x,
+					region.y,
+					region.width,
+					region.height
+				);
+				const imageData = preprocessRegionForOCR(regionImageData, region);
+				ctx.putImageData(imageData, region.x, region.y);
+			}
 
-            ctx.filter =
-                'brightness(70%) contrast(300%) grayscale(100%) invert(100%)';
-            ctx.drawImage(canvas, 0, 0);
+			ctx.filter = 'brightness(70%) contrast(300%) grayscale(100%) invert(100%)';
+			ctx.drawImage(canvas, 0, 0);
 
-            // Convert to data URL
-            resolve(canvas.toDataURL('image/png'));
-        };
+			// Convert to data URL
+			resolve(canvas.toDataURL('image/png'));
+		};
 
-        img.onerror = () => {
-            reject(new Error('Failed to load image'));
-        };
+		img.onerror = () => {
+			reject(new Error('Failed to load image'));
+		};
 
-        img.src = imageUrl;
-    });
+		img.src = imageUrl;
+	});
 }
 
 /**
@@ -119,63 +107,58 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
  * @returns Promise resolving to data URL with unskew regions highlighted
  */
 export async function drawRegionsOnImage(
-    imageUrl: string,
-    sourceImageUrl: string
+	imageUrl: string,
+	sourceImageUrl: string
 ): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
+	return new Promise((resolve, reject) => {
+		const img = new Image();
 
-        img.onload = () => {
-            const sourceImg = new Image();
+		img.onload = () => {
+			const sourceImg = new Image();
 
-            sourceImg.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+			sourceImg.onload = () => {
+				const canvas = document.createElement('canvas');
+				const ctx = canvas.getContext('2d');
 
-                if (!ctx) {
-                    reject(new Error('Failed to get canvas context'));
-                    return;
-                }
+				if (!ctx) {
+					reject(new Error('Failed to get canvas context'));
+					return;
+				}
 
-                canvas.width = img.width;
-                canvas.height = img.height;
+				canvas.width = img.width;
+				canvas.height = img.height;
 
-                // Draw the preprocessed image with regions
-                ctx.drawImage(img, 0, 0);
+				// Draw the preprocessed image with regions
+				ctx.drawImage(img, 0, 0);
 
-                ctx.lineWidth = 1;
+				ctx.lineWidth = 1;
 
-                const regions = getActiveProfile();
-                for (const region of regions) {
-                    if (region.isItalic) {
-                        ctx.strokeStyle = '#4caf50';
-                    } else {
-                        ctx.strokeStyle = '#ff0000';
-                    }
-                    ctx.strokeRect(
-                        region.x,
-                        region.y,
-                        region.width,
-                        region.height
-                    );
-                }
+				const regions = getActiveProfile();
+				for (const region of regions) {
+					if (region.isItalic) {
+						ctx.strokeStyle = '#4caf50';
+					} else {
+						ctx.strokeStyle = '#ff0000';
+					}
+					ctx.strokeRect(region.x, region.y, region.width, region.height);
+				}
 
-                resolve(canvas.toDataURL('image/png'));
-            };
+				resolve(canvas.toDataURL('image/png'));
+			};
 
-            sourceImg.onerror = () => {
-                reject(new Error('Failed to load source image'));
-            };
+			sourceImg.onerror = () => {
+				reject(new Error('Failed to load source image'));
+			};
 
-            sourceImg.src = sourceImageUrl;
-        };
+			sourceImg.src = sourceImageUrl;
+		};
 
-        img.onerror = () => {
-            reject(new Error('Failed to load image'));
-        };
+		img.onerror = () => {
+			reject(new Error('Failed to load image'));
+		};
 
-        img.src = imageUrl;
-    });
+		img.src = imageUrl;
+	});
 }
 
 /**
@@ -184,29 +167,26 @@ export async function drawRegionsOnImage(
  * @param region - Region definition
  * @returns Promise resolving to preprocessed region data URL
  */
-function preprocessRegionForOCR(
-    imageData: ImageData,
-    region: TextRegion
-): ImageData {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+function preprocessRegionForOCR(imageData: ImageData, region: TextRegion): ImageData {
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d');
 
-    if (!ctx || !region.isItalic) {
-        return imageData;
-    }
+	if (!ctx || !region.isItalic) {
+		return imageData;
+	}
 
-    // Set canvas to region size
-    canvas.width = region.width;
-    canvas.height = region.height;
+	// Set canvas to region size
+	canvas.width = region.width;
+	canvas.height = region.height;
 
-    // Put the image data on canvas
-    ctx.putImageData(imageData, 0, 0);
+	// Put the image data on canvas
+	ctx.putImageData(imageData, 0, 0);
 
-    // Apply italic correction if needed
-    if (region.isItalic) {
-        imageData = unskewItalicText(imageData);
-        ctx.putImageData(imageData, 0, 0);
-    }
+	// Apply italic correction if needed
+	if (region.isItalic) {
+		imageData = unskewItalicText(imageData);
+		ctx.putImageData(imageData, 0, 0);
+	}
 
-    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+	return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }

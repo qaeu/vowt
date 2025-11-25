@@ -1,326 +1,293 @@
 @use 'theme';
 
 .region-profile-manager-container {
-    @include theme.container;
+	@include theme.container;
 
-    &.dragging {
-        background-color: rgba(theme.$accent1, 0.02);
-    }
-}
+	&.dragging {
+		background-color: rgba(theme.$accent1, 0.02);
+	}
 
-.ocr-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+	.ocr-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20px;
 
-    h1 {
-        margin: 0;
-    }
+		h1 {
+			margin: 0;
+		}
 
-    .close-button {
-        @include theme.button(theme.$foreground-light);
-        padding: 8px 16px;
-        font-size: 14px;
-    }
-}
+		.close-button {
+			@include theme.button(theme.$foreground-light);
+			padding: 8px 16px;
+			font-size: 14px;
+		}
+	}
 
-.info-box {
-    @include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
-    margin-bottom: 30px;
-}
+	.info-box {
+		@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
+		margin-bottom: 30px;
+	}
 
-.manager-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 30px;
-    margin-bottom: 30px;
-}
+	.manager-layout {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 10px;
+		margin-bottom: 30px;
+	}
 
-.section {
-    @include theme.card(theme.$background);
-    border: 1px solid theme.$border-light;
-    padding: 20px;
-    border-radius: 8px;
+	.section {
+		@include theme.card(theme.$background);
+		border: 1px solid theme.$border-light;
+		padding: 20px;
+		border-radius: 8px;
 
-    h2 {
-        margin-top: 0;
-        margin-bottom: 15px;
-        color: theme.$foreground;
-        font-size: 18px;
-    }
+		h2 {
+			margin-top: 0;
+			margin-bottom: 15px;
+			color: theme.$foreground;
+			font-size: 18px;
+		}
 
-    h3 {
-        color: theme.$foreground;
-        font-size: 16px;
-    }
-}
+		h3 {
+			color: theme.$foreground;
+			font-size: 16px;
+		}
+	}
 
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
+	.button-group {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
 
-    button {
-        padding: 10px 20px;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        flex: 1;
-        min-width: 120px;
+		button {
+			padding: 10px 20px;
+			color: theme.$foreground;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 14px;
+			flex: 1;
+			min-width: 120px;
 
-        &:disabled {
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
+			&:disabled {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
 
-        &:hover:not(:disabled) {
-            opacity: 0.9;
-        }
+			&:hover:not(:disabled) {
+				opacity: 0.9;
+			}
 
-        &.primary {
-            @include theme.button(theme.$accent1);
-        }
+			&.primary {
+				@include theme.button(theme.$accent1);
+			}
 
-        &.secondary {
-            @include theme.button(theme.$accent1-light);
-        }
+			&.secondary {
+				@include theme.button(theme.$accent1-light);
+			}
 
-        &.danger {
-            @include theme.button(theme.$accent2-error);
-        }
+			&.danger {
+				@include theme.button(theme.$accent2-error);
+			}
 
-        &.success {
-            @include theme.button(theme.$accent2-success);
-        }
-    }
-}
+			&.success {
+				@include theme.button(theme.$accent2-success);
+			}
 
-.canvas-wrapper {
-    @include theme.card(theme.$background);
-    border: 2px solid theme.$accent1;
-    margin-bottom: 20px;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
+			&.action-btn {
+				@include theme.button(theme.$accent1);
+				flex: 1;
 
-    canvas {
-        display: block;
-        width: 100%;
-        border: 1px solid theme.$border-light;
-        border-radius: 4px;
-    }
+				&.active {
+					background-color: theme.$accent2-success;
+					color: white;
+					border-color: theme.$accent2-success;
+				}
 
-    .drag-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(theme.$accent1, 0.1);
-        border: 2px dashed theme.$accent1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        font-weight: 600;
-        color: theme.$accent1;
-        pointer-events: none;
-    }
-}
+				&.delete {
+					@include theme.button(theme.$accent2-error);
+				}
+			}
+		}
+	}
 
-.regions-display {
-    @include theme.card(theme.$accent2-success-light);
-    border: 1px solid theme.$accent2-success-border;
-    border-radius: 4px;
-    padding: 15px;
-    margin-top: 20px;
+	.canvas-wrapper {
+		@include theme.card(theme.$background);
+		border: 2px solid theme.$accent1;
+		margin: 20px 0;
+		border-radius: 4px;
+		overflow: hidden;
+		position: relative;
 
-    h3 {
-        margin-top: 0;
-        color: theme.$accent2-success;
-    }
+		canvas {
+			display: block;
+			width: 100%;
+			border: 1px solid theme.$border-light;
+			border-radius: 4px;
+		}
 
-    pre {
-        @include theme.code-block(
-            theme.$background-light,
-            theme.$accent2-success-border
-        );
-        font-size: 11px;
-        line-height: 1.4;
-        max-height: 300px;
-        overflow-y: auto;
-    }
-}
+		.drag-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: rgba(theme.$accent1, 0.1);
+			border: 2px dashed theme.$accent1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 18px;
+			font-weight: 600;
+			color: theme.$accent1;
+			pointer-events: none;
+		}
+	}
 
-.profile-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
+	.regions-display {
+		@include theme.card(theme.$accent2-success-light);
+		border: 1px solid theme.$accent2-success-border;
+		border-radius: 4px;
+		padding: 15px;
+		margin-top: 20px;
 
-.input-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: theme.$foreground;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
+		h3 {
+			margin-top: 0;
+			color: theme.$accent2-success;
+		}
 
-.profile-input {
-    width: 100%;
-    border: 0;
-    padding: 12px;
-    font-size: 14px;
-    box-sizing: border-box;
-    background-color: transparent;
-    color: theme.$foreground;
-    transition: all 0.15s ease;
+		pre {
+			@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
+			font-size: 11px;
+			line-height: 1.4;
+			max-height: 300px;
+			overflow-y: auto;
+		}
+	}
 
-    &:hover {
-        background-color: theme.$background-alt;
-        border-color: theme.$border-light;
-    }
+	.profile-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 15px;
+	}
 
-    &:focus {
-        outline: none;
-        background-color: theme.$background-light;
-        border-color: theme.$accent1;
-        box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
-    }
+	.input-label {
+		display: block;
+		font-size: 13px;
+		font-weight: 600;
+		color: theme.$foreground;
+		margin-bottom: 6px;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
 
-    &:disabled,
-    &.disabled {
-        background-color: theme.$background;
-        color: theme.$accent1-light;
-        cursor: not-allowed;
-    }
-}
+	.profile-input {
+		width: 100%;
+		border: 0;
+		padding: 12px;
+		font-size: 14px;
+		box-sizing: border-box;
+		background-color: transparent;
+		color: theme.$foreground;
+		transition: all 0.15s ease;
 
-.profile-textarea {
-    width: 100%;
-    border: 0;
-    padding: 12px;
-    font-size: 14px;
-    box-sizing: border-box;
-    background-color: transparent;
-    color: theme.$foreground;
-    font-family: inherit;
-    min-height: 80px;
-    resize: vertical;
-    transition: all 0.15s ease;
+		&:hover {
+			background-color: theme.$background-alt;
+			border-color: theme.$border-light;
+		}
 
-    &:hover {
-        background-color: theme.$background-alt;
-        border-color: theme.$border-light;
-    }
+		&:focus {
+			outline: none;
+			background-color: theme.$background-light;
+			border-color: theme.$accent1;
+			box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
+		}
 
-    &:focus {
-        outline: none;
-        background-color: theme.$background-light;
-        border-color: theme.$accent1;
-        box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
-    }
-}
+		&:disabled,
+		&.disabled {
+			background-color: theme.$background;
+			color: theme.$accent1-light;
+			cursor: not-allowed;
+		}
+	}
 
-.profiles-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
+	.profile-textarea {
+		width: 100%;
+		border: 0;
+		padding: 12px;
+		font-size: 14px;
+		box-sizing: border-box;
+		background-color: transparent;
+		color: theme.$foreground;
+		font-family: inherit;
+		min-height: 80px;
+		resize: vertical;
+		transition: all 0.15s ease;
 
-.profile-card {
-    @include theme.card(theme.$background-light);
-    border: 2px solid theme.$border-light;
-    border-radius: 8px;
-    padding: 15px;
-    transition: all 0.2s ease;
+		&:hover {
+			background-color: theme.$background-alt;
+			border-color: theme.$border-light;
+		}
 
-    &:hover {
-        border-color: theme.$accent1;
-        box-shadow: 0 2px 8px rgba(theme.$accent1, 0.1);
-    }
+		&:focus {
+			outline: none;
+			background-color: theme.$background-light;
+			border-color: theme.$accent1;
+			box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
+		}
+	}
 
-    &.active {
-        border-color: theme.$accent2-success;
-        background-color: rgba(theme.$accent2-success, 0.05);
-    }
+	.profiles-list {
+		display: flex;
+		flex-direction: column;
+		gap: 15px;
+	}
 
-    .profile-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
+	.profile-card {
+		@include theme.card(theme.$background-light);
 
-        h3 {
-            margin: 0;
-            flex: 1;
-            word-break: break-word;
-            font-size: 15px;
-        }
-    }
+		border: 2px solid theme.$border-light;
+		border-radius: 8px;
+		padding: 15px;
+		transition: all 0.2s ease;
 
-    .profile-description {
-        margin: 8px 0;
-        font-size: 13px;
-        color: theme.$accent1-light;
-        min-height: 18px;
-    }
+		&:hover {
+			border-color: theme.$accent1;
+			box-shadow: 0 2px 8px rgba(theme.$accent1, 0.1);
+		}
 
-    .profile-actions-buttons {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
+		&.active {
+			border-color: theme.$accent2-success;
+			background-color: rgba(theme.$accent2-success, 0.05);
+		}
 
-        .action-btn {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid theme.$border-light;
-            border-radius: 4px;
-            background-color: transparent;
-            color: theme.$foreground;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s ease;
+		.profile-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 8px;
 
-            &:hover {
-                background-color: theme.$background;
-                border-color: theme.$accent1;
-            }
+			h3 {
+				margin: 0;
+				flex: 1;
+				word-break: break-word;
+				font-size: 15px;
+			}
+		}
 
-            &.active {
-                background-color: theme.$accent2-success;
-                color: white;
-                border-color: theme.$accent2-success;
-            }
+		.profile-description {
+			margin: 8px 0;
+			font-size: 13px;
+			color: theme.$accent1-light;
+			min-height: 18px;
+		}
+	}
 
-            &.edit {
-                &:hover {
-                    background-color: theme.$accent1-lighter;
-                    border-color: theme.$accent1;
-                    color: theme.$accent1;
-                }
-            }
-
-            &.delete {
-                &:hover {
-                    background-color: rgba(theme.$accent2-error, 0.1);
-                    border-color: theme.$accent2-error;
-                    color: theme.$accent2-error;
-                }
-            }
-        }
-    }
-}
-
-.empty-state {
-    text-align: center;
-    color: theme.$accent1-light;
-    padding: 40px 20px;
-    font-style: italic;
+	.empty-state {
+		text-align: center;
+		color: theme.$accent1-light;
+		padding: 40px 20px;
+		font-style: italic;
+	}
 }

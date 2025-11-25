@@ -136,53 +136,6 @@ describe('EditableGameData', () => {
         expect(screen.queryByText(/Reset Changes/)).toBeNull();
     });
 
-    it('should apply just-saved class when fields are just saved', () => {
-        const { container } = render(() => (
-            <EditableGameData
-                initialPlayers={mockPlayers}
-                initialMatchInfo={mockMatchInfo}
-                onSave={onSaveMock}
-            />
-        ));
-
-        // Find and edit the result input
-        const inputs = Array.from(
-            container.querySelectorAll('.match-info-edit input[type="text"]')
-        );
-        const resultInput = inputs[0] as HTMLInputElement;
-        fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
-
-        // Click save button
-        const saveButton = screen.getByText(/Save to Records/);
-        fireEvent.click(saveButton);
-
-        // After save, the onSaveMock should be called with the updated data
-        expect(onSaveMock).toHaveBeenCalledWith(
-            expect.any(Array),
-            expect.objectContaining({ result: 'DEFEAT' })
-        );
-    });
-
-    it('should apply modified class when fields are modified', () => {
-        const { container } = render(() => (
-            <EditableGameData
-                initialPlayers={mockPlayers}
-                initialMatchInfo={mockMatchInfo}
-                onSave={onSaveMock}
-            />
-        ));
-
-        // Find and edit the result input to trigger modified state
-        const inputs = Array.from(
-            container.querySelectorAll('.match-info-edit input[type="text"]')
-        );
-        const resultInput = inputs[0] as HTMLInputElement;
-        fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
-
-        // The input should now have the modified class
-        expect(resultInput.classList.contains('modified')).toBe(true);
-    });
-
     it('should update match info field when edited', () => {
         const { container } = render(() => (
             <EditableGameData

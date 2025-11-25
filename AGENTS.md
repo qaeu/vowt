@@ -8,19 +8,19 @@ VOWT is a client-side OCR application for extracting and managing video game sco
 -   **Browser Storage**: All user data is persisted exclusively in browser storage (localStorage/IndexedDB).
 -   **Data Portability**: Users can import/export data as JSON files for backup and sharing.
 
-## Technology Stack
+### Technology Stack
 
 | Layer          | Technology                        |
 | -------------- | --------------------------------- |
-| **Framework**  | SolidJS                           |
-| **Build Tool** | Vite                              |
-| **Styling**    | SASS/SCSS                         |
-| **OCR Engine** | Tesseract.js                      |
-| **Testing**    | Vitest + @solidjs/testing-library |
 | **Language**   | TypeScript                        |
 | **Hosting**    | GitHub Pages                      |
+| **Framework**  | SolidJS                           |
+| **Build Tool** | Vite                              |
+| **Testing**    | Vitest + @solidjs/testing-library |
+| **Styling**    | SASS/SCSS                         |
+| **OCR Engine** | Tesseract.js                      |
 
-## Code Organization
+### Code Organization
 
 ```
 src/
@@ -44,9 +44,7 @@ src/
 
 ### SolidJS Best Practices
 
--   **Use fine-grained reactivity**: Prefer `createSignal`, `createMemo`, and `createEffect` over broad re-renders.
--   **Avoid unnecessary components**: Extract components only when reusability or logic separation is needed.
--   **Lazy evaluation**: Use `createMemo` for expensive computations and selector functions.
+-   **Use fine-grained reactivity**: Prefer `createSignal`, `createEffect`, and `createMemo` over broad re-renders.
 -   **Avoid refs unless necessary**: SolidJS generally doesn't need refs; use signal-based state instead.
 -   **Resource management**: Always clean up timers, workers, and event listeners in cleanup functions.
 
@@ -55,7 +53,7 @@ src/
 -   **Strict mode**: All code uses `strict: true` in `tsconfig.json`.
 -   **Explicit types**: Avoid `any`; use union types and generics instead.
 -   **Component types**: Always specify `Component` return type or generic interface for SolidJS components.
--   **Interface over type**: Prefer `interface` for object shapes; use `type` only for unions or primitives.
+-   **Interface over type**: Prefer `interface` for object shapes; use `type` only when required.
 
 ### Code style
 
@@ -74,14 +72,14 @@ src/
     -   Local functions
     -   Exported functions
 
-### Styling with SASS/SCSS
+### SASS/SCSS Styling
 
 -   **Module system**: Use `@use` for importing theme variables and mixins.
 -   **Theme file**: `src/_theme.scss` contains:
     -   **Color variables**: Organized into logical groups (foreground, background, accent1, accent2, neutral).
     -   **Reusable mixins**: `container`, `card`, `info-box`, `button`, `badge`, `code-block`, `progress-bar-wrapper/fill`, etc.
 -   **Component stylesheets**: Each component has a corresponding `.scss` file using mixins from `_theme.scss`.
--   **Class naming**: Use BEM-like convention for nested components (e.g., `.progress-container .progress-bar`).
+-   **Class naming**: Use BEM-like convention for nested components (e.g. `.progress-container .progress-bar`).
 -   **Selector clarity**: Avoid heavily nested selectors; prefer adding classes or ids if necessary.
 -   **No inline styles**: Avoid inline `style` attributes; use CSS classes and mixins instead.
 
@@ -111,6 +109,10 @@ src/
 -   **Region extraction**: Regions are used to define OCR focus areas.
 -   **Canvas operations**: Be mindful of cross-origin restrictions when loading external images.
 
+## Tools
+
+-   **Documentation reference**: Use context7 to clarify the relevant documentation before working.
+
 ## Tests
 
 Run individual test files using:
@@ -122,23 +124,9 @@ npm test -- example.test.ts
 -   **Maintain test coverage**: Add tests for each new feature, update existing tests when the underlying behaviour has changed.
 -   **Test file readability**: Use nested `describe()` blocks to create reasonable sections.
 
-## Security Considerations
-
--   **No authentication**: This is a public, static site. Do not store secrets or API keys in code.
--   **CORS non-issue**: Since there's no backend, CORS is not a concern. Image loading may have restrictions.
--   **User data privacy**: Reinforce that all processing is client-side. Document this prominently.
--   **Dependency supply chain**: Keep dependencies updated; regularly audit for vulnerabilities.
-
-## Performance Optimization
-
--   **Code splitting**: Vite automatically splits code; avoid large synchronous bundles.
--   **Lazy loading**: Only load expensive data when needed.
--   **Memoization**: Cache expensive data in signals/memos to avoid recomputation.
-
 ## Contributing Tips
 
 -   Keep components focused and composable.
--   Document complex image processing logic with comments.
--   Write tests for critical OCR paths and storage operations.
+-   Document complex logic with comments.
+-   Write tests for edge cases.
 -   Avoid side effects in render functions; use `createEffect` instead.
--   Test in production build mode (`npm run serve`) before deploying.

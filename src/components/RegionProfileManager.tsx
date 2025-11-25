@@ -1,351 +1,302 @@
-import { createSignal, For, Show, onMount, type Component } from 'solid-js';
+import { createSignal, batch, For, Show, onMount, type Component } from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
+import EditableRegionsData from '#c/EditableRegionsData';
 import '#styles/RegionProfileManager';
 
 interface RegionProfileManagerProps {
-    previewImage: string | null;
-    onClose: () => void;
+	previewImage: string | null;
+	onClose: () => void;
 }
 
 const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
-    const initialProfileList = Profiles.listProfiles();
-    const {
-        id: initialActiveProfileId,
-        description: initialActiveProfileDesc,
-    } = Profiles.getActiveProfileDetails();
+	const initialProfileList = Profiles.listProfiles();
+	const { id: initialActiveProfileId, description: initialActiveProfileDesc } =
+		Profiles.getActiveProfileDetails();
 
-    const [editingRegions, setEditingRegions] = createSignal<DrawnRegion[]>([]);
-    const [profileList, setProfileList] = createSignal(initialProfileList);
-    const [activeProfileId, setActiveProfileId] = createSignal<string>(
-        initialActiveProfileId
-    );
-    const [editingProfileId, setEditingProfileId] = createSignal(
-        initialActiveProfileId
-    );
-    const [editingProfileDesc, setEditingProfileDesc] = createSignal(
-        initialActiveProfileDesc
-    );
+	const [savedRegions, setSavedRegions] = createSignal<DrawnRegion[]>([]);
+	const [editingRegions, setEditingRegions] = createSignal<DrawnRegion[]>([]);
+	const [profileList, setProfileList] = createSignal(initialProfileList);
+	const [activeProfileId, setActiveProfileId] =
+		createSignal<string>(initialActiveProfileId);
+	const [editingProfileId, setEditingProfileId] = createSignal(initialActiveProfileId);
+	const [editingProfileDesc, setEditingProfileDesc] = createSignal(
+		initialActiveProfileDesc
+	);
 
-    const getImageSource = () => props.previewImage;
-    let canvasRef: HTMLCanvasElement | undefined;
+	const getImageSource = () => props.previewImage;
+	let canvasRef: HTMLCanvasElement | undefined;
 
-    onMount(async () => {
-        if (!canvasRef) return;
+	onMount(async () => {
+		if (!canvasRef) return;
 
-        const activeRegions = Profiles.getActiveProfile();
-        const drawnRegions = makeDrawnRegions(activeRegions);
-        setEditingRegions(drawnRegions);
+		const activeRegions = Profiles.getActiveProfile();
+		const drawnRegions = makeDrawnRegions(activeRegions, editingProfileId());
 
-        try {
-            await startRegionEditor(
-                canvasRef,
-                getImageSource(),
-                handleRegionComplete,
-                drawnRegions
-            );
-        } catch (err) {
-            console.error('Region editor error:', err);
-        }
-    });
+		batch(() => {
+			setSavedRegions(drawnRegions);
+			setEditingRegions(drawnRegions);
+		});
 
-    const makeDrawnRegions = (textRegions: TextRegion[]) => {
-        return textRegions.map((r) => ({
-            ...r,
-            color: r.isItalic ? '#4caf50' : '#ff0000',
-        }));
-    };
+		try {
+			await startRegionEditor(
+				canvasRef,
+				getImageSource(),
+				handleRegionComplete,
+				drawnRegions
+			);
+		} catch (err) {
+			console.error('Region editor error:', err);
+		}
+	});
 
-    const activateProfile = (profileId: string) => {
-        setActiveProfileId(profileId);
-        Profiles.setActiveProfile(profileId);
-    };
+	const makeDrawnRegions = (textRegions: TextRegion[], profileId: string) => {
+		return textRegions.map((r, index) => ({
+			...r,
+			id: `${profileId}-${index}`,
+			color: r.isItalic ? '#4caf50' : '#ff0000',
+		}));
+	};
 
-    const handleRegionComplete = (region: DrawnRegion) => {
-        setEditingRegions((prev) => [...prev, region]);
+	const activateProfile = (profileId: string) => {
+		setActiveProfileId(profileId);
+		Profiles.setActiveProfile(profileId);
+	};
 
-        if (canvasRef && getImageSource()) {
-            drawRegions(
-                canvasRef,
-                editingRegions(),
-                getImageSource() as string
-            );
-        }
-    };
+	const redrawRegions = () => {
+		if (canvasRef && getImageSource()) {
+			drawRegions(canvasRef, editingRegions(), getImageSource() as string);
+		}
+	};
 
-    const handleClearRegions = () => {
-        setEditingRegions([]);
+	const handleRegionComplete = (region: DrawnRegion) => {
+		setEditingRegions((prev) => [...prev, region]);
+		redrawRegions();
+	};
 
-        if (canvasRef && getImageSource()) {
-            drawRegions(
-                canvasRef,
-                editingRegions(),
-                getImageSource() as string
-            );
-        }
-    };
+	const handleClearRegions = () => {
+		setEditingRegions([]);
+		redrawRegions();
+	};
 
-    const handleCopyRegionsCode = () => {
-        const code = JSON.stringify(editingRegions());
-        navigator.clipboard.writeText(code);
-        alert('Regions copied to clipboard!');
-    };
+	const handleCopyRegionsCode = () => {
+		const code = JSON.stringify(editingRegions());
+		navigator.clipboard.writeText(code);
+		alert('Regions copied to clipboard!');
+	};
 
-    const handleSaveProfile = () => {
-        if (!editingProfileId()) {
-            alert('Profile ID is required');
-            return;
-        }
+	const handleSaveProfile = () => {
+		if (!editingProfileId()) {
+			alert('Profile ID is required');
+			return;
+		}
 
-        if (canvasRef) {
-            Profiles.saveProfile(
-                editingRegions(),
-                {
-                    id: editingProfileId(),
-                    description: editingProfileDesc(),
-                },
-                canvasRef.width,
-                canvasRef.height
-            );
-        }
+		setSavedRegions(editingRegions());
 
-        // Refresh profile list
-        setProfileList(Profiles.listProfiles());
+		if (canvasRef) {
+			Profiles.saveProfile(
+				editingRegions(),
+				{
+					id: editingProfileId(),
+					description: editingProfileDesc(),
+				},
+				canvasRef.width,
+				canvasRef.height
+			);
+		}
 
-        alert('Profile saved successfully!');
-    };
+		// Refresh profile list
+		setProfileList(Profiles.listProfiles());
 
-    const handleActivateProfile = (profileId: string) => {
-        activateProfile(profileId);
-    };
+		alert('Profile saved successfully!');
+	};
 
-    const handleEditProfile = (profileId: string) => {
-        const profileDetails = profileList().find((p) => p.id === profileId);
-        if (profileDetails) {
-            setEditingProfileId(profileDetails.id);
-            setEditingProfileDesc(profileDetails.description);
-        }
+	const handleActivateProfile = (profileId: string) => {
+		activateProfile(profileId);
+	};
 
-        const profileRegions = Profiles.getProfile(profileId);
-        if (!profileRegions) {
-            alert('Could not load profile');
-            return;
-        }
+	const handleEditProfile = (profileId: string) => {
+		// Set regions first as region table tracks profile ID
+		const profileRegions = Profiles.getProfile(profileId);
+		if (!profileRegions) {
+			alert('Could not load profile');
+			return;
+		}
 
-        const drawnRegions = makeDrawnRegions(profileRegions);
-        setEditingRegions(drawnRegions);
+		batch(() => {
+			const drawnRegions = makeDrawnRegions(profileRegions, profileId);
+			setSavedRegions(drawnRegions);
+			setEditingRegions(drawnRegions);
 
-        // Redraw the regions on canvas
-        if (canvasRef && getImageSource()) {
-            drawRegions(canvasRef, drawnRegions, getImageSource()!); // TODO: review non-null assertion
-        }
-    };
+			const profileDetails = profileList().find((p) => p.id === profileId);
+			if (profileDetails) {
+				setEditingProfileId(profileDetails.id);
+				setEditingProfileDesc(profileDetails.description);
+			}
+		});
 
-    const handleDeleteProfile = (profileId: string) => {
-        if (activeProfileId() === profileId && profileList().length === 1) {
-            alert('Cannot delete the last remaining profile.');
-            return;
-        }
+		redrawRegions();
+	};
 
-        if (confirm('Are you sure you want to delete this profile?')) {
-            if (activeProfileId() === profileId) {
-                // There must always be an active profile, so activate another
-                activateProfile(profileList()[0].id);
-            }
+	const handleDeleteProfile = (profileId: string) => {
+		if (activeProfileId() === profileId && profileList().length === 1) {
+			alert('Cannot delete the last remaining profile.');
+			return;
+		}
 
-            if (editingProfileId() === profileId) {
-                handleEditProfile(activeProfileId());
-            }
-            Profiles.deleteProfile(profileId);
+		if (confirm('Are you sure you want to delete this profile?')) {
+			if (activeProfileId() === profileId) {
+				// There must always be an active profile, so activate another
+				activateProfile(profileList()[0].id);
+			}
 
-            // Refresh profile list
-            setProfileList(Profiles.listProfiles());
-        }
-    };
+			if (editingProfileId() === profileId) {
+				handleEditProfile(activeProfileId());
+			}
+			Profiles.deleteProfile(profileId);
 
-    return (
-        <div class="region-profile-manager-container">
-            <div class="ocr-header">
-                <h1>Region Profile Manager</h1>
-                <button
-                    onClick={() => {
-                        props.onClose();
-                    }}
-                    class="close-button"
-                >
-                    ✕ Close
-                </button>
-            </div>
+			// Refresh profile list
+			setProfileList(Profiles.listProfiles());
+		}
+	};
 
-            <div class="info-box">
-                <p>
-                    <strong>Instructions:</strong> Create and manage region
-                    profiles for different scoreboard types. Click "Start Region
-                    Editor" to draw regions, then save as a new profile or
-                    update an existing one. Profiles are saved locally and can
-                    be selected for OCR processing.
-                    {!props.previewImage && (
-                        <>
-                            <br />
-                            <strong>Tip:</strong> Drag and drop an image into
-                            this area to use it for region editing.
-                        </>
-                    )}
-                </p>
-            </div>
+	const handleRegionChange = (regions: TextRegion[]) => {
+		const drawnRegions = makeDrawnRegions(regions, editingProfileId());
+		setEditingRegions(drawnRegions);
+		redrawRegions();
+	};
 
-            <div class="manager-layout">
-                <div class="section">
-                    <h2>Saved Profiles</h2>
+	return (
+		<div class="region-profile-manager-container">
+			<div class="ocr-header">
+				<h1>Region Profile Manager</h1>
+				<button
+					onClick={() => {
+						props.onClose();
+					}}
+					class="close-button"
+				>
+					✕ Close
+				</button>
+			</div>
 
-                    <Show
-                        when={profileList().length > 0}
-                        fallback={<p class="empty-state">No profiles yet</p>}
-                    >
-                        <div class="profiles-list">
-                            <For each={profileList()}>
-                                {(profile) => (
-                                    <div
-                                        class={`profile-card ${
-                                            editingProfileId() === profile.id
-                                                ? 'active'
-                                                : ''
-                                        }`}
-                                    >
-                                        <div class="profile-header">
-                                            <h3>{profile.id}</h3>
-                                        </div>
-                                        <p class="profile-description">
-                                            {profile.description}
-                                        </p>
+			<div class="info-box">
+				<p>
+					Create and manage region profiles for different scoreboard types. Profiles are
+					saved locally and can be activated for OCR processing.
+				</p>
+			</div>
 
-                                        <div class="profile-actions-buttons">
-                                            <button
-                                                onClick={() =>
-                                                    handleActivateProfile(
-                                                        profile.id
-                                                    )
-                                                }
-                                                class={`action-btn ${
-                                                    activeProfileId() ===
-                                                    profile.id
-                                                        ? 'active'
-                                                        : ''
-                                                }`}
-                                            >
-                                                {activeProfileId() ===
-                                                profile.id
-                                                    ? '✓ Active'
-                                                    : 'Set Active'}
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    handleEditProfile(
-                                                        profile.id
-                                                    )
-                                                }
-                                                class="action-btn edit"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    handleDeleteProfile(
-                                                        profile.id
-                                                    )
-                                                }
-                                                class="action-btn delete"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </For>
-                        </div>
-                    </Show>
-                </div>
+			<div class="manager-layout">
+				<div class="section">
+					<h2>Saved Profiles</h2>
 
-                <div class="section profile-actions">
-                    <h2>Profile Details</h2>
+					<Show
+						when={profileList().length > 0}
+						fallback={<p class="empty-state">No profiles yet</p>}
+					>
+						<div class="profiles-list">
+							<For each={profileList()}>
+								{(profile) => (
+									<div
+										class={`profile-card ${editingProfileId() === profile.id ? 'active' : ''}`}
+									>
+										<div class="profile-header">
+											<h3>{profile.id}</h3>
+										</div>
+										<p class="profile-description">{profile.description}</p>
 
-                    <div>
-                        <label class="input-label">Profile ID</label>
-                        <input
-                            type="text"
-                            value={editingProfileId()}
-                            onInput={(e) => setEditingProfileId(e.target.value)}
-                            class="profile-input"
-                        />
+										<div class="button-group">
+											<button
+												onClick={() => handleActivateProfile(profile.id)}
+												class={`action-btn ${activeProfileId() === profile.id ? 'active' : ''}`}
+											>
+												{activeProfileId() === profile.id ? '✓ Active' : 'Set Active'}
+											</button>
+											<button
+												onClick={() => handleEditProfile(profile.id)}
+												class="action-btn edit"
+											>
+												Edit
+											</button>
+											<button
+												onClick={() => handleDeleteProfile(profile.id)}
+												class="action-btn delete"
+											>
+												Delete
+											</button>
+										</div>
+									</div>
+								)}
+							</For>
+						</div>
+					</Show>
+				</div>
 
-                        <label class="input-label">Description</label>
-                        <textarea
-                            value={editingProfileDesc()}
-                            onInput={(e) =>
-                                setEditingProfileDesc(e.target.value)
-                            }
-                            class="profile-textarea"
-                            placeholder="Profile description (optional)"
-                        />
+				<div class="section profile-actions">
+					<h2>Profile Details</h2>
 
-                        <div class="button-group">
-                            <button onClick={handleSaveProfile} class="success">
-                                Save Changes
-                            </button>
-                        </div>
-                    </div>
-                </div>
+					<div>
+						<label class="input-label">Profile ID</label>
+						<input
+							type="text"
+							value={editingProfileId()}
+							onInput={(e) => setEditingProfileId(e.target.value)}
+							class="profile-input"
+						/>
 
-                <div class="section">
-                    <h2>Region Editor</h2>
-                    <div class="button-group">
-                        <button
-                            onClick={handleClearRegions}
-                            disabled={editingRegions().length === 0}
-                            class="primary"
-                        >
-                            Clear All
-                        </button>
+						<label class="input-label">Description</label>
+						<textarea
+							value={editingProfileDesc()}
+							onInput={(e) => setEditingProfileDesc(e.target.value)}
+							class="profile-textarea"
+							placeholder="Profile description (optional)"
+						/>
 
-                        <button
-                            onClick={handleCopyRegionsCode}
-                            disabled={editingRegions().length === 0}
-                            class="primary"
-                        >
-                            Copy Code
-                        </button>
-                    </div>
+						<div class="button-group">
+							<button onClick={handleSaveProfile} class="success">
+								Save Profile
+							</button>
+						</div>
+					</div>
+				</div>
 
-                    <div class="canvas-wrapper">
-                        <canvas ref={canvasRef} />
-                    </div>
+				<div class="section">
+					<h2>Region Editor</h2>
+					<div class="button-group">
+						<button
+							onClick={handleClearRegions}
+							disabled={editingRegions().length === 0}
+							class="primary"
+						>
+							Clear All
+						</button>
 
-                    {editingRegions().length > 0 && (
-                        <div class="regions-display">
-                            <h3>Drawn Regions ({editingRegions().length})</h3>
-                            <pre>
-                                {editingRegions()
-                                    .map((r, i) =>
-                                        [
-                                            `${i}. ${r.name} (${r.color})`,
-                                            `  x: ${r.x}, y: ${r.y}, width: ${r.width}, height: ${r.height}`,
-                                            `  isItalic: ${
-                                                r.isItalic || 'false'
-                                            }, charSet: ${
-                                                r.charSet || 'Default'
-                                            }`,
-                                        ].join('\n')
-                                    )
-                                    .join('\n\n')}
-                            </pre>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+						<button
+							onClick={handleCopyRegionsCode}
+							disabled={editingRegions().length === 0}
+							class="primary"
+						>
+							Copy Code
+						</button>
+					</div>
+
+					<div class="canvas-wrapper">
+						<canvas ref={canvasRef} />
+					</div>
+
+					<EditableRegionsData
+						profileId={editingProfileId()}
+						currentRegions={editingRegions()}
+						savedRegions={savedRegions()}
+						onChange={handleRegionChange}
+					/>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default RegionProfileManager;

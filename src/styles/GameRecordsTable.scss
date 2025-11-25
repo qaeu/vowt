@@ -1,206 +1,195 @@
 @use 'theme';
 
 .records-container {
-    @include theme.container;
-}
+	@include theme.container;
 
-.records-title {
-    color: theme.$accent1;
-}
+	.records-title {
+		color: theme.$accent1;
+	}
 
-.button-group {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+	.button-group {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
 
-    margin-bottom: 20px;
+		margin-bottom: 20px;
 
-    button {
-        @include theme.button(theme.$accent1);
+		button {
+			@include theme.button(theme.$accent1);
+			flex: 1;
 
-        &.primary {
-            @include theme.button(theme.$accent1-light);
-        }
+			&.primary {
+				@include theme.button(theme.$accent1-light);
+			}
 
-        &.success {
-            @include theme.button(theme.$accent2-success);
-        }
+			&.success {
+				@include theme.button(theme.$accent2-success);
+			}
 
-        &.warning {
-            @include theme.button(theme.$accent2-warning);
-        }
+			&.warning {
+				@include theme.button(theme.$accent2-warning);
+			}
 
-        &.danger {
-            @include theme.button(theme.$accent2-error);
-        }
-    }
-}
+			&.danger {
+				@include theme.button(theme.$accent2-error);
+			}
+		}
+	}
 
-.empty-state {
-    @include theme.card(theme.$background);
+	.empty-state {
+		@include theme.card(theme.$background);
 
-    padding: 40px;
-    text-align: center;
-    color: theme.$foreground-light;
+		padding: 40px;
+		text-align: center;
+		color: theme.$foreground-light;
 
-    p {
-        font-size: 18px;
-        margin: 0;
-    }
-}
+		p {
+			font-size: 18px;
+			margin: 0;
+		}
+	}
 
-.records-table-wrapper {
-    @include theme.card(theme.$background-light);
+	.records-table-wrapper {
+		@include theme.card(theme.$background-light);
 
-    overflow: hidden;
+		overflow: hidden;
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
+		table {
+			width: 100%;
+			border-collapse: collapse;
+		}
 
-    thead {
-        tr {
-            background-color: theme.$accent1;
-            color: white;
+		thead tr {
+			background-color: theme.$accent1;
+			color: white;
 
-            th {
-                padding: 12px;
-                text-align: left;
-                font-weight: bold;
+			th {
+				padding: 12px;
+				text-align: left;
+				font-weight: bold;
 
-                &.center {
-                    text-align: center;
-                }
-            }
-        }
-    }
+				&.center {
+					text-align: center;
+				}
+			}
+		}
 
-    tbody {
-        tr {
-            border-bottom: 1px solid theme.$border-default;
-            cursor: pointer;
-            background-color: white;
+		tbody tr {
+			border-bottom: 1px solid theme.$border-default;
+			cursor: pointer;
+			background-color: white;
 
-            &.expanded {
-                background-color: theme.$background;
-            }
+			&.expanded {
+				background-color: theme.$background;
+			}
 
-            td {
-                padding: 12px;
+			td {
+				padding: 12px;
 
-                &.center {
-                    text-align: center;
-                }
+				&.center {
+					text-align: center;
+				}
 
-                &.expanded-details {
-                    cursor: default;
-                }
-            }
+				&.expanded-details {
+					cursor: default;
+				}
+			}
 
-            button {
-                @include theme.button-small(theme.$accent2-error);
+			button {
+				@include theme.button-small(theme.$accent2-error);
 
-                &.edit-button {
-                    @include theme.button-small(theme.$accent1);
-                    margin-right: 5px;
-                }
+				&.edit-button {
+					@include theme.button-small(theme.$accent1);
+					margin-right: 5px;
+				}
 
-                &.delete-button {
-                    @include theme.button-small(theme.$accent2-error);
-                }
-            }
-        }
-    }
-}
+				&.delete-button {
+					@include theme.button-small(theme.$accent2-error);
+				}
+			}
+		}
+	}
 
-.result-badge {
-    @include theme.badge;
+	.result-badge {
+		@include theme.badge;
 
-    &.victory {
-        background-color: theme.$accent2-success;
-    }
+		&.victory {
+			background-color: theme.$accent2-success;
+		}
 
-    &.defeat {
-        background-color: theme.$accent2-error;
-    }
-}
+		&.defeat {
+			background-color: theme.$accent2-error;
+		}
+	}
 
-.expanded-details {
-    padding: 20px;
-    background-color: theme.$background-alt;
-    border-bottom: 1px solid theme.$border-default;
+	.expanded-details {
+		padding: 20px;
+		background-color: theme.$background-alt;
+		border-bottom: 1px solid theme.$border-default;
 
-    h3 {
-        margin-top: 0;
-        color: theme.$foreground-dark;
-    }
+		h3 {
+			color: theme.$foreground-dark;
+			margin-top: 0;
+		}
 
-    h4 {
-        color: theme.$foreground-dark;
-        margin-bottom: 10px;
-    }
+		h4 {
+			color: theme.$foreground-dark;
+			margin-bottom: 10px;
+		}
 
-    h5 {
-        margin-bottom: 10px;
+		h5 {
+			margin-bottom: 10px;
 
-        &.blue-team {
-            color: theme.$accent1;
-        }
+			&.blue-team {
+				color: theme.$accent1;
+			}
 
-        &.red-team {
-            color: theme.$accent2-error;
-        }
-    }
+			&.red-team {
+				color: theme.$accent2-error;
+			}
+		}
 
-    .game-info {
-        margin-bottom: 15px;
+		.game-info {
+			margin-bottom: 15px;
 
-        strong {
-            font-weight: bold;
-        }
-    }
+			strong {
+				font-weight: bold;
+			}
+		}
 
-    .teams-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
+		.teams-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 20px;
 
-        table {
-            width: 100%;
-            font-size: 13px;
+			table {
+				width: 100%;
+				font-size: 13px;
 
-            thead {
-                tr {
-                    background-color: transparent;
+				.right {
+					text-align: right;
+				}
 
-                    th {
-                        text-align: left;
-                        padding: 4px;
-                        font-weight: bold;
-                        border-bottom: 1px solid theme.$border-light;
+				thead tr {
+					background-color: transparent;
 
-                        &.right {
-                            text-align: right;
-                        }
-                    }
-                }
-            }
+					th {
+						text-align: left;
+						padding: 4px;
+						font-weight: bold;
+						border-bottom: 1px solid theme.$border-light;
+					}
+				}
 
-            tbody {
-                tr {
-                    border-bottom: 1px solid theme.$border-default;
+				tbody tr {
+					border-bottom: 1px solid theme.$border-default;
 
-                    td {
-                        padding: 4px;
-                        text-align: left;
-
-                        &.right {
-                            text-align: right;
-                        }
-                    }
-                }
-            }
-        }
-    }
+					td {
+						padding: 4px;
+						text-align: left;
+					}
+				}
+			}
+		}
+	}
 }
