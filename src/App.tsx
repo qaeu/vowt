@@ -1,4 +1,11 @@
-import { createSignal, onMount, onCleanup, type Component } from 'solid-js';
+import {
+	createSignal,
+	onMount,
+	onCleanup,
+	Switch,
+	Match,
+	type Component,
+} from 'solid-js';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
@@ -79,20 +86,26 @@ const App: Component = () => {
 					</div>
 				</div>
 			)}
-			{viewMode() === 'ocr' && (
-				<ScoreboardOCR
-					uploadedImage={uploadedImage()}
-					onClose={handleCloseOCR}
-					onOpenRegionManager={() => setViewMode('regions')}
-				/>
-			)}{' '}
-			{viewMode() === 'records' && <GameRecordsTable onUploadClick={handleUploadClick} />}
-			{viewMode() === 'regions' && (
-				<RegionProfileManager
-					previewImage={uploadedImage()}
-					onClose={() => setViewMode('ocr')}
-				/>
-			)}
+			<Switch>
+				<Match when={viewMode() === 'ocr'}>
+					{viewMode() === 'ocr' && (
+						<ScoreboardOCR
+							uploadedImage={uploadedImage()}
+							onClose={handleCloseOCR}
+							onOpenRegionManager={() => setViewMode('regions')}
+						/>
+					)}{' '}
+				</Match>
+				<Match when={viewMode() === 'records'}>
+					<GameRecordsTable onUploadClick={handleUploadClick} />
+				</Match>
+				<Match when={viewMode() === 'regions'}>
+					<RegionProfileManager
+						previewImage={uploadedImage()}
+						onClose={() => setViewMode('ocr')}
+					/>
+				</Match>
+			</Switch>
 		</main>
 	);
 };

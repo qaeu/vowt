@@ -119,16 +119,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 			<div class="button-group">
 				<button onClick={() => props.onUploadClick()} class="primary">
-					Upload Image
+					Upload Screenshot
 				</button>
 				<button onClick={handleExport} class="primary" disabled={!records()}>
-					Export
+					Export Records
 				</button>
 				<button onClick={handleImport} class="primary">
-					Import
+					Import Records
 				</button>
 				<button onClick={handleClearAll} class="danger" disabled={!records()}>
-					Clear All
+					Delete All
 				</button>
 			</div>
 
@@ -184,7 +184,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 													class="delete-button"
 													title="Delete record"
 												>
-													x
+													✕
 												</button>
 											</td>
 										</tr>

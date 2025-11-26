@@ -6,7 +6,6 @@ import type {
 	ExportedProfile,
 } from '#types';
 import { DEFAULT_PROFILES } from '#data/profiles';
-import { normaliseRegion } from '#utils/textRegions';
 
 /**
  * Internal storage format for all profiles
@@ -27,6 +26,62 @@ type ImportedProfile = Merge<
 const STORAGE_KEY = 'vowt_region_profiles';
 const SCHEMA_VERSION = 1;
 const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
+
+/**
+ * Reference resolution for stored coordinates (1440p)
+ */
+const _REFERENCE_WIDTH = 2560;
+const _REFERENCE_HEIGHT = 1440;
+
+/**
+ * Converts region coordinates from source image dimensions to reference resolution.
+ * Used when saving profiles to ensure coordinates are stored at reference scale.
+ * @param region - Region with coordinates at source image scale
+ * @param sourceWidth - Source image width
+ * @param sourceHeight - Source image height
+ * @returns Region with coordinates at reference resolution
+ */
+function _normaliseRegion(
+	region: TextRegion,
+	sourceWidth: number,
+	sourceHeight: number
+): TextRegion {
+	const scaleX = _REFERENCE_WIDTH / sourceWidth;
+	const scaleY = _REFERENCE_HEIGHT / sourceHeight;
+
+	return {
+		...region,
+		x: Math.round(region.x * scaleX),
+		y: Math.round(region.y * scaleY),
+		width: Math.round(region.width * scaleX),
+		height: Math.round(region.height * scaleY),
+	};
+}
+
+/**
+ * Converts region coordinates from reference resolution to target image dimensions.
+ * Used when loading profiles to scale coordinates to match actual image size.
+ * @param region - Region with coordinates at reference resolution
+ * @param targetWidth - Target image width
+ * @param targetHeight - Target image height
+ * @returns Region with coordinates scaled to target dimensions
+ */
+function _denormaliseRegion(
+	region: TextRegion,
+	targetWidth: number,
+	targetHeight: number
+): TextRegion {
+	const scaleX = targetWidth / _REFERENCE_WIDTH;
+	const scaleY = targetHeight / _REFERENCE_HEIGHT;
+
+	return {
+		...region,
+		x: Math.round(region.x * scaleX),
+		y: Math.round(region.y * scaleY),
+		width: Math.round(region.width * scaleX),
+		height: Math.round(region.height * scaleY),
+	};
+}
 
 function _reviver(key: string, value: unknown) {
 	if (DATE_FIELD_NAMES.includes(key)) {
@@ -151,7 +206,7 @@ export function saveProfile(
 		const existingIndex = stored.profiles.findIndex((p) => p.id === profileId);
 
 		if (imgWidth && imgHeight) {
-			regions = regions.map((region) => normaliseRegion(region, imgWidth, imgHeight));
+			regions = regions.map((region) => _normaliseRegion(region, imgWidth, imgHeight));
 		}
 
 		const now = new Date();
@@ -251,11 +306,19 @@ export function setActiveProfile(profileId: string): void {
 
 /**
  * Gets the currently active region profile
- * @returns The regions from the active profile
+ * @param imgWidth - Optional target image width for denormalisation
+ * @param imgHeight - Optional target image height for denormalisation
+ * @returns The regions from the active profile, denormalised if dimensions provided
  */
-export function getActiveProfile(): TextRegion[] {
+export function getActiveProfile(imgWidth?: number, imgHeight?: number): TextRegion[] {
 	const profileId = getActiveProfileId();
-	return getProfile(profileId) || [];
+	let regions = getProfile(profileId) || [];
+
+	if (imgWidth && imgHeight) {
+		regions = regions.map((region) => _denormaliseRegion(region, imgWidth, imgHeight));
+	}
+
+	return regions;
 }
 
 /**
