@@ -71,7 +71,7 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 
 			ctx.drawImage(img, 0, 0);
 
-			const regions = getActiveProfile();
+			const regions = getActiveProfile(img.width, img.height);
 			for (const region of regions) {
 				// Extract region image data
 				const regionImageData = ctx.getImageData(
@@ -133,7 +133,7 @@ export async function drawRegionsOnImage(
 
 				ctx.lineWidth = 1;
 
-				const regions = getActiveProfile();
+				const regions = getActiveProfile(img.width, img.height);
 				for (const region of regions) {
 					if (region.isItalic) {
 						ctx.strokeStyle = '#4caf50';

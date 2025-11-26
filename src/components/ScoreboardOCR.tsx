@@ -5,7 +5,6 @@ import type { PlayerStats, MatchInfo, GameRecord } from '#types';
 import EditableGameData from '#c/EditableGameData';
 import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { extractGameStats } from '#utils/postprocess';
-import { normaliseRegion } from '#utils/textRegions';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile } from '#utils/regionProfiles';
 import '#styles/ScoreboardOCR';
@@ -78,8 +77,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			const worker = await Tesseract.createWorker('eng', 1);
 
-			const scoreboardRegions = getActiveProfile().map((region) =>
-				normaliseRegion(region, imageDimensions.width, imageDimensions.height)
+			const scoreboardRegions = getActiveProfile(
+				imageDimensions.width,
+				imageDimensions.height
 			);
 			const regionCount = scoreboardRegions.length;
 
