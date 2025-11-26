@@ -120,10 +120,10 @@ describe('GameRecordsTable', () => {
 
 	it('should display upload, export, import, and clear buttons', () => {
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		expect(screen.getByText(/Upload Image/)).toBeDefined();
-		expect(screen.getByText(/Export/)).toBeDefined();
-		expect(screen.getByText(/Import/)).toBeDefined();
-		expect(screen.getByText(/Clear All/)).toBeDefined();
+		expect(screen.getByText(/Upload Screenshot/)).toBeDefined();
+		expect(screen.getByText(/Export Records/)).toBeDefined();
+		expect(screen.getByText(/Import Records/)).toBeDefined();
+		expect(screen.getByText(/Delete All/)).toBeDefined();
 	});
 
 	it('should show empty state when no records exist', () => {
@@ -155,7 +155,7 @@ describe('GameRecordsTable', () => {
 
 	it('should call onUploadClick when upload button is clicked', () => {
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		const uploadButton = screen.getByText(/Upload Image/);
+		const uploadButton = screen.getByText(/Upload Screenshot/);
 		fireEvent.click(uploadButton);
 		expect(mockOnUploadClick).toHaveBeenCalled();
 	});
@@ -238,7 +238,7 @@ describe('GameRecordsTable', () => {
 		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: 'x' });
+		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
 		fireEvent.click(deleteButtons[0]);
 
 		expect(window.confirm).toHaveBeenCalled();
@@ -249,7 +249,7 @@ describe('GameRecordsTable', () => {
 		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: 'x' });
+		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
 		fireEvent.click(deleteButtons[0]);
 
 		expect(window.confirm).toHaveBeenCalled();
@@ -267,7 +267,7 @@ describe('GameRecordsTable', () => {
 			expect(screen.queryByTestId('editable-game-data')).not.toBeNull();
 		});
 
-		const deleteButtons = screen.getAllByRole('button', { name: 'x' });
+		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
 		fireEvent.click(deleteButtons[0]);
 
 		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
@@ -288,7 +288,7 @@ describe('GameRecordsTable', () => {
 		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const clearButton = screen.getByText(/Clear All/);
+		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
 		expect(window.confirm).toHaveBeenCalled();
@@ -299,7 +299,7 @@ describe('GameRecordsTable', () => {
 		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const clearButton = screen.getByText(/Clear All/);
+		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
 		expect(window.confirm).toHaveBeenCalled();
@@ -318,7 +318,7 @@ describe('GameRecordsTable', () => {
 		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const clearButton = screen.getByText(/Clear All/);
+		const clearButton = screen.getByText(/Delete All/);
 		expect((clearButton as HTMLButtonElement).disabled).toBe(true);
 	});
 
