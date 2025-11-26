@@ -32,7 +32,18 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	onMount(async () => {
 		if (!canvasRef) return;
 
-		const activeRegions = Profiles.getActiveProfile();
+		const imageSource = getImageSource();
+		if (!imageSource) return;
+
+		// Load image to get dimensions for denormalisation
+		const img = new Image();
+		img.src = imageSource;
+		await new Promise<void>((resolve, reject) => {
+			img.onload = () => resolve();
+			img.onerror = () => reject(new Error('Failed to load image'));
+		});
+
+		const activeRegions = Profiles.getActiveProfile(img.width, img.height);
 		const drawnRegions = makeDrawnRegions(activeRegions, editingProfileId());
 
 		batch(() => {
@@ -41,12 +52,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 
 		try {
-			await startRegionEditor(
-				canvasRef,
-				getImageSource(),
-				handleRegionComplete,
-				drawnRegions
-			);
+			await startRegionEditor(canvasRef, imageSource, handleRegionComplete, drawnRegions);
 		} catch (err) {
 			console.error('Region editor error:', err);
 		}
@@ -171,8 +177,17 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	};
 
 	const handleEditProfile = (profileId: string) => {
-		// Set regions first as region table tracks profile ID
-		const profileRegions = Profiles.getProfile(profileId);
+		// Get profile regions denormalised to canvas dimensions
+		if (!canvasRef) {
+			alert('Canvas not ready');
+			return;
+		}
+
+		const profileRegions = Profiles.getProfile(
+			profileId,
+			canvasRef.width,
+			canvasRef.height
+		);
 		if (!profileRegions) {
 			alert('Could not load profile');
 			return;
