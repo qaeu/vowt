@@ -134,7 +134,8 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 			<Show when={!records() || records().length === 0}>
 				<div class="empty-state">
-					<p>No game records found. Process a scoreboard to create your first record!</p>
+					<p>No game records found</p>
+					<p>To create a record, upload a fullscreen scoreboard screenshot.</p>
 				</div>
 			</Show>
 
