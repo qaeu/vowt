@@ -86,7 +86,7 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
 @mixin button-small($accent-color) {
 	padding: 6px 10px;
 	background-color: transparent;
-	border: 1px solid $border-light;
+	border: 1px solid transparent;
 	border-radius: 3px;
 	color: $foreground;
 	cursor: pointer;
@@ -102,11 +102,14 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
 
 // Badge styling
 @mixin badge {
+	display: inline-block;
+	width: 60px;
 	padding: 4px 8px;
 	border-radius: 4px;
 	color: white;
 	font-size: 12px;
 	font-weight: 600;
+	text-align: center;
 }
 
 // Pre/code block styling
