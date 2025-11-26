@@ -235,11 +235,24 @@ export function saveProfile(
 /**
  * Loads a profile's regions by ID
  * @param profileId - The profile ID to load
- * @returns The regions from the profile, or null if not found
+ * @param imgWidth - Optional target image width for denormalisation
+ * @param imgHeight - Optional target image height for denormalisation
+ * @returns The regions from the profile, denormalised if dimensions provided, or null if not found
  */
-export function getProfile(profileId: string): TextRegion[] | null {
+export function getProfile(
+	profileId: string,
+	imgWidth?: number,
+	imgHeight?: number
+): TextRegion[] | null {
 	const profile = _loadProfile(profileId);
-	return profile?.regions || null;
+	if (!profile?.regions) return null;
+
+	let regions = profile.regions;
+	if (imgWidth && imgHeight) {
+		regions = regions.map((region) => _denormaliseRegion(region, imgWidth, imgHeight));
+	}
+
+	return regions;
 }
 
 export function getProfileDetails(profileId: string): ProfileDetails | null {
@@ -312,13 +325,7 @@ export function setActiveProfile(profileId: string): void {
  */
 export function getActiveProfile(imgWidth?: number, imgHeight?: number): TextRegion[] {
 	const profileId = getActiveProfileId();
-	let regions = getProfile(profileId) || [];
-
-	if (imgWidth && imgHeight) {
-		regions = regions.map((region) => _denormaliseRegion(region, imgWidth, imgHeight));
-	}
-
-	return regions;
+	return getProfile(profileId, imgWidth, imgHeight) || [];
 }
 
 /**

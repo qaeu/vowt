@@ -298,4 +298,82 @@ describe('RegionProfileManager', () => {
 			expect(canvas).toBeDefined();
 		});
 	});
+
+	describe('Region Denormalisation', () => {
+		it('should call getActiveProfile with image dimensions on mount', async () => {
+			const testWidth = 1920;
+			const testHeight = 1080;
+
+			// Mock Image to simulate loading with specific dimensions
+			const mockImage = {
+				onload: null as (() => void) | null,
+				onerror: null as (() => void) | null,
+				src: '',
+				width: testWidth,
+				height: testHeight,
+			};
+
+			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+				// Trigger onload asynchronously
+				setTimeout(() => mockImage.onload?.(), 0);
+				return mockImage as unknown as HTMLImageElement;
+			});
+
+			const previewImage = 'data:image/png;base64,test';
+			render(() => (
+				<RegionProfileManager previewImage={previewImage} onClose={mockOnClose} />
+			));
+
+			// Wait for the image to "load" and onMount to complete
+			await vi.waitFor(() => {
+				expect(regionProfiles.getActiveProfile).toHaveBeenCalledWith(
+					testWidth,
+					testHeight
+				);
+			});
+		});
+
+		it('should call getProfile with canvas dimensions when editing a profile', async () => {
+			const testWidth = 1920;
+			const testHeight = 1080;
+
+			// Mock Image for initial load
+			const mockImage = {
+				onload: null as (() => void) | null,
+				onerror: null as (() => void) | null,
+				src: '',
+				width: testWidth,
+				height: testHeight,
+			};
+
+			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+				setTimeout(() => mockImage.onload?.(), 0);
+				return mockImage as unknown as HTMLImageElement;
+			});
+
+			// Mock getProfile to return test regions
+			vi.mocked(regionProfiles.getProfile).mockReturnValue([]);
+
+			const previewImage = 'data:image/png;base64,test';
+			render(() => (
+				<RegionProfileManager previewImage={previewImage} onClose={mockOnClose} />
+			));
+
+			// Wait for initial mount to complete
+			await vi.waitFor(() => {
+				expect(regionProfiles.getActiveProfile).toHaveBeenCalled();
+			});
+
+			// Click Edit button on first profile
+			const editButtons = screen.getAllByRole('button', { name: /Edit/i });
+			(editButtons[0] as HTMLButtonElement).click();
+
+			// Verify getProfile was called with canvas dimensions
+			expect(regionProfiles.getProfile).toHaveBeenCalledWith(
+				mockProfiles[0].id,
+				expect.any(Number),
+				expect.any(Number)
+			);
+		});
+	});
 });

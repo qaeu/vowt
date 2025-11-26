@@ -141,6 +141,48 @@ describe('Region Profiles', () => {
 			const loaded = getProfile('non_existent_id');
 			expect(loaded).toBeNull();
 		});
+
+		it('should denormalise regions when image dimensions are provided', () => {
+			// Region at reference resolution (2560x1440)
+			const refRegion: TextRegion = {
+				name: 'test_region',
+				x: 2560,
+				y: 1440,
+				width: 100,
+				height: 50,
+			};
+			const profileId = saveProfile([refRegion], {
+				description: 'Reference region',
+			});
+
+			// Get denormalised for 1920x1080
+			const denormalised = getProfile(profileId, 1920, 1080);
+
+			expect(denormalised).not.toBeNull();
+			// 1920/2560 = 0.75, 1080/1440 = 0.75
+			expect(denormalised![0].x).toBe(1920); // 2560 * 0.75
+			expect(denormalised![0].y).toBe(1080); // 1440 * 0.75
+			expect(denormalised![0].width).toBe(75); // 100 * 0.75
+			expect(denormalised![0].height).toBe(38); // 50 * 0.75, rounded
+		});
+
+		it('should not denormalise when only one dimension is provided', () => {
+			const refRegion: TextRegion = {
+				name: 'test_region',
+				x: 2560,
+				y: 1440,
+				width: 100,
+				height: 50,
+			};
+			const profileId = saveProfile([refRegion], {
+				description: 'Reference region',
+			});
+
+			// Only width provided - should not denormalise
+			const result = getProfile(profileId, 1920);
+			expect(result![0].x).toBe(2560);
+			expect(result![0].y).toBe(1440);
+		});
 	});
 
 	describe('listProfileIds', () => {
