@@ -5,13 +5,18 @@
 import type { TextRegion } from '#types';
 import { getActiveProfile } from '#utils/regionProfiles';
 
+const DEFAULT_SKEW_ANGLE = -14;
+
 /**
  * Applies skew correction to italic text to make it more readable
  * @param imageData - Image data to process
  * @param skewAngle - Angle in degrees to unskew (negative for italic correction)
  * @returns Processed image data
  */
-function unskewItalicText(imageData: ImageData, skewAngle: number = -14): ImageData {
+function unskewItalicText(
+	imageData: ImageData,
+	skewAngle: number = DEFAULT_SKEW_ANGLE
+): ImageData {
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
 
