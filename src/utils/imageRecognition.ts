@@ -5,54 +5,61 @@
 import type { ImageHash } from '#types';
 import heroPortraitHashes from '#data/hero-portrait-hashes.json';
 
-const DEFAULT_HASH_THRESHOLD = 10;
+const DEFAULT_HASH_SIZE = 8;
+const DEFAULT_THRESHOLD = 0.85;
 
 /**
  * Recognises an image by computing its dHash and comparing against known hero hashes
  * @param imageData - Image data to compare
- * @param threshold - Maximum Hamming distance for a match (default: 10)
+ * @param threshold - Minimum similarity score for a match (0-1, default: 0.85)
  * @returns The matched image ID or empty string if no match found
  */
 export function recogniseImage(
 	imageData: ImageData,
-	threshold: number = DEFAULT_HASH_THRESHOLD
+	threshold: number = DEFAULT_THRESHOLD
 ): string {
 	const regionHash = dhash(imageData);
+	const hashBits = DEFAULT_HASH_SIZE ** 2;
 
 	// Find best match from hero portrait hashes
 	const hashes = heroPortraitHashes.hashes as ImageHash[];
 	let bestMatch = '';
-	let bestDistance = Infinity;
+	let bestSimilarity = 0;
 
 	for (const { id, hash } of hashes) {
 		const distance = hamDist(regionHash, hash);
-		if (distance < bestDistance) {
-			bestDistance = distance;
+		const similarity = 1 - distance / hashBits;
+		if (similarity > bestSimilarity) {
+			bestSimilarity = similarity;
 			bestMatch = id;
 		}
 	}
 
 	// Return match only if within threshold
-	return bestDistance <= threshold ? bestMatch : '';
+	return bestSimilarity >= threshold ? bestMatch : '';
 }
 
 /**
  * Computes a difference hash (dHash) for an image
- * Creates a 64-bit perceptual hash based on horizontal gradient patterns
+ * Creates a perceptual hash based on horizontal gradient patterns
  * @param imageData - Image data to hash
- * @returns 16-character hexadecimal hash string
+ * @param hashSize - Size of the hash grid (default: 8, produces 64-bit hash)
+ * @returns Hexadecimal hash string
  */
-export function dhash(imageData: ImageData): string {
+export function dhash(
+	imageData: ImageData,
+	hashSize: number = DEFAULT_HASH_SIZE
+): string {
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
 
 	if (!ctx) {
-		return '0'.repeat(16);
+		return '0'.repeat((hashSize * hashSize) / 4);
 	}
 
-	// Resize to 9x8 (9 wide for 8 horizontal comparisons per row)
-	const hashWidth = 9;
-	const hashHeight = 8;
+	// Resize to (hashSize+1) x hashSize for horizontal comparisons
+	const hashWidth = hashSize + 1;
+	const hashHeight = hashSize;
 
 	canvas.width = hashWidth;
 	canvas.height = hashHeight;
@@ -94,8 +101,9 @@ export function dhash(imageData: ImageData): string {
 		}
 	}
 
-	// Convert 64-bit binary string to 16-character hex string
-	const hexHash = parseInt(hash, 2).toString(16).padStart(16, '0');
+	// Convert binary string to hex string
+	const hexLength = (hashSize * hashSize) / 4;
+	const hexHash = parseInt(hash, 2).toString(16).padStart(hexLength, '0');
 
 	return hexHash;
 }
