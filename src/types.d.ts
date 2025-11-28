@@ -3,7 +3,7 @@
  * This file contains all shared type definitions used across the application
  */
 
-type ExportFileType = 'vowt-game-records' | 'vowt-region-profile';
+type ExportFileType = 'vowt-game-records' | 'vowt-region-profile' | 'vowt-image-hashes';
 
 interface ExportFileBase {
 	type: ExportFileType;
@@ -97,4 +97,14 @@ export interface RegionProfile extends ProfileDetails {
 export interface ExportedProfile extends ExportFileBase {
 	type: 'vowt-region-profile';
 	profile: ExportedRecord<RegionProfile>;
+}
+
+export interface ImageHash {
+	id: string;
+	hash: string;
+}
+
+export interface ExportedImageHashes extends ExportFileBase {
+	type: 'vowt-image-hashes';
+	hashes: ImageHash[];
 }

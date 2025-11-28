@@ -1,0 +1,183 @@
+{
+	"type": "vowt-image-hashes",
+	"schemaVersion": 1,
+	"hashes": [
+		{
+			"id": "ana",
+			"hash": "6b2b17451147b400"
+		},
+		{
+			"id": "ashe",
+			"hash": "0a26b7350e052580"
+		},
+		{
+			"id": "baptiste",
+			"hash": "13050b39456abe00"
+		},
+		{
+			"id": "bastion",
+			"hash": "023a1da32b6d5360"
+		},
+		{
+			"id": "brigitte",
+			"hash": "1d670f370e1e8900"
+		},
+		{
+			"id": "cassidy",
+			"hash": "1c2a4b357633aa00"
+		},
+		{
+			"id": "doomfist",
+			"hash": "04360d4dcbcab4c0"
+		},
+		{
+			"id": "dva",
+			"hash": "598677274b0b4400"
+		},
+		{
+			"id": "echo",
+			"hash": "266c63665e2a1400"
+		},
+		{
+			"id": "freja",
+			"hash": "3327264ba52e2800"
+		},
+		{
+			"id": "genji",
+			"hash": "8a321e922b05e800"
+		},
+		{
+			"id": "hanzo",
+			"hash": "249d5553abaae800"
+		},
+		{
+			"id": "hazard",
+			"hash": "08264e5b4a4da980"
+		},
+		{
+			"id": "illari",
+			"hash": "23300d152b2a4600"
+		},
+		{
+			"id": "junker-queen",
+			"hash": "aac939374a3e9000"
+		},
+		{
+			"id": "junkrat",
+			"hash": "8e36110a4eb5b000"
+		},
+		{
+			"id": "juno",
+			"hash": "71e9d9a6dd6bec00"
+		},
+		{
+			"id": "kiriko",
+			"hash": "0d2ead59170d1600"
+		},
+		{
+			"id": "lifeweaver",
+			"hash": "6d0d59cb56aedc00"
+		},
+		{
+			"id": "lucio",
+			"hash": "1c0c3a87281a0900"
+		},
+		{
+			"id": "mauga",
+			"hash": "144b0d4a1e592300"
+		},
+		{
+			"id": "mei",
+			"hash": "035c4e1aac8ccca0"
+		},
+		{
+			"id": "mercy",
+			"hash": "2a3f65555b5e4c00"
+		},
+		{
+			"id": "moira",
+			"hash": "062d150d094d4c40"
+		},
+		{
+			"id": "orisa",
+			"hash": "256a37a91a0b6e00"
+		},
+		{
+			"id": "pharah",
+			"hash": "1d55ca619a1cd100"
+		},
+		{
+			"id": "ramattra",
+			"hash": "3d6b2e5abbd15400"
+		},
+		{
+			"id": "reaper",
+			"hash": "062a37571a6ec8c0"
+		},
+		{
+			"id": "reinhardt",
+			"hash": "1db795bd9eb49d00"
+		},
+		{
+			"id": "roadhog",
+			"hash": "0616b5474b52d800"
+		},
+		{
+			"id": "sigma",
+			"hash": "1c122e460f181b00"
+		},
+		{
+			"id": "sojourn",
+			"hash": "4bb117732d6e1400"
+		},
+		{
+			"id": "soldier",
+			"hash": "062e0f45a64b24c0"
+		},
+		{
+			"id": "sombra",
+			"hash": "362f250b07464200"
+		},
+		{
+			"id": "symmetra",
+			"hash": "55552d357aaacc00"
+		},
+		{
+			"id": "torbjorn",
+			"hash": "545a6ac95967dc00"
+		},
+		{
+			"id": "tracer",
+			"hash": "151347570d070e00"
+		},
+		{
+			"id": "venture",
+			"hash": "0f3d15472e0acf80"
+		},
+		{
+			"id": "widowmaker",
+			"hash": "1dab36ba4e0a2a00"
+		},
+		{
+			"id": "winston",
+			"hash": "aea7f75a44ab4000"
+		},
+		{
+			"id": "wrecking-ball",
+			"hash": "2c16151627ae1e00"
+		},
+		{
+			"id": "wuyang",
+			"hash": "0aa5661a0f170f00"
+		},
+		{
+			"id": "zarya",
+			"hash": "754b5f351f2a5000"
+		},
+		{
+			"id": "zenyatta",
+			"hash": "143a5e1e3b5a0a00"
+		}
+	],
+	"exportedAt": "2025-11-28T00:00:00Z"
+}
