@@ -1,9 +1,10 @@
-import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
+import { createSignal, onMount, createEffect, Show, type Component } from 'solid-js';
 import Tesseract from 'tesseract.js';
 
-import type { PlayerStats, MatchInfo, GameRecord } from '#types';
+import type { PlayerStats, MatchInfo, GameRecord, TextRegion } from '#types';
 import EditableGameData from '#c/EditableGameData';
 import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
+import { recogniseImage } from '#utils/imageRecognition';
 import { extractGameStats } from '#utils/postprocess';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile } from '#utils/regionProfiles';
@@ -53,7 +54,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			setIsProcessing(true);
 			setError('');
 
-			// Step 0: Get image dimensions
 			const imageDimensions = await new Promise<{
 				width: number;
 				height: number;
@@ -75,8 +75,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			const ocrTextParts: string[] = [];
 			const regionResults = new Map<string, string>();
 
-			const worker = await Tesseract.createWorker('eng', 1);
-
 			const scoreboardRegions = getActiveProfile(
 				imageDimensions.width,
 				imageDimensions.height
@@ -88,31 +86,24 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				return;
 			}
 
+			const worker = await Tesseract.createWorker('eng', 1);
 			for (let i = 0; i < regionCount; i++) {
 				const region = scoreboardRegions[i];
 				setProgress(Math.round((i / regionCount) * 100));
 
-				await worker.setParameters({
-					tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
-					tessedit_char_whitelist: region.charSet,
-				});
-
-				// Recognize text in this region
-				const result = await worker.recognize(preprocessed, {
-					rectangle: {
-						left: region.x,
-						top: region.y,
-						width: region.width,
-						height: region.height,
-					},
-				});
-
-				const text = result.data.text.trim();
-				const confidence = result.data.confidence;
-				ocrTextParts.push(`${region.name} (${confidence}%): ${text}`);
-				regionResults.set(region.name, text);
+				// Use image recognition for regions with imgHash, OCR for text regions
+				if (region.imgHash && region.imgHash?.length > 0) {
+					const result = await recogniseRegionImage(imageToProcess, region);
+					ocrTextParts.push(`${region.name} (image): ${result}`);
+					regionResults.set(region.name, result);
+				} else {
+					const result = await recogniseRegionText(worker, preprocessed, region);
+					const text = result.data.text.trim();
+					const confidence = result.data.confidence;
+					ocrTextParts.push(`${region.name} (${confidence}%): ${text}`);
+					regionResults.set(region.name, text);
+				}
 			}
-
 			await worker.terminate();
 
 			// Combine all OCR results for display
@@ -128,6 +119,77 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		} finally {
 			setIsProcessing(false);
 		}
+	};
+
+	const recogniseRegionText = async (
+		worker: Tesseract.Worker,
+		image: string,
+		region: TextRegion
+	) => {
+		await worker.setParameters({
+			tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
+			tessedit_char_whitelist: region.charSet,
+		});
+
+		// Recognize text in this region
+		const result = await worker.recognize(image, {
+			rectangle: {
+				left: region.x,
+				top: region.y,
+				width: region.width,
+				height: region.height,
+			},
+		});
+
+		return result;
+	};
+
+	/**
+	 * Recognises an image region by extracting it and comparing against known hashes
+	 * @param image - Source image URL (not preprocessed)
+	 * @param region - Region definition with imgHash property
+	 * @param threshold - Maximum Hamming distance for a match (default: 10)
+	 * @returns Promise resolving to the matched image ID or empty string if no match
+	 */
+	const recogniseRegionImage = async (
+		image: string,
+		region: TextRegion,
+		threshold?: number
+	): Promise<string> => {
+		return new Promise((resolve) => {
+			const img = new Image();
+
+			img.onload = () => {
+				const canvas = document.createElement('canvas');
+				const ctx = canvas.getContext('2d');
+
+				if (!ctx) {
+					resolve('');
+					return;
+				}
+
+				canvas.width = region.width;
+				canvas.height = region.height;
+
+				ctx.drawImage(
+					img,
+					region.x,
+					region.y,
+					region.width,
+					region.height,
+					0,
+					0,
+					region.width,
+					region.height
+				);
+
+				const imageData = ctx.getImageData(0, 0, region.width, region.height);
+				resolve(recogniseImage(imageData, threshold));
+			};
+
+			img.onerror = () => resolve('');
+			img.src = image;
+		});
 	};
 
 	const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {

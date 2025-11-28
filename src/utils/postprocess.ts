@@ -13,6 +13,7 @@ import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
 export function extractGameStats(
 	regionResults: Map<string, string>
 ): Pick<GameRecord, 'players' | 'matchInfo'> {
+	// Extract players
 	const players: GameRecord['players'] = [];
 	players.push(...extractTeamPlayers('blue', regionResults));
 	players.push(...extractTeamPlayers('red', regionResults));
@@ -49,6 +50,7 @@ function extractTeamPlayers(
 		}
 
 		const player: PlayerStats = {
+			hero: ocrResults.get(`${team}_player${i}_hero`) || '',
 			name: ocrResults.get(`${team}_player${i}_name`)?.trim() || '',
 			team,
 			...(numberStats as PlayerStatsNumberFields),
