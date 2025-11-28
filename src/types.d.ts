@@ -75,11 +75,12 @@ export interface TextRegion {
 	height: number;
 	charSet?: string;
 	isItalic?: boolean;
+	imgHash?: string;
 }
 
 export type DrawnRegion = TextRegion & {
 	id: string;
-	color: string;
+	colour: string;
 };
 
 export interface ProfileDetails {
