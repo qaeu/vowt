@@ -5,7 +5,9 @@
 import type { ImageHashSet } from '#types';
 
 const DEFAULT_HASH_SIZE = 8;
-const DEFAULT_THRESHOLD = 0.7;
+const DEFAULT_THRESHOLD = 0.4;
+// const BACKGROUND_RED_COLOUR = '#8a2130';
+// const BACKGROUND_BLUE_COLOUR = '#166b90';
 
 interface RecognitionResult {
 	name: string;
@@ -40,10 +42,11 @@ export function recogniseImage(
 		}
 	}
 
+	// Scale confidence: 50% similarity (random chance) = 0%, 100% similarity = 100%
+	const confidence = Math.round(Math.max(0, bestSimilarity - 0.5) * 200);
 	// Return match only if within threshold
-	const confidence = Math.round(bestSimilarity * 100);
 	return {
-		name: bestSimilarity >= threshold ? bestMatch : '',
+		name: confidence >= threshold * 100 ? bestMatch : '',
 		confidence,
 	};
 }
@@ -101,18 +104,22 @@ export function dhash(
 
 	// Compute difference hash (compare left pixel to right pixel)
 	let hash = '';
-	for (let y = 0; y < hashHeight; y++) {
-		for (let x = 0; x < hashWidth - 1; x++) {
-			const leftIdx = y * hashWidth + x;
-			const rightIdx = y * hashWidth + x + 1;
+	for (let y = 0; y < hashSize; y++) {
+		for (let x = 0; x < hashSize; x++) {
+			const index = y * hashWidth + x;
+			const left = grayscale[index];
+			const right = grayscale[index + 1];
 			// 1 if left pixel is brighter than right pixel, 0 otherwise
-			hash += grayscale[leftIdx] > grayscale[rightIdx] ? '1' : '0';
+			hash += left > right ? '1' : '0';
 		}
 	}
 
 	// Convert binary string to hex string
-	const hexLength = (hashSize * hashSize) / 4;
-	const hexHash = parseInt(hash, 2).toString(16).padStart(hexLength, '0');
+	// Process in 4 bit chunks to avoid 53-bit positive integer precision limit
+	let hexHash = '';
+	for (let i = 0; i < hash.length; i += 4) {
+		hexHash += parseInt(hash.slice(i, i + 4), 2).toString(16);
+	}
 
 	return hexHash;
 }
