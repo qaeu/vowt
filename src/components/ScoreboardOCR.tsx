@@ -1,13 +1,20 @@
 import { createSignal, onMount, createEffect, Show, type Component } from 'solid-js';
 import Tesseract from 'tesseract.js';
 
-import type { PlayerStats, MatchInfo, GameRecord, TextRegion } from '#types';
+import type {
+	PlayerStats,
+	MatchInfo,
+	GameRecord,
+	TextRegion,
+	ImageHashSet,
+} from '#types';
 import EditableGameData from '#c/EditableGameData';
 import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 import { recogniseImage } from '#utils/imageRecognition';
 import { extractGameStats } from '#utils/postprocess';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
-import { getActiveProfile } from '#utils/regionProfiles';
+import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
+import { DEFAULT_HASH_SETS } from '#data/hashSets';
 import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
@@ -86,20 +93,35 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				return;
 			}
 
+			const allHashSets = [...getActiveProfileHashSets(), ...DEFAULT_HASH_SETS];
 			const worker = await Tesseract.createWorker('eng', 1);
+
 			for (let i = 0; i < regionCount; i++) {
 				const region = scoreboardRegions[i];
 				setProgress(Math.round((i / regionCount) * 100));
 
 				// Use image recognition for regions with imgHash, OCR for text regions
-				if (region.imgHash && region.imgHash?.length > 0) {
-					const result = await recogniseRegionImage(imageToProcess, region);
+				if (region.imgHashSet && region.imgHashSet?.length > 0) {
+					const hashSet = allHashSets.find((hs) => hs.id === region.imgHashSet);
+
+					if (!hashSet) {
+						console.warn(
+							`Hash set '${region.imgHashSet}' not found for region '${region.name}'`
+						);
+						regionResults.set(region.name, '');
+						continue;
+					}
+
+					const result = await recogniseRegionImage(imageToProcess, region, hashSet);
+
 					ocrTextParts.push(`${region.name} (image): ${result}`);
 					regionResults.set(region.name, result);
 				} else {
 					const result = await recogniseRegionText(worker, preprocessed, region);
+
 					const text = result.data.text.trim();
 					const confidence = result.data.confidence;
+
 					ocrTextParts.push(`${region.name} (${confidence}%): ${text}`);
 					regionResults.set(region.name, text);
 				}
@@ -148,12 +170,14 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	 * Recognises an image region by extracting it and comparing against known hashes
 	 * @param image - Source image URL (not preprocessed)
 	 * @param region - Region definition with imgHash property
-	 * @param threshold - Maximum Hamming distance for a match (default: 10)
+	 * @param hashSet - Set of hashes to compare against
+	 * @param threshold - Minimum similarity score for a match (0-1)
 	 * @returns Promise resolving to the matched image ID or empty string if no match
 	 */
 	const recogniseRegionImage = async (
 		image: string,
 		region: TextRegion,
+		hashSet: ImageHashSet,
 		threshold?: number
 	): Promise<string> => {
 		return new Promise((resolve) => {
@@ -184,7 +208,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				);
 
 				const imageData = ctx.getImageData(0, 0, region.width, region.height);
-				resolve(recogniseImage(imageData, threshold));
+				resolve(recogniseImage(imageData, hashSet, threshold));
 			};
 
 			img.onerror = () => resolve('');

@@ -2,31 +2,31 @@
  * Image recognition utilities for perceptual hashing and comparison
  */
 
-import type { ImageHash } from '#types';
-import heroPortraitHashes from '#data/hero-portrait-hashes.json';
+import type { ImageHashSet } from '#types';
 
 const DEFAULT_HASH_SIZE = 8;
 const DEFAULT_THRESHOLD = 0.85;
 
 /**
- * Recognises an image by computing its dHash and comparing against known hero hashes
+ * Recognises an image by computing its dHash and comparing against a set of known hashes
  * @param imageData - Image data to compare
+ * @param hashSet - Set of hashes to compare against
  * @param threshold - Minimum similarity score for a match (0-1, default: 0.85)
  * @returns The matched image ID or empty string if no match found
  */
 export function recogniseImage(
 	imageData: ImageData,
+	hashSet: ImageHashSet,
 	threshold: number = DEFAULT_THRESHOLD
 ): string {
 	const regionHash = dhash(imageData);
 	const hashBits = DEFAULT_HASH_SIZE ** 2;
 
-	// Find best match from hero portrait hashes
-	const hashes = heroPortraitHashes.hashes as ImageHash[];
+	// Find best match from provided hash set
 	let bestMatch = '';
 	let bestSimilarity = 0;
 
-	for (const { id, hash } of hashes) {
+	for (const { name: id, hash } of hashSet.hashes) {
 		const distance = hamDist(regionHash, hash);
 		const similarity = 1 - distance / hashBits;
 		if (similarity > bestSimilarity) {
