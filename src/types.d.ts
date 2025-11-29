@@ -75,7 +75,7 @@ export interface TextRegion {
 	height: number;
 	charSet?: string;
 	isItalic?: boolean;
-	imgHash?: string;
+	imgHashSet?: string;
 }
 
 export type DrawnRegion = TextRegion & {
@@ -90,6 +90,7 @@ export interface ProfileDetails {
 
 export interface RegionProfile extends ProfileDetails {
 	regions: TextRegion[];
+	hashSets: ImageHashSet[];
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -100,11 +101,19 @@ export interface ExportedProfile extends ExportFileBase {
 }
 
 export interface ImageHash {
-	id: string;
+	name: string;
 	hash: string;
 }
 
-export interface ExportedImageHashes extends ExportFileBase {
-	type: 'vowt-image-hashes';
+export interface ImageHashSet {
+	id: string;
+	description: string;
 	hashes: ImageHash[];
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface ExportedImageHashSet extends ExportFileBase {
+	type: 'vowt-image-hashes';
+	hashSet: ExportedRecord<ImageHashSet>;
 }

@@ -1,0 +1,189 @@
+{
+	"type": "vowt-image-hashes",
+	"schemaVersion": 1,
+	"hashSet": {
+		"id": "hero-portrait",
+		"description": "In-game hero portraits",
+		"hashes": [
+			{
+				"name": "ana",
+				"hash": "6b2b17451147b400"
+			},
+			{
+				"name": "ashe",
+				"hash": "0a26b7350e052580"
+			},
+			{
+				"name": "baptiste",
+				"hash": "13050b39456abe00"
+			},
+			{
+				"name": "bastion",
+				"hash": "023a1da32b6d5360"
+			},
+			{
+				"name": "brigitte",
+				"hash": "1d670f370e1e8900"
+			},
+			{
+				"name": "cassidy",
+				"hash": "1c2a4b357633aa00"
+			},
+			{
+				"name": "doomfist",
+				"hash": "04360d4dcbcab4c0"
+			},
+			{
+				"name": "dva",
+				"hash": "598677274b0b4400"
+			},
+			{
+				"name": "echo",
+				"hash": "266c63665e2a1400"
+			},
+			{
+				"name": "freja",
+				"hash": "3327264ba52e2800"
+			},
+			{
+				"name": "genji",
+				"hash": "8a321e922b05e800"
+			},
+			{
+				"name": "hanzo",
+				"hash": "249d5553abaae800"
+			},
+			{
+				"name": "hazard",
+				"hash": "08264e5b4a4da980"
+			},
+			{
+				"name": "illari",
+				"hash": "23300d152b2a4600"
+			},
+			{
+				"name": "junker-queen",
+				"hash": "aac939374a3e9000"
+			},
+			{
+				"name": "junkrat",
+				"hash": "8e36110a4eb5b000"
+			},
+			{
+				"name": "juno",
+				"hash": "71e9d9a6dd6bec00"
+			},
+			{
+				"name": "kiriko",
+				"hash": "0d2ead59170d1600"
+			},
+			{
+				"name": "lifeweaver",
+				"hash": "6d0d59cb56aedc00"
+			},
+			{
+				"name": "lucio",
+				"hash": "1c0c3a87281a0900"
+			},
+			{
+				"name": "mauga",
+				"hash": "144b0d4a1e592300"
+			},
+			{
+				"name": "mei",
+				"hash": "035c4e1aac8ccca0"
+			},
+			{
+				"name": "mercy",
+				"hash": "2a3f65555b5e4c00"
+			},
+			{
+				"name": "moira",
+				"hash": "062d150d094d4c40"
+			},
+			{
+				"name": "orisa",
+				"hash": "256a37a91a0b6e00"
+			},
+			{
+				"name": "pharah",
+				"hash": "1d55ca619a1cd100"
+			},
+			{
+				"name": "ramattra",
+				"hash": "3d6b2e5abbd15400"
+			},
+			{
+				"name": "reaper",
+				"hash": "062a37571a6ec8c0"
+			},
+			{
+				"name": "reinhardt",
+				"hash": "1db795bd9eb49d00"
+			},
+			{
+				"name": "roadhog",
+				"hash": "0616b5474b52d800"
+			},
+			{
+				"name": "sigma",
+				"hash": "1c122e460f181b00"
+			},
+			{
+				"name": "sojourn",
+				"hash": "4bb117732d6e1400"
+			},
+			{
+				"name": "soldier",
+				"hash": "062e0f45a64b24c0"
+			},
+			{
+				"name": "sombra",
+				"hash": "362f250b07464200"
+			},
+			{
+				"name": "symmetra",
+				"hash": "55552d357aaacc00"
+			},
+			{
+				"name": "torbjorn",
+				"hash": "545a6ac95967dc00"
+			},
+			{
+				"name": "tracer",
+				"hash": "151347570d070e00"
+			},
+			{
+				"name": "venture",
+				"hash": "0f3d15472e0acf80"
+			},
+			{
+				"name": "widowmaker",
+				"hash": "1dab36ba4e0a2a00"
+			},
+			{
+				"name": "winston",
+				"hash": "aea7f75a44ab4000"
+			},
+			{
+				"name": "wrecking-ball",
+				"hash": "2c16151627ae1e00"
+			},
+			{
+				"name": "wuyang",
+				"hash": "0aa5661a0f170f00"
+			},
+			{
+				"name": "zarya",
+				"hash": "754b5f351f2a5000"
+			},
+			{
+				"name": "zenyatta",
+				"hash": "143a5e1e3b5a0a00"
+			}
+		],
+		"createdAt": "2025-11-28T00:00:00Z",
+		"updatedAt": "2025-11-28T00:00:00Z"
+	},
+	"exportedAt": "2025-11-28T00:00:00Z"
+}
