@@ -49,7 +49,7 @@ export interface MatchInfo {
 	date: string;
 	game_mode: string;
 	game_length: string;
-	map?: string;
+	map: string;
 }
 
 export interface GameRecord {
