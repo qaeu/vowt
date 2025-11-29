@@ -241,7 +241,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 								<th>Height</th>
 								<th>Char Set</th>
 								<th>Italic</th>
-								<th>Image Hash</th>
+								<th>Image Hash Set</th>
 								<th class="delete-column">Delete</th>
 							</tr>
 						</thead>
@@ -348,14 +348,14 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 											</td>
 											<td>
 												<RecordFieldInput
-													staticId={`region-${region.id}-imgHash`}
-													initialValue={region.imgHash ?? ''}
-													baseline={() => savedRegion()?.imgHash ?? ''}
+													staticId={`region-${region.id}-imgHashSet`}
+													initialValue={region.imgHashSet ?? ''}
+													baseline={() => savedRegion()?.imgHashSet ?? ''}
 													onInput={(value) =>
-														updateRegionField(region.id, 'imgHash', value || undefined)
+														updateRegionField(region.id, 'imgHashSet', value || undefined)
 													}
 													initialIsJustSaved={isFieldJustSaved(
-														`region-${region.id}-imgHash`
+														`region-${region.id}-imgHashSet`
 													)}
 													staticRegisterField={registerField}
 												/>

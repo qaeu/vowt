@@ -70,7 +70,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			...r,
 			id: `${profileId}-${index}`,
 			colour:
-				r.imgHash && r.imgHash.length > 0 ? REGION_COLOUR_IMAGE
+				r.imgHashSet && r.imgHashSet.length > 0 ? REGION_COLOUR_IMAGE
 				: r.isItalic ? REGION_COLOUR_ITALIC
 				: REGION_COLOUR_DEFAULT,
 		}));

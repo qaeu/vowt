@@ -4,7 +4,7 @@
 
 import type { DrawnRegion } from '#types';
 
-const REGION_COLOUR_NEW = '#800080';
+const REGION_COLOUR_NEW = '#FF0000';
 
 function drawRegion(ctx: CanvasRenderingContext2D, r: DrawnRegion): void {
 	ctx.strokeStyle = r.colour;

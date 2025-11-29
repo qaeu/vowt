@@ -143,7 +143,7 @@ export async function drawRegionsOnImage(
 
 				const regions = getActiveProfile(img.width, img.height);
 				for (const region of regions) {
-					if (region.imgHash && region.imgHash.length > 0) {
+					if (region.imgHashSet && region.imgHashSet.length > 0) {
 						ctx.strokeStyle = REGION_COLOUR_IMAGE;
 					} else if (region.isItalic) {
 						ctx.strokeStyle = REGION_COLOUR_ITALIC;
