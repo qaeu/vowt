@@ -5,20 +5,25 @@
 import type { ImageHashSet } from '#types';
 
 const DEFAULT_HASH_SIZE = 8;
-const DEFAULT_THRESHOLD = 0.85;
+const DEFAULT_THRESHOLD = 0.7;
+
+interface RecognitionResult {
+	name: string;
+	confidence: number;
+}
 
 /**
  * Recognises an image by computing its dHash and comparing against a set of known hashes
  * @param imageData - Image data to compare
  * @param hashSet - Set of hashes to compare against
  * @param threshold - Minimum similarity score for a match (0-1, default: 0.85)
- * @returns The matched image ID or empty string if no match found
+ * @returns Object with matched image ID (or empty string if no match) and confidence (0-100)
  */
 export function recogniseImage(
 	imageData: ImageData,
 	hashSet: ImageHashSet,
 	threshold: number = DEFAULT_THRESHOLD
-): string {
+): RecognitionResult {
 	const regionHash = dhash(imageData);
 	const hashBits = DEFAULT_HASH_SIZE ** 2;
 
@@ -26,17 +31,21 @@ export function recogniseImage(
 	let bestMatch = '';
 	let bestSimilarity = 0;
 
-	for (const { name: id, hash } of hashSet.hashes) {
+	for (const { name, hash } of hashSet.hashes) {
 		const distance = hamDist(regionHash, hash);
 		const similarity = 1 - distance / hashBits;
 		if (similarity > bestSimilarity) {
 			bestSimilarity = similarity;
-			bestMatch = id;
+			bestMatch = name;
 		}
 	}
 
 	// Return match only if within threshold
-	return bestSimilarity >= threshold ? bestMatch : '';
+	const confidence = Math.round(bestSimilarity * 100);
+	return {
+		name: bestSimilarity >= threshold ? bestMatch : '',
+		confidence,
+	};
 }
 
 /**

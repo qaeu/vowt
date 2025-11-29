@@ -114,8 +114,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 					const result = await recogniseRegionImage(imageToProcess, region, hashSet);
 
-					ocrTextParts.push(`${region.name} (image): ${result}`);
-					regionResults.set(region.name, result);
+					const name = result.name;
+					const confidence = result.confidence;
+
+					ocrTextParts.push(`${region.name} (${confidence}%): ${name}`);
+					regionResults.set(region.name, name);
 				} else {
 					const result = await recogniseRegionText(worker, preprocessed, region);
 
@@ -179,7 +182,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		region: TextRegion,
 		hashSet: ImageHashSet,
 		threshold?: number
-	): Promise<string> => {
+	): Promise<{ name: string; confidence: number }> => {
 		return new Promise((resolve) => {
 			const img = new Image();
 
@@ -188,7 +191,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				const ctx = canvas.getContext('2d');
 
 				if (!ctx) {
-					resolve('');
+					resolve({ name: '', confidence: 0 });
 					return;
 				}
 
@@ -211,7 +214,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				resolve(recogniseImage(imageData, hashSet, threshold));
 			};
 
-			img.onerror = () => resolve('');
+			img.onerror = () => resolve({ name: '', confidence: 0 });
 			img.src = image;
 		});
 	};
