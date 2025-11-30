@@ -417,7 +417,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			img.onload = () => {
 				const canvas = document.createElement('canvas');
-				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				const ctx = canvas.getContext('2d');
 
 				if (!ctx) {
 					resolve({ name: '', confidence: 0 });
