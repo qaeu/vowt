@@ -219,18 +219,22 @@ describe('imageRecognition', () => {
 
 	describe('recogniseImage', () => {
 		it('should return empty string when no match found within threshold', () => {
-			// Create random noise image that won't match any hero
-			const data = new Uint8ClampedArray(100 * 100 * 4);
-			for (let i = 0; i < data.length; i++) {
-				data[i] = Math.floor(Math.random() * 256);
-			}
+			// Mock dhash to return a known hash that won't match any in mockHashSet
+			// Using all zeros which has maximum Hamming distance from the test hashes
+			mockCanvasContext.getImageData.mockReturnValueOnce({
+				data: new Uint8ClampedArray(9 * 8 * 4).fill(128), // Uniform grey produces all-zero hash
+				width: 9,
+				height: 8,
+			});
+
+			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
 			const imageData = createImageData(data, 100, 100);
 
-			// Use very high threshold to ensure no match
+			// Use high threshold to ensure no match with the dissimilar hashes
 			const result = recogniseImage(imageData, mockHashSet, 0.99);
 
-			// May or may not match depending on random data, but test execution works
-			expect(typeof result.name).toBe('string');
+			// With a known non-matching hash, the name should be empty
+			expect(result.name).toBe('');
 			expect(typeof result.confidence).toBe('number');
 			expect(result.confidence).toBeGreaterThanOrEqual(0);
 			expect(result.confidence).toBeLessThanOrEqual(100);
