@@ -93,6 +93,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				return;
 			}
 
+			// Merge profile-defined and default hash sets, profile sets take precedence
 			const allHashSets = [...getActiveProfileHashSets(), ...DEFAULT_HASH_SETS];
 			const worker = await Tesseract.createWorker('eng', 1);
 
@@ -101,7 +102,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				setProgress(Math.round((i / regionCount) * 100));
 
 				// Use image recognition for regions with imgHash, OCR for text regions
-				if (region.imgHashSet && region.imgHashSet?.length > 0) {
+				if (region.imgHashSet && region.imgHashSet.length > 0) {
 					const hashSet = allHashSets.find((hs) => hs.id === region.imgHashSet);
 
 					if (!hashSet) {
