@@ -256,7 +256,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(getByText('Pre-processed Image')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -274,7 +274,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(getByText('Raw OCR Text Output')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -292,7 +292,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(getByText('Extracted Game Stats (JSON)')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -311,7 +311,7 @@ describe('ScoreboardOCR', () => {
 					const jsonHeader = queryByText(/Extracted Game Stats \(JSON\)/);
 					expect(jsonHeader).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -329,7 +329,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(queryByText(/Raw OCR Text Output/)).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -347,7 +347,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(queryByTestId('editable-game-data')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -367,7 +367,7 @@ describe('ScoreboardOCR', () => {
 					expect(playerElement).not.toBeNull();
 					expect(playerElement?.textContent).toBe('VEQ');
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -386,7 +386,7 @@ describe('ScoreboardOCR', () => {
 					const matchInfoElement = queryByTestId('match-info-data');
 					expect(matchInfoElement?.textContent).toBe('VICTORY');
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -405,7 +405,7 @@ describe('ScoreboardOCR', () => {
 					const saveButton = queryByTestId('save-button');
 					expect(saveButton).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 	});
@@ -443,7 +443,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -481,7 +481,7 @@ describe('ScoreboardOCR', () => {
 					const processingText = queryByText(/Processing image/);
 					expect(processingText).toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -515,7 +515,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -563,7 +563,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 	});
@@ -602,7 +602,7 @@ describe('ScoreboardOCR', () => {
 					// Scheduler should be created for the group of 4 regions
 					expect(mockCreateScheduler).toHaveBeenCalled();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -637,7 +637,7 @@ describe('ScoreboardOCR', () => {
 					// Worker should be created (standalone, not via scheduler)
 					expect(mockCreateWorker).toHaveBeenCalled();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -676,7 +676,7 @@ describe('ScoreboardOCR', () => {
 						})
 					);
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -715,7 +715,7 @@ describe('ScoreboardOCR', () => {
 						})
 					);
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -752,7 +752,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -783,7 +783,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -836,7 +836,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 	});
