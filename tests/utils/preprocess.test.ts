@@ -1,10 +1,17 @@
 import type { TextRegion } from '#types';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
+import {
+	preprocessImageForOCR,
+	drawRegionsOnImage,
+	groupRegionsByCharSet,
+	partitionRegionGroups,
+} from '#utils/preprocess';
+
+const SCHEDULER_JOBS_MIN = 3;
 
 // Mock getActiveProfile to return controlled test regions
 vi.mock('#utils/regionProfiles', () => ({
-getActiveProfile: vi.fn(() => {
+	getActiveProfile: vi.fn(() => {
 		// Return test regions
 		const baseRegions: TextRegion[] = [
 			{
@@ -34,10 +41,10 @@ getActiveProfile: vi.fn(() => {
 const mockCanvasContext = {
 	drawImage: vi.fn(),
 	getImageData: vi.fn(() => ({
-data: new Uint8ClampedArray(100 * 50 * 4),
-width: 100,
-height: 50,
-})),
+		data: new Uint8ClampedArray(100 * 50 * 4),
+		width: 100,
+		height: 50,
+	})),
 	putImageData: vi.fn(),
 	fillRect: vi.fn(),
 	strokeRect: vi.fn(),
@@ -110,8 +117,8 @@ describe('preprocess', () => {
 			});
 
 			await expect(preprocessImageForOCR('invalid-url')).rejects.toThrow(
-'Failed to load image'
-);
+				'Failed to load image'
+			);
 		});
 
 		it('should call getActiveProfile with image dimensions', async () => {
@@ -153,8 +160,8 @@ describe('preprocess', () => {
 			mockCanvas.getContext.mockReturnValueOnce(null as never);
 
 			await expect(preprocessImageForOCR('test-image.png')).rejects.toThrow(
-'Failed to get canvas context'
-);
+				'Failed to get canvas context'
+			);
 		});
 
 		it('should process regions from active profile', async () => {
@@ -223,8 +230,8 @@ describe('preprocess', () => {
 			});
 
 			await expect(drawRegionsOnImage('invalid-url', 'source.png')).rejects.toThrow(
-'Failed to load image'
-);
+				'Failed to load image'
+			);
 		});
 
 		it('should reject when source image fails to load', async () => {
@@ -256,9 +263,9 @@ describe('preprocess', () => {
 				return img as unknown as HTMLImageElement;
 			});
 
-			await expect(
-drawRegionsOnImage('preprocessed.png', 'invalid-url')
-).rejects.toThrow('Failed to load source image');
+			await expect(drawRegionsOnImage('preprocessed.png', 'invalid-url')).rejects.toThrow(
+				'Failed to load source image'
+			);
 		});
 
 		it('should call getActiveProfile with image dimensions', async () => {
@@ -407,6 +414,109 @@ drawRegionsOnImage('preprocessed.png', 'invalid-url')
 			const result = await preprocessImageForOCR('test-image.png');
 
 			expect(result).toBeDefined();
+		});
+	});
+
+	describe('groupRegionsByCharSet', () => {
+		it('groups regions by their charSet value', () => {
+			const regions: TextRegion[] = [
+				{ name: 'region1', x: 0, y: 0, width: 100, height: 50, charSet: '0123456789' },
+				{ name: 'region2', x: 0, y: 50, width: 100, height: 50, charSet: 'ABC' },
+				{ name: 'region3', x: 0, y: 100, width: 100, height: 50, charSet: '0123456789' },
+			];
+
+			const result = groupRegionsByCharSet(regions);
+
+			expect(result.size).toBe(2);
+			expect(result.get('0123456789')).toHaveLength(2);
+			expect(result.get('ABC')).toHaveLength(1);
+		});
+
+		it('groups regions without charSet under empty string key', () => {
+			const regions: TextRegion[] = [
+				{ name: 'region1', x: 0, y: 0, width: 100, height: 50 },
+				{ name: 'region2', x: 0, y: 50, width: 100, height: 50, charSet: 'ABC' },
+				{ name: 'region3', x: 0, y: 100, width: 100, height: 50 },
+			];
+
+			const result = groupRegionsByCharSet(regions);
+
+			expect(result.size).toBe(2);
+			expect(result.get('')).toHaveLength(2);
+			expect(result.get('ABC')).toHaveLength(1);
+		});
+
+		it('returns empty map for empty regions array', () => {
+			const result = groupRegionsByCharSet([]);
+			expect(result.size).toBe(0);
+		});
+	});
+
+	describe('loadImageDimensions', () => {
+		// Note: These tests are skipped because jsdom doesn't properly support
+		// Image loading. The function is tested indirectly via integration tests.
+		it.todo('returns dimensions for a valid image');
+		it.todo('rejects for invalid image source');
+	});
+
+	describe('partitionRegionGroups', () => {
+		it('partitions groups into large and small based on SCHEDULER_JOBS_MIN', () => {
+			const charSetGroups = new Map<string, TextRegion[]>();
+
+			// Large group (more than SCHEDULER_JOBS_MIN)
+			const largeGroup: TextRegion[] = [];
+			for (let i = 0; i < SCHEDULER_JOBS_MIN + 2; i++) {
+				largeGroup.push({
+					name: `region${i}`,
+					x: 0,
+					y: i * 50,
+					width: 100,
+					height: 50,
+				});
+			}
+			charSetGroups.set('0123456789', largeGroup);
+
+			// Small group (SCHEDULER_JOBS_MIN or fewer)
+			const smallGroup: TextRegion[] = [
+				{ name: 'regionA', x: 0, y: 0, width: 100, height: 50 },
+				{ name: 'regionB', x: 0, y: 50, width: 100, height: 50 },
+			];
+			charSetGroups.set('ABC', smallGroup);
+
+			const result = partitionRegionGroups(charSetGroups);
+
+			expect(result.largeGroups).toHaveLength(1);
+			expect(result.smallGroups).toHaveLength(1);
+			expect(result.largeGroups[0].charSet).toBe('0123456789');
+			expect(result.smallGroups[0].charSet).toBe('ABC');
+		});
+
+		it('returns empty arrays for empty input', () => {
+			const result = partitionRegionGroups(new Map());
+
+			expect(result.largeGroups).toHaveLength(0);
+			expect(result.smallGroups).toHaveLength(0);
+		});
+
+		it('groups with exactly SCHEDULER_JOBS_MIN regions are considered small', () => {
+			const charSetGroups = new Map<string, TextRegion[]>();
+
+			const exactGroup: TextRegion[] = [];
+			for (let i = 0; i < SCHEDULER_JOBS_MIN; i++) {
+				exactGroup.push({
+					name: `region${i}`,
+					x: 0,
+					y: i * 50,
+					width: 100,
+					height: 50,
+				});
+			}
+			charSetGroups.set('0123456789', exactGroup);
+
+			const result = partitionRegionGroups(charSetGroups);
+
+			expect(result.largeGroups).toHaveLength(0);
+			expect(result.smallGroups).toHaveLength(1);
 		});
 	});
 });

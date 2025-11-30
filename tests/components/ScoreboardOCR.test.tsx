@@ -97,6 +97,28 @@ vi.mock('#utils/preprocess', () => ({
 	getMatchInfoRegions: vi
 		.fn()
 		.mockReturnValue([{ name: 'region_1', x: 0, y: 0, width: 100, height: 100 }]),
+	groupRegionsByCharSet: vi.fn((regions) => {
+		const groups = new Map<string, typeof regions>();
+		for (const region of regions) {
+			const key = region.charSet || '';
+			const existing = groups.get(key) || [];
+			existing.push(region);
+			groups.set(key, existing);
+		}
+		return groups;
+	}),
+	loadImageDimensions: vi.fn().mockResolvedValue({ width: 2560, height: 1440 }),
+	partitionRegionGroups: vi.fn((charSetGroups) => {
+		const entries = [...charSetGroups.entries()].map(
+			([charSet, regions]: [string, unknown[]]) => ({
+				charSet,
+				regions,
+			})
+		);
+		const large = entries.filter(({ regions }) => regions.length > 3);
+		const small = entries.filter(({ regions }) => regions.length <= 3);
+		return { largeGroups: large, smallGroups: small };
+	}),
 }));
 
 vi.mock('#utils/postprocess', () => ({
@@ -119,6 +141,15 @@ vi.mock('#utils/postprocess', () => ({
 			date: '09/15/25 - 02:49',
 			game_mode: 'ESCORT',
 		},
+	}),
+	formatResults: vi.fn((allResults) => {
+		const ocrTextParts: string[] = [];
+		const regionResults = new Map<string, string>();
+		for (const result of allResults) {
+			ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
+			regionResults.set(result.name, result.value);
+		}
+		return { ocrTextParts, regionResults };
 	}),
 }));
 
