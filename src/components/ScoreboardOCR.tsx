@@ -144,6 +144,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 		try {
 			// Create workers in parallel
+			// Note: Per-job character whitelisting is not supported by the scheduler API.
+			// Workers in a scheduler must be homogeneous (same configuration).
 			const workerPromises = Array(WORKER_COUNT)
 				.fill(null)
 				.map(async () => {
@@ -157,11 +159,16 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			if (isProcessingCancelled) return null;
 
+			// Track completed jobs for smooth progress updates
+			let completedJobs = 0;
+			const totalJobs = regions.length;
+
 			// Process all regions in parallel using scheduler
-			const regionPromises = regions.map((region, i) =>
+			const regionPromises = regions.map((region) =>
 				processRegion(region, scheduler, preprocessedImage, originalImage, allHashSets).then(
 					(result) => {
-						setProgress(Math.round(((i + 1) / regions.length) * 100));
+						completedJobs++;
+						setProgress(Math.round((completedJobs / totalJobs) * 100));
 						return result;
 					}
 				)
