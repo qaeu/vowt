@@ -49,7 +49,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	>({ players: [], matchInfo: {} as MatchInfo });
 	const [error, setError] = createSignal<string>('');
 	const [progress, setProgress] = createSignal<number>(0);
-	const [currentImage, setCurrentImage] = createSignal<string>();
+	const [currentScreenshot, setCurrentScreenshot] = createSignal<string>();
 
 	let recordId: string;
 	let activeSchedulers: Tesseract.Scheduler[] = [];
@@ -63,17 +63,17 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 	onMount(async () => {
 		if (props.uploadedImage) {
-			setCurrentImage(props.uploadedImage);
-			await processImage(props.uploadedImage);
+			setCurrentScreenshot(props.uploadedImage);
+			await processScreenshot(props.uploadedImage);
 		}
 	});
 
 	// React to changes in uploadedImage prop (e.g., drag-and-drop while on OCR page)
 	createEffect(() => {
 		const uploaded = props.uploadedImage;
-		if (uploaded && uploaded !== currentImage()) {
-			setCurrentImage(uploaded);
-			processImage(uploaded);
+		if (uploaded && uploaded !== currentScreenshot()) {
+			setCurrentScreenshot(uploaded);
+			processScreenshot(uploaded);
 		}
 	});
 
@@ -275,7 +275,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	/** Start recognition of all regions */
-	const runRegionsProcessing = async (
+	const processRegions = async (
 		regions: TextRegion[],
 		preprocessedImage: string,
 		originalImage: string,
@@ -340,8 +340,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	/** Main image processing pipeline */
-	const processImage = async (imagePath?: string) => {
-		const imageToProcess = (imagePath || currentImage()) as string;
+	const processScreenshot = async (imagePath?: string) => {
+		const imageToProcess = (imagePath || currentScreenshot()) as string;
 		isProcessingCancelled = false;
 
 		try {
@@ -358,7 +358,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			}
 
 			const allHashSets = [...getActiveProfileHashSets(), ...DEFAULT_HASH_SETS];
-			const ocrResults = await runRegionsProcessing(
+			const ocrResults = await processRegions(
 				scoreboardRegions,
 				preprocessed,
 				imageToProcess,
@@ -497,10 +497,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			</Show>
 
 			<div class="image-grid">
-				<Show when={currentImage()}>
+				<Show when={currentScreenshot()}>
 					<div class="image-container">
 						<h2>Uploaded Image</h2>
-						<img src={currentImage()} alt="Uploaded Image" />
+						<img src={currentScreenshot()} alt="Uploaded Image" />
 					</div>
 				</Show>
 
