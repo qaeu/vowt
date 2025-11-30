@@ -7,10 +7,10 @@
 		"regions": [
 			{
 				"name": "blue_player1_hero",
-				"x": 415,
+				"x": 400,
 				"y": 335,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -72,10 +72,10 @@
 			},
 			{
 				"name": "blue_player2_hero",
-				"x": 415,
+				"x": 400,
 				"y": 417,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -137,10 +137,10 @@
 			},
 			{
 				"name": "blue_player3_hero",
-				"x": 415,
+				"x": 400,
 				"y": 499,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -202,10 +202,10 @@
 			},
 			{
 				"name": "blue_player4_hero",
-				"x": 415,
+				"x": 400,
 				"y": 581,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -267,10 +267,10 @@
 			},
 			{
 				"name": "blue_player5_hero",
-				"x": 415,
+				"x": 400,
 				"y": 663,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -332,10 +332,10 @@
 			},
 			{
 				"name": "red_player1_hero",
-				"x": 415,
+				"x": 400,
 				"y": 875,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -397,10 +397,10 @@
 			},
 			{
 				"name": "red_player2_hero",
-				"x": 415,
+				"x": 400,
 				"y": 957,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -462,10 +462,10 @@
 			},
 			{
 				"name": "red_player3_hero",
-				"x": 415,
+				"x": 400,
 				"y": 1039,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -527,10 +527,10 @@
 			},
 			{
 				"name": "red_player4_hero",
-				"x": 415,
+				"x": 400,
 				"y": 1121,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
@@ -592,10 +592,10 @@
 			},
 			{
 				"name": "red_player5_hero",
-				"x": 415,
+				"x": 400,
 				"y": 1203,
-				"width": 70,
-				"height": 70,
+				"width": 76,
+				"height": 76,
 				"imgHashSet": "hero-portrait"
 			},
 			{
