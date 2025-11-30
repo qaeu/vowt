@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { dhash, hamDist, recogniseImage } from '#utils/imageRecognition';
+import type { ImageHashSet } from '#types';
 
 // Helper to create ImageData-like objects for testing
 // (ImageData constructor isn't available in Node.js test environment)
@@ -10,6 +11,19 @@ function createImageData(
 ): ImageData {
 	return { data, width, height, colorSpace: 'srgb' } as ImageData;
 }
+
+// Mock hash set for testing
+const mockHashSet: ImageHashSet = {
+	id: 'test-heroes',
+	description: 'Test hero portrait hashes',
+	hashes: [
+		{ name: 'ana', hash: '6b2b17451147b400' },
+		{ name: 'ashe', hash: '0a26b7350e052580' },
+		{ name: 'baptiste', hash: '13050b39456abe00' },
+	],
+	createdAt: new Date(),
+	updatedAt: new Date(),
+};
 
 // Mock canvas context
 const mockCanvasContext = {
@@ -213,10 +227,13 @@ describe('imageRecognition', () => {
 			const imageData = createImageData(data, 100, 100);
 
 			// Use very high threshold to ensure no match
-			const result = recogniseImage(imageData, 0.99);
+			const result = recogniseImage(imageData, mockHashSet, 0.99);
 
 			// May or may not match depending on random data, but test execution works
-			expect(typeof result).toBe('string');
+			expect(typeof result.name).toBe('string');
+			expect(typeof result.confidence).toBe('number');
+			expect(result.confidence).toBeGreaterThanOrEqual(0);
+			expect(result.confidence).toBeLessThanOrEqual(100);
 		});
 
 		it('should return a hero ID when match found within threshold', () => {
@@ -224,21 +241,23 @@ describe('imageRecognition', () => {
 			const imageData = createImageData(data, 100, 100);
 
 			// Use very low threshold to ensure a match
-			const result = recogniseImage(imageData, 0);
+			const result = recogniseImage(imageData, mockHashSet, 0);
 
 			// Should return some hero ID since threshold is 0
-			expect(result).toBeTruthy();
-			expect(typeof result).toBe('string');
+			expect(result.name).toBeTruthy();
+			expect(typeof result.name).toBe('string');
+			expect(typeof result.confidence).toBe('number');
 		});
 
 		it('should use default threshold when not specified', () => {
 			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
 			const imageData = createImageData(data, 100, 100);
 
-			// Should not throw and return a string
-			const result = recogniseImage(imageData);
+			// Should not throw and return an object
+			const result = recogniseImage(imageData, mockHashSet);
 
-			expect(typeof result).toBe('string');
+			expect(typeof result.name).toBe('string');
+			expect(typeof result.confidence).toBe('number');
 		});
 
 		it('should return best match among candidates', () => {
@@ -246,10 +265,11 @@ describe('imageRecognition', () => {
 			const imageData = createImageData(data, 100, 100);
 
 			// Call twice with same data should give same result
-			const result1 = recogniseImage(imageData, 0);
-			const result2 = recogniseImage(imageData, 0);
+			const result1 = recogniseImage(imageData, mockHashSet, 0);
+			const result2 = recogniseImage(imageData, mockHashSet, 0);
 
-			expect(result1).toBe(result2);
+			expect(result1.name).toBe(result2.name);
+			expect(result1.confidence).toBe(result2.confidence);
 		});
 
 		it('should respect threshold parameter', () => {
@@ -257,13 +277,14 @@ describe('imageRecognition', () => {
 			const imageData = createImageData(data, 100, 100);
 
 			// Very low threshold (0) should always return a match
-			const lowThresholdResult = recogniseImage(imageData, 0);
-			expect(lowThresholdResult).toBeTruthy();
+			const lowThresholdResult = recogniseImage(imageData, mockHashSet, 0);
+			expect(lowThresholdResult.name).toBeTruthy();
 
 			// Very high threshold (1.0) requires perfect match
-			const highThresholdResult = recogniseImage(imageData, 1.0);
-			// May or may not match, but should be a string
-			expect(typeof highThresholdResult).toBe('string');
+			const highThresholdResult = recogniseImage(imageData, mockHashSet, 1.0);
+			// May or may not match, but should be an object with string result
+			expect(typeof highThresholdResult.name).toBe('string');
+			expect(typeof highThresholdResult.confidence).toBe('number');
 		});
 
 		it('should accept threshold values between 0 and 1', () => {
@@ -271,10 +292,27 @@ describe('imageRecognition', () => {
 			const imageData = createImageData(data, 100, 100);
 
 			// Test various threshold values
-			expect(() => recogniseImage(imageData, 0)).not.toThrow();
-			expect(() => recogniseImage(imageData, 0.5)).not.toThrow();
-			expect(() => recogniseImage(imageData, 0.85)).not.toThrow();
-			expect(() => recogniseImage(imageData, 1.0)).not.toThrow();
+			expect(() => recogniseImage(imageData, mockHashSet, 0)).not.toThrow();
+			expect(() => recogniseImage(imageData, mockHashSet, 0.5)).not.toThrow();
+			expect(() => recogniseImage(imageData, mockHashSet, 0.85)).not.toThrow();
+			expect(() => recogniseImage(imageData, mockHashSet, 1.0)).not.toThrow();
+		});
+
+		it('should return empty string for empty hash set', () => {
+			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
+			const imageData = createImageData(data, 100, 100);
+			const emptyHashSet: ImageHashSet = {
+				id: 'empty',
+				description: 'Empty hash set',
+				hashes: [],
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			};
+
+			const result = recogniseImage(imageData, emptyHashSet, 0);
+
+			expect(result.name).toBe('');
+			expect(result.confidence).toBe(0);
 		});
 	});
 });

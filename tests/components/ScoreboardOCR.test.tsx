@@ -48,8 +48,8 @@ vi.mock('#c/EditableGameData', () => ({
 	}) => (
 		<div data-testid="editable-game-data">
 			<div data-testid="players-data">
-				{props.initialPlayers &&
-					props.initialPlayers.map((p: { name: string }) => (
+				{props.initialPlayers
+					&& props.initialPlayers.map((p: { name: string }) => (
 						<div data-testid={`player-${p.name}`}>{p.name}</div>
 					))}
 			</div>
@@ -104,6 +104,23 @@ vi.mock('#utils/regionProfiles', () => ({
 		{ name: 'region_0', x: 0, y: 0, width: 100, height: 100 },
 		{ name: 'region_1', x: 100, y: 0, width: 100, height: 100 },
 	]),
+	getActiveProfileHashSets: vi.fn().mockReturnValue([]),
+}));
+
+vi.mock('#utils/imageRecognition', () => ({
+	recogniseImage: vi.fn().mockReturnValue({ name: 'ana', confidence: 85 }),
+}));
+
+vi.mock('#data/hashSets', () => ({
+	DEFAULT_HASH_SETS: [
+		{
+			id: 'hero-portraits',
+			description: 'Hero portrait hashes',
+			hashes: [{ name: 'ana', hash: '6b2b17451147b400' }],
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		},
+	],
 }));
 
 describe('ScoreboardOCR', () => {
@@ -333,6 +350,164 @@ describe('ScoreboardOCR', () => {
 				() => {
 					const saveButton = queryByTestId('save-button');
 					expect(saveButton).not.toBeNull();
+				},
+				{ timeout: 3000 }
+			);
+		});
+	});
+
+	describe('image recognition integration', () => {
+		it('should use image recognition for regions with imgHashSet', async () => {
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure region with imgHashSet to trigger image recognition
+			mockGetActiveProfile.mockReturnValue([
+				{
+					name: 'hero_portrait',
+					x: 0,
+					y: 0,
+					width: 64,
+					height: 64,
+					imgHashSet: 'hero-portraits',
+				},
+				{ name: 'player_name', x: 100, y: 0, width: 100, height: 30, charSet: 'ABC' },
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			const { queryByText } = render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// Raw OCR output should show image recognition result with confidence
+					const rawText = queryByText(/Raw OCR Text Output/);
+					expect(rawText).not.toBeNull();
+				},
+				{ timeout: 3000 }
+			);
+		});
+
+		it('should skip image recognition when hash set is not found', async () => {
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure region with non-existent hash set
+			mockGetActiveProfile.mockReturnValue([
+				{
+					name: 'hero_portrait',
+					x: 0,
+					y: 0,
+					width: 64,
+					height: 64,
+					imgHashSet: 'non-existent-hash-set',
+				},
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			const { queryByText } = render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			// Should still complete processing without errors
+			// When hash set is not found, no OCR text is generated, so "Raw OCR Text Output" won't appear
+			// But the component should complete without crashing
+			await waitFor(
+				() => {
+					// Processing should complete (no longer showing processing indicator)
+					const processingText = queryByText(/Processing image/);
+					expect(processingText).toBeNull();
+				},
+				{ timeout: 3000 }
+			);
+		});
+
+		it('should use OCR for regions without imgHashSet', async () => {
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure region without imgHashSet (text-only)
+			mockGetActiveProfile.mockReturnValue([
+				{
+					name: 'player_name',
+					x: 100,
+					y: 0,
+					width: 100,
+					height: 30,
+					charSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+				},
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			const { queryByText } = render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					const rawText = queryByText(/Raw OCR Text Output/);
+					expect(rawText).not.toBeNull();
+				},
+				{ timeout: 3000 }
+			);
+		});
+
+		it('should merge hash sets from profile and defaults', async () => {
+			const { getActiveProfile, getActiveProfileHashSets } = await import(
+				'#utils/regionProfiles'
+			);
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+			const mockGetActiveProfileHashSets = vi.mocked(getActiveProfileHashSets);
+
+			// Configure profile with custom hash set
+			mockGetActiveProfileHashSets.mockReturnValue([
+				{
+					id: 'custom-hashes',
+					description: 'Custom hash set',
+					hashes: [{ name: 'custom-hero', hash: 'abcdef1234567890' }],
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
+			]);
+
+			// Configure region referencing custom hash set
+			mockGetActiveProfile.mockReturnValue([
+				{
+					name: 'hero_portrait',
+					x: 0,
+					y: 0,
+					width: 64,
+					height: 64,
+					imgHashSet: 'custom-hashes',
+				},
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			const { queryByText } = render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					const rawText = queryByText(/Raw OCR Text Output/);
+					expect(rawText).not.toBeNull();
 				},
 				{ timeout: 3000 }
 			);
