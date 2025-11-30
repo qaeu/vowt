@@ -66,7 +66,6 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 30px;
-		margin-bottom: 30px;
 	}
 
 	.image-container {
@@ -91,28 +90,40 @@
 		}
 	}
 
+	.ocr-output-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 30px;
+		margin-top: 30px;
+	}
+
 	.stats-box {
 		@include theme.card(theme.$accent2-success-light);
 
 		h2 {
 			margin-top: 0;
+			margin-bottom: 15px;
 			color: theme.$accent2-success;
-			cursor: pointer;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			user-select: none;
 		}
 
 		span {
 			font-size: 20px;
 		}
 
+		.scrollable-content {
+			max-height: 400px;
+			overflow-y: auto;
+		}
+
 		pre {
 			@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
 
-			font-size: 16px;
-			padding: 20px;
+			font-size: 14px;
+			padding: 15px;
+			margin: 0;
 		}
 
 		.stats-message {
@@ -128,22 +139,28 @@
 
 		h2 {
 			margin-top: 0;
+			margin-bottom: 15px;
 			color: theme.$foreground-dark;
-			cursor: pointer;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			user-select: none;
 		}
 
 		span {
 			font-size: 20px;
 		}
 
+		.scrollable-content {
+			max-height: 400px;
+			overflow-y: auto;
+		}
+
 		pre {
 			@include theme.code-block(theme.$background-light, theme.$border-light);
 
 			font-size: 14px;
+			padding: 15px;
+			margin: 0;
 		}
 	}
 }

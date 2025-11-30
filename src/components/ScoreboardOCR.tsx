@@ -34,8 +34,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [error, setError] = createSignal<string>('');
 	const [progress, setProgress] = createSignal<number>(0);
 	const [currentImage, setCurrentImage] = createSignal<string>();
-	const [showJsonStats, setShowJsonStats] = createSignal(false);
-	const [showRawText, setShowRawText] = createSignal(false);
 
 	let recordId: string;
 
@@ -307,33 +305,29 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				/>
 			</Show>
 
-			<Show when={extractedStats().players && extractedStats().players.length > 0}>
-				<div class="stats-box">
-					<h2 onClick={() => setShowJsonStats(!showJsonStats())}>
-						<span>Extracted Game Stats (JSON)</span>
-						<span>{showJsonStats() ? '▼' : '▶'}</span>
-					</h2>
-					<Show when={showJsonStats()}>
-						<pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
-						<p class="stats-message">
-							✓ Successfully parsed {Object.keys(extractedStats()).length} data fields
-							from the scoreboard
-						</p>
-					</Show>
-				</div>
-			</Show>
+			<div class="ocr-output-grid">
+				<Show when={extractedStats().players && extractedStats().players.length > 0}>
+					<div class="stats-box">
+						<h2>
+							<span>Extracted Game Stats (JSON)</span>
+						</h2>
+						<div class="scrollable-content">
+							<pre>{JSON.stringify(extractedStats(), null, 2)}</pre>
+						</div>
+					</div>
+				</Show>
 
-			<Show when={rawOcrText()}>
-				<div class="ocr-output-box">
-					<h2 onClick={() => setShowRawText(!showRawText())}>
-						<span>Raw OCR Text Output</span>
-						<span>{showRawText() ? '▼' : '▶'}</span>
-					</h2>
-					<Show when={showRawText()}>
-						<pre>{rawOcrText()}</pre>
-					</Show>
-				</div>
-			</Show>
+				<Show when={rawOcrText()}>
+					<div class="ocr-output-box">
+						<h2>
+							<span>Raw OCR Text Output</span>
+						</h2>
+						<div class="scrollable-content">
+							<pre>{rawOcrText()}</pre>
+						</div>
+					</div>
+				</Show>
+			</div>
 		</div>
 	);
 };
