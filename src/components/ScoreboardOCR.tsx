@@ -14,11 +14,18 @@ import type {
 	GameRecord,
 	TextRegion,
 	ImageHashSet,
+	RecognitionResult,
 } from '#types';
 import EditableGameData from '#c/EditableGameData';
-import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
+import {
+	preprocessImageForOCR,
+	drawRegionsOnImage,
+	groupRegionsByCharSet,
+	loadImageDimensions,
+	partitionRegionGroups,
+} from '#utils/preprocess';
 import { recogniseImage } from '#utils/imageRecognition';
-import { extractGameStats } from '#utils/postprocess';
+import { extractGameStats, formatResults } from '#utils/postprocess';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
@@ -31,7 +38,6 @@ interface ScoreboardOCRProps {
 }
 
 const WORKER_COUNT = 2;
-const SCHEDULER_JOBS_MIN = 3;
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [isProcessing, setIsProcessing] = createSignal(false);
@@ -85,28 +91,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		activeWorkers = [];
 	};
 
-	/** Groups OCR regions by their charSet value */
-	const groupRegionsByCharSet = (regions: TextRegion[]): Map<string, TextRegion[]> => {
-		const groups = new Map<string, TextRegion[]>();
-		for (const region of regions) {
-			const key = region.charSet || '';
-			const existing = groups.get(key) || [];
-			existing.push(region);
-			groups.set(key, existing);
-		}
-		return groups;
-	};
-
-	/** Loads an image and returns its dimensions */
-	const loadImageDimensions = (imageSrc: string) => {
-		return new Promise<{ width: number; height: number }>((resolve, reject) => {
-			const img = new Image();
-			img.onload = () => resolve({ width: img.width, height: img.height });
-			img.onerror = () => reject(new Error('Failed to load image'));
-			img.src = imageSrc;
-		});
-	};
-
 	/** Preprocesses image and updates preview state */
 	const prepareImageForOCR = async (imageSrc: string) => {
 		const preprocessed = await preprocessImageForOCR(imageSrc);
@@ -121,8 +105,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		originalImage: string,
 		allHashSets: ImageHashSet[],
 		onProgress: () => void
-	): Promise<{ name: string; value: string; confidence: number }[]> => {
-		const results: { name: string; value: string; confidence: number }[] = [];
+	): Promise<RecognitionResult[]> => {
+		const results: RecognitionResult[] = [];
 
 		for (const region of regions) {
 			if (isProcessingCancelled) break;
@@ -186,7 +170,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		regions: TextRegion[],
 		preprocessedImage: string,
 		onProgress: () => void
-	): Promise<{ name: string; value: string; confidence: number }[]> => {
+	): Promise<RecognitionResult[]> => {
 		const regionPromises = regions.map((region) =>
 			recogniseRegionText(scheduler, preprocessedImage, region).then((result) => {
 				onProgress();
@@ -207,8 +191,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		regions: TextRegion[],
 		preprocessedImage: string,
 		onProgress: () => void
-	): Promise<{ name: string; value: string; confidence: number }[]> => {
-		const results: { name: string; value: string; confidence: number }[] = [];
+	): Promise<RecognitionResult[]> => {
+		const results: RecognitionResult[] = [];
 
 		// Set parameters for this charSet group
 		const params: Partial<Tesseract.WorkerParams> = {
@@ -241,20 +225,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		return results;
 	};
 
-	/** Separates regions into large groups (for scheduler) and small groups (for worker) */
-	const partitionRegionGroups = (charSetGroups: Map<string, TextRegion[]>) => {
-		const entries = [...charSetGroups.entries()].map(([charSet, regions]) => ({
-			charSet,
-			regions,
-		}));
-
-		const { large = [], small = [] } = Object.groupBy(entries, ({ regions }) =>
-			regions.length > SCHEDULER_JOBS_MIN ? 'large' : 'small'
-		);
-
-		return { largeGroups: large, smallGroups: small };
-	};
-
 	/** Processes large region groups using schedulers */
 	const processLargeGroups = async (
 		largeGroups: { charSet: string; regions: TextRegion[] }[],
@@ -284,7 +254,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		preprocessedImage: string,
 		onProgress: () => void
 	) => {
-		const results: { name: string; value: string; confidence: number }[] = [];
+		const results: RecognitionResult[] = [];
 
 		if (smallGroups.length === 0 || isProcessingCancelled) return results;
 
@@ -302,21 +272,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		}
 
 		return results;
-	};
-
-	/** Formats recognition results into output format */
-	const formatResults = (
-		allResults: { name: string; value: string; confidence: number }[]
-	) => {
-		const ocrTextParts: string[] = [];
-		const regionResults = new Map<string, string>();
-
-		for (const result of allResults) {
-			ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
-			regionResults.set(result.name, result.value);
-		}
-
-		return { ocrTextParts, regionResults };
 	};
 
 	/** Start recognition of all regions */

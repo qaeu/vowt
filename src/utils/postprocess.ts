@@ -2,8 +2,36 @@
  * OCR post-processing utilities to extract structured game stats
  */
 
-import type { PlayerStatsNumberFields, PlayerStats, GameRecord } from '#types';
+import type {
+	PlayerStatsNumberFields,
+	PlayerStats,
+	GameRecord,
+	RecognitionResult,
+} from '#types';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
+
+/** Formatted OCR results */
+interface FormattedResults {
+	ocrTextParts: string[];
+	regionResults: Map<string, string>;
+}
+
+/**
+ * Formats recognition results into output format
+ * @param allResults - Array of recognition results from OCR and image hash processing
+ * @returns Object containing formatted text parts and region results map
+ */
+export const formatResults = (allResults: RecognitionResult[]): FormattedResults => {
+	const ocrTextParts: string[] = [];
+	const regionResults = new Map<string, string>();
+
+	for (const result of allResults) {
+		ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
+		regionResults.set(result.name, result.value);
+	}
+
+	return { ocrTextParts, regionResults };
+};
 
 /**
  * Extracts game stats from region-based OCR results

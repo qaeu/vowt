@@ -2,13 +2,16 @@
  * Image preprocessing utilities for OCR optimization
  */
 
-import type { TextRegion } from '#types';
+import type { TextRegion, PartitionGroup } from '#types';
 import { getActiveProfile } from '#utils/regionProfiles';
 
 const SKEW_ANGLE_DEFAULT = -14;
 const REGION_COLOUR_DEFAULT = '#ff0000';
 const REGION_COLOUR_ITALIC = '#4caf50';
 const REGION_COLOUR_IMAGE = '#3131da';
+
+/** Minimum number of jobs to warrant using a scheduler instead of a standalone worker */
+const SCHEDULER_JOBS_MIN = 3;
 
 /**
  * Applies skew correction to italic text to make it more readable
@@ -44,7 +47,7 @@ function unskewItalicText(
 	outputCanvas.width = imageData.width;
 	outputCanvas.height = imageData.height;
 
-	// Fill background with gray before transformation
+	// Fill background with grey before transformation
 	outputCtx.fillStyle = '#444444';
 	outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
@@ -200,3 +203,58 @@ function preprocessRegionForOCR(imageData: ImageData, region: TextRegion): Image
 
 	return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
+
+/**
+ * Groups OCR regions by their charSet value
+ * @param regions - Array of text regions to group
+ * @returns Map of charSet to regions with that charSet
+ */
+export const groupRegionsByCharSet = (
+	regions: TextRegion[]
+): Map<string, TextRegion[]> => {
+	const groups = new Map<string, TextRegion[]>();
+	for (const region of regions) {
+		const key = region.charSet || '';
+		const existing = groups.get(key) || [];
+		existing.push(region);
+		groups.set(key, existing);
+	}
+	return groups;
+};
+
+/**
+ * Loads an image and returns its dimensions
+ * @param imageSrc - Source URL or data URL of the image
+ * @returns Promise resolving to image width and height
+ */
+export const loadImageDimensions = (
+	imageSrc: string
+): Promise<{ width: number; height: number }> => {
+	return new Promise<{ width: number; height: number }>((resolve, reject) => {
+		const img = new Image();
+		img.onload = () => resolve({ width: img.width, height: img.height });
+		img.onerror = () => reject(new Error('Failed to load image'));
+		img.src = imageSrc;
+	});
+};
+
+/**
+ * Separates regions into large groups (for scheduler) and small groups (for worker)
+ * Large groups have more than SCHEDULER_JOBS_MIN regions and benefit from parallel processing
+ * @param charSetGroups - Map of charSet to regions
+ * @returns Object containing largeGroups and smallGroups arrays
+ */
+export const partitionRegionGroups = (
+	charSetGroups: Map<string, TextRegion[]>
+): { smallGroups: PartitionGroup[]; largeGroups: PartitionGroup[] } => {
+	const entries = [...charSetGroups.entries()].map(([charSet, regions]) => ({
+		charSet,
+		regions,
+	}));
+
+	const { large = [], small = [] } = Object.groupBy(entries, ({ regions }) =>
+		regions.length > SCHEDULER_JOBS_MIN ? 'large' : 'small'
+	);
+
+	return { largeGroups: large, smallGroups: small };
+};
