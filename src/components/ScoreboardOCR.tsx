@@ -6,7 +6,7 @@ import {
 	Show,
 	type Component,
 } from 'solid-js';
-import Tesseract from 'tesseract.js';
+import Tesseract, { createScheduler, createWorker } from 'tesseract.js';
 
 import type {
 	PlayerStats,
@@ -23,6 +23,8 @@ import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
 import '#styles/ScoreboardOCR';
+
+const WORKER_COUNT = 4;
 
 interface ScoreboardOCRProps {
 	uploadedImage?: string | null;
@@ -43,14 +45,14 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [currentImage, setCurrentImage] = createSignal<string>();
 
 	let recordId: string;
-	let activeWorker: Tesseract.Worker | null = null;
+	let activeScheduler: Tesseract.Scheduler | null = null;
 	let isProcessingCancelled = false;
 
-	onCleanup(() => {
+	onCleanup(async () => {
 		isProcessingCancelled = true;
-		if (activeWorker) {
-			activeWorker.terminate();
-			activeWorker = null;
+		if (activeScheduler) {
+			await activeScheduler.terminate();
+			activeScheduler = null;
 		}
 	});
 
@@ -88,10 +90,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		return preprocessed;
 	};
 
-	/** Processes a single region using either image hash matching or OCR */
+	/** Processes a single region using either image hash matching or OCR via scheduler */
 	const processRegion = async (
 		region: TextRegion,
-		worker: Tesseract.Worker,
+		scheduler: Tesseract.Scheduler,
 		preprocessedImage: string,
 		originalImage: string,
 		allHashSets: ImageHashSet[]
@@ -111,8 +113,15 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			return { name: region.name, value: result.name, confidence: result.confidence };
 		}
 
-		// Use OCR for text regions
-		const result = await recogniseRegionText(worker, preprocessedImage, region);
+		// Use OCR for text regions via scheduler
+		const result = await scheduler.addJob('recognize', preprocessedImage, {
+			rectangle: {
+				left: region.x,
+				top: region.y,
+				width: region.width,
+				height: region.height,
+			},
+		});
 		return {
 			name: region.name,
 			value: result.data.text.trim(),
@@ -120,7 +129,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		};
 	};
 
-	/** Runs OCR on all regions and returns results */
+	/** Runs OCR on all regions using scheduler with multiple workers */
 	const runRegionOCR = async (
 		regions: TextRegion[],
 		preprocessedImage: string,
@@ -129,34 +138,51 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	): Promise<{ ocrTextParts: string[]; regionResults: Map<string, string> } | null> => {
 		if (isProcessingCancelled) return null;
 
-		const worker = await Tesseract.createWorker('eng', 1);
-		activeWorker = worker;
-
-		const ocrTextParts: string[] = [];
-		const regionResults = new Map<string, string>();
+		// Create scheduler and workers
+		const scheduler = createScheduler();
+		activeScheduler = scheduler;
 
 		try {
-			for (let i = 0; i < regions.length; i++) {
-				if (isProcessingCancelled) return null;
+			// Create workers in parallel
+			const workerPromises = Array(WORKER_COUNT)
+				.fill(null)
+				.map(async () => {
+					const worker = await createWorker('eng');
+					await worker.setParameters({
+						tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
+					});
+					scheduler.addWorker(worker);
+				});
+			await Promise.all(workerPromises);
 
-				setProgress(Math.round((i / regions.length) * 100));
+			if (isProcessingCancelled) return null;
 
-				const result = await processRegion(
-					regions[i],
-					worker,
-					preprocessedImage,
-					originalImage,
-					allHashSets
-				);
+			// Process all regions in parallel using scheduler
+			const regionPromises = regions.map((region, i) =>
+				processRegion(region, scheduler, preprocessedImage, originalImage, allHashSets).then(
+					(result) => {
+						setProgress(Math.round(((i + 1) / regions.length) * 100));
+						return result;
+					}
+				)
+			);
 
+			const results = await Promise.all(regionPromises);
+
+			if (isProcessingCancelled) return null;
+
+			const ocrTextParts: string[] = [];
+			const regionResults = new Map<string, string>();
+
+			for (const result of results) {
 				ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
 				regionResults.set(result.name, result.value);
 			}
 
 			return { ocrTextParts, regionResults };
 		} finally {
-			await worker.terminate();
-			activeWorker = null;
+			await scheduler.terminate();
+			activeScheduler = null;
 		}
 	};
 
@@ -201,29 +227,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		}
 	};
 
-	const recogniseRegionText = async (
-		worker: Tesseract.Worker,
-		image: string,
-		region: TextRegion
-	) => {
-		await worker.setParameters({
-			tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
-			tessedit_char_whitelist: region.charSet,
-		});
-
-		// Recognize text in this region
-		const result = await worker.recognize(image, {
-			rectangle: {
-				left: region.x,
-				top: region.y,
-				width: region.width,
-				height: region.height,
-			},
-		});
-
-		return result;
-	};
-
 	/**
 	 * Recognises an image region by extracting it and comparing against known hashes
 	 * @param image - Source image URL (not preprocessed)
@@ -243,7 +246,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			img.onload = () => {
 				const canvas = document.createElement('canvas');
-				const ctx = canvas.getContext('2d');
+				const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 				if (!ctx) {
 					resolve({ name: '', confidence: 0 });

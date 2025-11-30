@@ -23,21 +23,41 @@ beforeEach(() => {
 	(globalThis as unknown as Record<string, typeof MockImage>).Image = MockImage;
 });
 
-// Mock tesseract.js
-vi.mock('tesseract.js', () => ({
-	default: {
-		createWorker: vi.fn().mockResolvedValue({
-			recognize: vi.fn().mockResolvedValue({
-				data: {
-					text: 'VICTORY',
-				},
-			}),
-			terminate: vi.fn().mockResolvedValue(undefined),
-			setParameters: vi.fn().mockResolvedValue(undefined),
+// Mock tesseract.js with scheduler support
+vi.mock('tesseract.js', () => {
+	const mockAddJob = vi.fn().mockResolvedValue({
+		data: {
+			text: 'VICTORY',
+			confidence: 95,
+		},
+	});
+	const mockSchedulerTerminate = vi.fn().mockResolvedValue(undefined);
+	const mockAddWorker = vi.fn();
+	const mockCreateScheduler = vi.fn().mockReturnValue({
+		addWorker: mockAddWorker,
+		addJob: mockAddJob,
+		terminate: mockSchedulerTerminate,
+	});
+	const mockWorker = {
+		recognize: vi.fn().mockResolvedValue({
+			data: {
+				text: 'VICTORY',
+				confidence: 95,
+			},
 		}),
-		PSM: { SINGLE_WORD: 'word' },
-	},
-}));
+		terminate: vi.fn().mockResolvedValue(undefined),
+		setParameters: vi.fn().mockResolvedValue(undefined),
+	};
+	const mockCreateWorker = vi.fn().mockResolvedValue(mockWorker);
+
+	return {
+		default: {
+			PSM: { SINGLE_LINE: 7 },
+		},
+		createScheduler: mockCreateScheduler,
+		createWorker: mockCreateWorker,
+	};
+});
 
 // Mock EditableGameData component
 vi.mock('#c/EditableGameData', () => ({

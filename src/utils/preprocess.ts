@@ -21,7 +21,7 @@ function unskewItalicText(
 	skewAngle: number = SKEW_ANGLE_DEFAULT
 ): ImageData {
 	const canvas = document.createElement('canvas');
-	const ctx = canvas.getContext('2d');
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 	if (!ctx) {
 		return imageData;
@@ -35,7 +35,7 @@ function unskewItalicText(
 
 	// Create a new canvas for the transformed image
 	const outputCanvas = document.createElement('canvas');
-	const outputCtx = outputCanvas.getContext('2d');
+	const outputCtx = outputCanvas.getContext('2d', { willReadFrequently: true });
 
 	if (!outputCtx) {
 		return imageData;
@@ -67,7 +67,7 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 
 		img.onload = () => {
 			const canvas = document.createElement('canvas');
-			const ctx = canvas.getContext('2d');
+			const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 			if (!ctx) {
 				reject(new Error('Failed to get canvas context'));
@@ -179,7 +179,7 @@ export async function drawRegionsOnImage(
  */
 function preprocessRegionForOCR(imageData: ImageData, region: TextRegion): ImageData {
 	const canvas = document.createElement('canvas');
-	const ctx = canvas.getContext('2d');
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 	if (!ctx || !region.isItalic) {
 		return imageData;

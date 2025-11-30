@@ -63,7 +63,7 @@ export function dhash(
 	hashSize: number = DEFAULT_HASH_SIZE
 ): string {
 	const canvas = document.createElement('canvas');
-	const ctx = canvas.getContext('2d');
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 	if (!ctx) {
 		return '0'.repeat(hashSize ** 2 / 4);
@@ -78,7 +78,7 @@ export function dhash(
 
 	// Create temporary canvas with original image
 	const tempCanvas = document.createElement('canvas');
-	const tempCtx = tempCanvas.getContext('2d');
+	const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
 
 	if (!tempCtx) {
 		return '0'.repeat(hashSize ** 2 / 4);
