@@ -1,4 +1,11 @@
-import { createSignal, onMount, createEffect, Show, type Component } from 'solid-js';
+import {
+	createSignal,
+	onMount,
+	onCleanup,
+	createEffect,
+	Show,
+	type Component,
+} from 'solid-js';
 import Tesseract from 'tesseract.js';
 
 import type {
@@ -36,6 +43,16 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [currentImage, setCurrentImage] = createSignal<string>();
 
 	let recordId: string;
+	let activeWorker: Tesseract.Worker | null = null;
+	let isProcessingCancelled = false;
+
+	onCleanup(() => {
+		isProcessingCancelled = true;
+		if (activeWorker) {
+			activeWorker.terminate();
+			activeWorker = null;
+		}
+	});
 
 	onMount(async () => {
 		if (props.uploadedImage) {
@@ -55,6 +72,10 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 	const processImage = async (imagePath?: string) => {
 		const imageToProcess = (imagePath || currentImage()) as string;
+
+		// Reset cancellation flag for new processing run
+		isProcessingCancelled = false;
+
 		try {
 			setIsProcessing(true);
 			setError('');
@@ -93,9 +114,20 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			// Merge profile-defined and default hash sets, profile sets take precedence
 			const allHashSets = [...getActiveProfileHashSets(), ...DEFAULT_HASH_SETS];
+
+			// Check if cancelled before creating worker
+			if (isProcessingCancelled) return;
+
 			const worker = await Tesseract.createWorker('eng', 1);
+			activeWorker = worker;
 
 			for (let i = 0; i < regionCount; i++) {
+				// Check if cancelled during processing loop
+				if (isProcessingCancelled) {
+					await worker.terminate();
+					activeWorker = null;
+					return;
+				}
 				const region = scoreboardRegions[i];
 				setProgress(Math.round((i / regionCount) * 100));
 
@@ -128,7 +160,12 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 					regionResults.set(region.name, text);
 				}
 			}
+
 			await worker.terminate();
+			activeWorker = null;
+
+			// Check if cancelled before updating state
+			if (isProcessingCancelled) return;
 
 			// Combine all OCR results for display
 			setRawOcrText(ocrTextParts.join('\n'));
