@@ -8,6 +8,7 @@ import {
 	Show,
 	type Component,
 	type OnEffectFunction,
+	onCleanup,
 } from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
@@ -83,6 +84,9 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 	};
 
 	let justSavedTimeoutId: number;
+	onCleanup(() => {
+		clearTimeout(justSavedTimeoutId);
+	});
 	createEffect(
 		on(
 			[
@@ -227,9 +231,6 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 					</div>
 				}
 			>
-				{(() => {
-					return null;
-				})()}
 				<div class="table-wrapper">
 					<table>
 						<thead>

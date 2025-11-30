@@ -1,4 +1,4 @@
-import { createSignal, Index, Show, type Component } from 'solid-js';
+import { createSignal, Index, onCleanup, Show, type Component } from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import RecordFieldInput from '#c/RecordFieldInput';
@@ -138,6 +138,11 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		Map<string, { isModified: () => boolean; reset: () => void }>
 	>(new Map());
 
+	let justSavedTimeoutId: number;
+	onCleanup(() => {
+		clearTimeout(justSavedTimeoutId);
+	});
+
 	const registerField = (
 		fieldId: string,
 		isModifiedGetter: () => boolean,
@@ -178,7 +183,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		setJustSavedFieldIds(modifiedFieldIds);
 
 		// Clear the saved state after animation completes
-		setTimeout(() => {
+		clearTimeout(justSavedTimeoutId);
+		justSavedTimeoutId = setTimeout(() => {
 			setJustSavedFieldIds(new Set<string>());
 		}, 2000);
 	};
