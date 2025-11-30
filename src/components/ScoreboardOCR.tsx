@@ -241,6 +241,84 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		return results;
 	};
 
+	/** Separates regions into large groups (for scheduler) and small groups (for worker) */
+	const partitionRegionGroups = (charSetGroups: Map<string, TextRegion[]>) => {
+		const entries = [...charSetGroups.entries()].map(([charSet, regions]) => ({
+			charSet,
+			regions,
+		}));
+
+		const { large = [], small = [] } = Object.groupBy(entries, ({ regions }) =>
+			regions.length > SCHEDULER_JOBS_MIN ? 'large' : 'small'
+		);
+
+		return { largeGroups: large, smallGroups: small };
+	};
+
+	/** Processes large region groups using schedulers */
+	const processLargeGroups = async (
+		largeGroups: { charSet: string; regions: TextRegion[] }[],
+		preprocessedImage: string,
+		onProgress: () => void
+	) => {
+		const schedulerPromises = largeGroups.map(({ charSet }) =>
+			createSchedulerForCharSet(charSet)
+		);
+		const schedulers = await Promise.all(schedulerPromises);
+
+		if (isProcessingCancelled) return [];
+
+		return schedulers.map((scheduler, i) =>
+			processRegionsWithScheduler(
+				scheduler,
+				largeGroups[i].regions,
+				preprocessedImage,
+				onProgress
+			)
+		);
+	};
+
+	/** Processes small region groups sequentially with a reusable worker */
+	const processSmallGroups = async (
+		smallGroups: { charSet: string; regions: TextRegion[] }[],
+		preprocessedImage: string,
+		onProgress: () => void
+	) => {
+		const results: { name: string; value: string; confidence: number }[] = [];
+
+		if (smallGroups.length === 0 || isProcessingCancelled) return results;
+
+		const standaloneWorker = await createStandaloneWorker();
+		for (const { charSet, regions: groupRegions } of smallGroups) {
+			if (isProcessingCancelled) break;
+			const groupResults = await processRegionsWithWorker(
+				standaloneWorker,
+				charSet,
+				groupRegions,
+				preprocessedImage,
+				onProgress
+			);
+			results.push(...groupResults);
+		}
+
+		return results;
+	};
+
+	/** Formats recognition results into output format */
+	const formatResults = (
+		allResults: { name: string; value: string; confidence: number }[]
+	) => {
+		const ocrTextParts: string[] = [];
+		const regionResults = new Map<string, string>();
+
+		for (const result of allResults) {
+			ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
+			regionResults.set(result.name, result.value);
+		}
+
+		return { ocrTextParts, regionResults };
+	};
+
 	/** Start recognition of all regions */
 	const runRegionsProcessing = async (
 		regions: TextRegion[],
@@ -256,71 +334,37 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				({ imgHashSet }) =>
 					imgHashSet && imgHashSet.length > 0 ? 'imageHashRegions' : 'ocrRegions'
 			);
-			const charSetGroups = groupRegionsByCharSet(ocrRegions);
 
 			// Setup progress tracking
 			let completedJobs = 0;
-			const totalJobs = regions.length;
 			const onProgress = () => {
 				completedJobs++;
-				setProgress(Math.round((completedJobs / totalJobs) * 100));
+				setProgress(Math.round((completedJobs / regions.length) * 100));
 			};
 
-			// Start image hash processing in parallel
+			// Partition OCR regions by size
+			const charSetGroups = groupRegionsByCharSet(ocrRegions);
+			const { largeGroups, smallGroups } = partitionRegionGroups(charSetGroups);
+
+			// Start all parallel processing
 			const imageHashResultsPromise = processImageHashRegions(
 				imageHashRegions,
 				originalImage,
 				allHashSets,
 				onProgress
 			);
-
-			// Separate large groups (scheduler) from small groups (standalone worker)
-			const largeGroups: { charSet: string; regions: TextRegion[] }[] = [];
-			const smallGroups: { charSet: string; regions: TextRegion[] }[] = [];
-
-			for (const [charSet, groupRegions] of charSetGroups) {
-				if (groupRegions.length > SCHEDULER_JOBS_MIN) {
-					largeGroups.push({ charSet, regions: groupRegions });
-				} else {
-					smallGroups.push({ charSet, regions: groupRegions });
-				}
-			}
-
-			// Create all schedulers in parallel
-			const schedulerPromises = largeGroups.map(({ charSet }) =>
-				createSchedulerForCharSet(charSet)
+			const schedulerResultPromises = await processLargeGroups(
+				largeGroups,
+				preprocessedImage,
+				onProgress
 			);
-			const schedulers = await Promise.all(schedulerPromises);
-
-			if (isProcessingCancelled) return null;
-
-			// Start all scheduler-based OCR processing in parallel
-			const schedulerResultPromises = schedulers.map((scheduler, i) =>
-				processRegionsWithScheduler(
-					scheduler,
-					largeGroups[i].regions,
-					preprocessedImage,
-					onProgress
-				)
+			const smallGroupResults = await processSmallGroups(
+				smallGroups,
+				preprocessedImage,
+				onProgress
 			);
 
-			// Process small groups sequentially with a single reusable worker
-			const smallGroupResults: { name: string; value: string; confidence: number }[] = [];
-			if (smallGroups.length > 0 && !isProcessingCancelled) {
-				const standaloneWorker = await createStandaloneWorker();
-				for (const { charSet, regions: groupRegions } of smallGroups) {
-					if (isProcessingCancelled) break;
-					const results = await processRegionsWithWorker(
-						standaloneWorker,
-						charSet,
-						groupRegions,
-						preprocessedImage,
-						onProgress
-					);
-					smallGroupResults.push(...results);
-				}
-			}
-
+			// Await parallel results
 			const [imageHashResults, ...schedulerResults] = await Promise.all([
 				imageHashResultsPromise,
 				...schedulerResultPromises,
@@ -334,15 +378,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				...smallGroupResults,
 			];
 
-			const ocrTextParts: string[] = [];
-			const regionResults = new Map<string, string>();
-
-			for (const result of allResults) {
-				ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
-				regionResults.set(result.name, result.value);
-			}
-
-			return { ocrTextParts, regionResults };
+			return formatResults(allResults);
 		} finally {
 			await terminateAllWorkersAndSchedulers();
 		}
