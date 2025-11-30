@@ -70,108 +70,127 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		}
 	});
 
+	/** Loads an image and returns its dimensions */
+	const loadImageDimensions = (imageSrc: string) => {
+		return new Promise<{ width: number; height: number }>((resolve, reject) => {
+			const img = new Image();
+			img.onload = () => resolve({ width: img.width, height: img.height });
+			img.onerror = () => reject(new Error('Failed to load image'));
+			img.src = imageSrc;
+		});
+	};
+
+	/** Preprocesses image and updates preview state */
+	const prepareImageForOCR = async (imageSrc: string) => {
+		const preprocessed = await preprocessImageForOCR(imageSrc);
+		const preprocessedPreview = await drawRegionsOnImage(preprocessed, imageSrc);
+		setPreprocessedImagePreview(preprocessedPreview);
+		return preprocessed;
+	};
+
+	/** Processes a single region using either image hash matching or OCR */
+	const processRegion = async (
+		region: TextRegion,
+		worker: Tesseract.Worker,
+		preprocessedImage: string,
+		originalImage: string,
+		allHashSets: ImageHashSet[]
+	): Promise<{ name: string; value: string; confidence: number }> => {
+		// Use image recognition for regions with imgHash
+		if (region.imgHashSet && region.imgHashSet.length > 0) {
+			const hashSet = allHashSets.find((hs) => hs.id === region.imgHashSet);
+
+			if (!hashSet) {
+				console.warn(
+					`Hash set '${region.imgHashSet}' not found for region '${region.name}'`
+				);
+				return { name: region.name, value: '', confidence: 0 };
+			}
+
+			const result = await recogniseRegionImage(originalImage, region, hashSet);
+			return { name: region.name, value: result.name, confidence: result.confidence };
+		}
+
+		// Use OCR for text regions
+		const result = await recogniseRegionText(worker, preprocessedImage, region);
+		return {
+			name: region.name,
+			value: result.data.text.trim(),
+			confidence: result.data.confidence,
+		};
+	};
+
+	/** Runs OCR on all regions and returns results */
+	const runRegionOCR = async (
+		regions: TextRegion[],
+		preprocessedImage: string,
+		originalImage: string,
+		allHashSets: ImageHashSet[]
+	): Promise<{ ocrTextParts: string[]; regionResults: Map<string, string> } | null> => {
+		if (isProcessingCancelled) return null;
+
+		const worker = await Tesseract.createWorker('eng', 1);
+		activeWorker = worker;
+
+		const ocrTextParts: string[] = [];
+		const regionResults = new Map<string, string>();
+
+		try {
+			for (let i = 0; i < regions.length; i++) {
+				if (isProcessingCancelled) return null;
+
+				setProgress(Math.round((i / regions.length) * 100));
+
+				const result = await processRegion(
+					regions[i],
+					worker,
+					preprocessedImage,
+					originalImage,
+					allHashSets
+				);
+
+				ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
+				regionResults.set(result.name, result.value);
+			}
+
+			return { ocrTextParts, regionResults };
+		} finally {
+			await worker.terminate();
+			activeWorker = null;
+		}
+	};
+
+	/** Main image processing pipeline */
 	const processImage = async (imagePath?: string) => {
 		const imageToProcess = (imagePath || currentImage()) as string;
-
-		// Reset cancellation flag for new processing run
 		isProcessingCancelled = false;
 
 		try {
 			setIsProcessing(true);
 			setError('');
 
-			const imageDimensions = await new Promise<{
-				width: number;
-				height: number;
-			}>((resolve, reject) => {
-				const img = new Image();
-				img.onload = () => resolve({ width: img.width, height: img.height });
-				img.onerror = () => reject(new Error('Failed to load image'));
-				img.src = imageToProcess;
-			});
+			const { width, height } = await loadImageDimensions(imageToProcess);
+			const preprocessed = await prepareImageForOCR(imageToProcess);
 
-			// Step 1: Preprocess the full image
-			const preprocessed = await preprocessImageForOCR(imageToProcess);
-
-			// Preview preprocessed image with regions
-			const preprocessedPreview = await drawRegionsOnImage(preprocessed, imageToProcess);
-			setPreprocessedImagePreview(preprocessedPreview);
-
-			// Step 2: Perform region-based OCR using Tesseract.js
-			const ocrTextParts: string[] = [];
-			const regionResults = new Map<string, string>();
-
-			const scoreboardRegions = getActiveProfile(
-				imageDimensions.width,
-				imageDimensions.height
-			);
-			const regionCount = scoreboardRegions.length;
-
-			if (!scoreboardRegions || regionCount === 0) {
+			const scoreboardRegions = getActiveProfile(width, height);
+			if (!scoreboardRegions || scoreboardRegions.length === 0) {
 				setError('No scoreboard regions defined in the active profile.');
 				return;
 			}
 
-			// Merge profile-defined and default hash sets, profile sets take precedence
 			const allHashSets = [...getActiveProfileHashSets(), ...DEFAULT_HASH_SETS];
+			const ocrResults = await runRegionOCR(
+				scoreboardRegions,
+				preprocessed,
+				imageToProcess,
+				allHashSets
+			);
 
-			// Check if cancelled before creating worker
-			if (isProcessingCancelled) return;
+			if (!ocrResults || isProcessingCancelled) return;
 
-			const worker = await Tesseract.createWorker('eng', 1);
-			activeWorker = worker;
+			setRawOcrText(ocrResults.ocrTextParts.join('\n'));
 
-			for (let i = 0; i < regionCount; i++) {
-				// Check if cancelled during processing loop
-				if (isProcessingCancelled) {
-					await worker.terminate();
-					activeWorker = null;
-					return;
-				}
-				const region = scoreboardRegions[i];
-				setProgress(Math.round((i / regionCount) * 100));
-
-				// Use image recognition for regions with imgHash, OCR for text regions
-				if (region.imgHashSet && region.imgHashSet.length > 0) {
-					const hashSet = allHashSets.find((hs) => hs.id === region.imgHashSet);
-
-					if (!hashSet) {
-						console.warn(
-							`Hash set '${region.imgHashSet}' not found for region '${region.name}'`
-						);
-						regionResults.set(region.name, '');
-						continue;
-					}
-
-					const result = await recogniseRegionImage(imageToProcess, region, hashSet);
-
-					const name = result.name;
-					const confidence = result.confidence;
-
-					ocrTextParts.push(`${region.name} (${confidence}%): ${name}`);
-					regionResults.set(region.name, name);
-				} else {
-					const result = await recogniseRegionText(worker, preprocessed, region);
-
-					const text = result.data.text.trim();
-					const confidence = result.data.confidence;
-
-					ocrTextParts.push(`${region.name} (${confidence}%): ${text}`);
-					regionResults.set(region.name, text);
-				}
-			}
-
-			await worker.terminate();
-			activeWorker = null;
-
-			// Check if cancelled before updating state
-			if (isProcessingCancelled) return;
-
-			// Combine all OCR results for display
-			setRawOcrText(ocrTextParts.join('\n'));
-
-			// Step 3: Extract game stats from region results
-			const stats = extractGameStats(regionResults);
+			const stats = extractGameStats(ocrResults.regionResults);
 			setExtractedStats(stats);
 			recordId = saveGameRecord(stats.players, stats.matchInfo);
 		} catch (err) {
