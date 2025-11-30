@@ -13,22 +13,36 @@ import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
 export function extractGameStats(
 	regionResults: Map<string, string>
 ): Pick<GameRecord, 'players' | 'matchInfo'> {
+	// Extract players
 	const players: GameRecord['players'] = [];
 	players.push(...extractTeamPlayers('blue', regionResults));
 	players.push(...extractTeamPlayers('red', regionResults));
 
 	// Extract match info
-	const finalRaw = regionResults.get('final_score')?.trim()?.toUpperCase() || ': VS ';
-	const [beforeVS, afterVS] = finalRaw.split('VS');
+	const finalScore = { blue: '', red: '' };
+	const finalScoreRaw = regionResults.get('final_score');
+	if (finalScoreRaw && finalScoreRaw.includes('VS')) {
+		const finalFormatted = finalScoreRaw.trim().toUpperCase();
+		const [beforeVS, afterVS] = finalFormatted.split('VS');
+		[finalScore.blue, finalScore.red] = [beforeVS.split(':')[1].trim(), afterVS.trim()];
+	}
+
+	const infoline = { mode: '', map: '' };
+	const ingameInfoLine = regionResults.get('ingame_infoline');
+	if (ingameInfoLine && ingameInfoLine.includes('|')) {
+		const infoParts = ingameInfoLine.split(/[|-]/).map((part) => part.trim());
+		[infoline.mode, , infoline.map] = infoParts;
+	}
+
+	const gameMode =
+		infoline.mode || regionResults.get('game_mode')?.split(':')[1]?.trim() || '';
 
 	const matchInfo: GameRecord['matchInfo'] = {
 		result: regionResults.get('result')?.trim()?.toUpperCase() || '',
-		final_score: {
-			blue: beforeVS.split(':')[1].trim(),
-			red: afterVS.trim(),
-		},
+		final_score: finalScore,
 		date: regionResults.get('date')?.split('DATE:')[1]?.trim() || '',
-		game_mode: regionResults.get('game_mode')?.split(':')[1]?.trim() || '',
+		game_mode: gameMode,
+		map: infoline.map,
 		game_length: regionResults.get('game_length')?.split('LENGTH:')[1]?.trim() || '',
 	};
 
@@ -49,6 +63,7 @@ function extractTeamPlayers(
 		}
 
 		const player: PlayerStats = {
+			hero: ocrResults.get(`${team}_player${i}_hero`) || '',
 			name: ocrResults.get(`${team}_player${i}_name`)?.trim() || '',
 			team,
 			...(numberStats as PlayerStatsNumberFields),

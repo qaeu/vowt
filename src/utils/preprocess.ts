@@ -5,7 +5,10 @@
 import type { TextRegion } from '#types';
 import { getActiveProfile } from '#utils/regionProfiles';
 
-const DEFAULT_SKEW_ANGLE = -14;
+const SKEW_ANGLE_DEFAULT = -14;
+const REGION_COLOUR_DEFAULT = '#ff0000';
+const REGION_COLOUR_ITALIC = '#4caf50';
+const REGION_COLOUR_IMAGE = '#3131da';
 
 /**
  * Applies skew correction to italic text to make it more readable
@@ -15,7 +18,7 @@ const DEFAULT_SKEW_ANGLE = -14;
  */
 function unskewItalicText(
 	imageData: ImageData,
-	skewAngle: number = DEFAULT_SKEW_ANGLE
+	skewAngle: number = SKEW_ANGLE_DEFAULT
 ): ImageData {
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
@@ -140,10 +143,12 @@ export async function drawRegionsOnImage(
 
 				const regions = getActiveProfile(img.width, img.height);
 				for (const region of regions) {
-					if (region.isItalic) {
-						ctx.strokeStyle = '#4caf50';
+					if (region.imgHashSet && region.imgHashSet.length > 0) {
+						ctx.strokeStyle = REGION_COLOUR_IMAGE;
+					} else if (region.isItalic) {
+						ctx.strokeStyle = REGION_COLOUR_ITALIC;
 					} else {
-						ctx.strokeStyle = '#ff0000';
+						ctx.strokeStyle = REGION_COLOUR_DEFAULT;
 					}
 					ctx.strokeRect(region.x, region.y, region.width, region.height);
 				}

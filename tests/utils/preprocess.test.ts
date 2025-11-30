@@ -4,7 +4,7 @@ import { preprocessImageForOCR, drawRegionsOnImage } from '#utils/preprocess';
 
 // Mock getActiveProfile to return controlled test regions
 vi.mock('#utils/regionProfiles', () => ({
-	getActiveProfile: vi.fn(() => {
+getActiveProfile: vi.fn(() => {
 		// Return test regions
 		const baseRegions: TextRegion[] = [
 			{
@@ -34,10 +34,10 @@ vi.mock('#utils/regionProfiles', () => ({
 const mockCanvasContext = {
 	drawImage: vi.fn(),
 	getImageData: vi.fn(() => ({
-		data: new Uint8ClampedArray(100 * 50 * 4),
-		width: 100,
-		height: 50,
-	})),
+data: new Uint8ClampedArray(100 * 50 * 4),
+width: 100,
+height: 50,
+})),
 	putImageData: vi.fn(),
 	fillRect: vi.fn(),
 	strokeRect: vi.fn(),
@@ -110,8 +110,8 @@ describe('preprocess', () => {
 			});
 
 			await expect(preprocessImageForOCR('invalid-url')).rejects.toThrow(
-				'Failed to load image'
-			);
+'Failed to load image'
+);
 		});
 
 		it('should call getActiveProfile with image dimensions', async () => {
@@ -153,8 +153,8 @@ describe('preprocess', () => {
 			mockCanvas.getContext.mockReturnValueOnce(null as never);
 
 			await expect(preprocessImageForOCR('test-image.png')).rejects.toThrow(
-				'Failed to get canvas context'
-			);
+'Failed to get canvas context'
+);
 		});
 
 		it('should process regions from active profile', async () => {
@@ -223,8 +223,8 @@ describe('preprocess', () => {
 			});
 
 			await expect(drawRegionsOnImage('invalid-url', 'source.png')).rejects.toThrow(
-				'Failed to load image'
-			);
+'Failed to load image'
+);
 		});
 
 		it('should reject when source image fails to load', async () => {
@@ -256,9 +256,9 @@ describe('preprocess', () => {
 				return img as unknown as HTMLImageElement;
 			});
 
-			await expect(drawRegionsOnImage('preprocessed.png', 'invalid-url')).rejects.toThrow(
-				'Failed to load source image'
-			);
+			await expect(
+drawRegionsOnImage('preprocessed.png', 'invalid-url')
+).rejects.toThrow('Failed to load source image');
 		});
 
 		it('should call getActiveProfile with image dimensions', async () => {

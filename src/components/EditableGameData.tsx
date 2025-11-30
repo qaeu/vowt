@@ -1,4 +1,4 @@
-import { createSignal, Index, Show, type Component } from 'solid-js';
+import { createSignal, Index, onCleanup, Show, type Component } from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import RecordFieldInput from '#c/RecordFieldInput';
@@ -23,7 +23,7 @@ interface TeamDataTableProps {
 	) => void;
 }
 
-const TeamDataTableProps: Component<TeamDataTableProps> = (props) => {
+const TeamDataTable: Component<TeamDataTableProps> = (props) => {
 	return (
 		<table>
 			<thead>
@@ -72,8 +72,8 @@ const TeamDataTableProps: Component<TeamDataTableProps> = (props) => {
 										<RecordFieldInput
 											staticId={`${props.team}-player-${index}-${numericField()}`}
 											initialValue={String(
-												props.players()[index]?.[numericField() as keyof PlayerStats] ??
-													''
+												props.players()[index]?.[numericField() as keyof PlayerStats]
+													?? ''
 											)}
 											baseline={() =>
 												String(
@@ -138,6 +138,11 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		Map<string, { isModified: () => boolean; reset: () => void }>
 	>(new Map());
 
+	let justSavedTimeoutId: number;
+	onCleanup(() => {
+		clearTimeout(justSavedTimeoutId);
+	});
+
 	const registerField = (
 		fieldId: string,
 		isModifiedGetter: () => boolean,
@@ -178,7 +183,8 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		setJustSavedFieldIds(modifiedFieldIds);
 
 		// Clear the saved state after animation completes
-		setTimeout(() => {
+		clearTimeout(justSavedTimeoutId);
+		justSavedTimeoutId = setTimeout(() => {
 			setJustSavedFieldIds(new Set<string>());
 		}, 2000);
 	};
@@ -342,7 +348,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 				<div class="team-section">
 					<h4 class="blue-team">Blue Team</h4>
 					<div class="table-wrapper">
-						<TeamDataTableProps
+						<TeamDataTable
 							players={() => editablePlayers().filter((player) => player.team === 'blue')}
 							savedPlayers={() =>
 								editablePlayers().filter((player) => player.team === 'blue')
@@ -358,7 +364,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 				<div class="team-section">
 					<h4 class="red-team">Red Team</h4>
 					<div class="table-wrapper">
-						<TeamDataTableProps
+						<TeamDataTable
 							players={() => editablePlayers().filter((player) => player.team === 'red')}
 							savedPlayers={() =>
 								editablePlayers().filter((player) => player.team === 'red')

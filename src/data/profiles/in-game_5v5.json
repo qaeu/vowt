@@ -6,6 +6,14 @@
 		"description": "In-game Tab scoreboard screen (5v5)",
 		"regions": [
 			{
+				"name": "blue_player1_hero",
+				"x": 365,
+				"y": 282,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
+			},
+			{
 				"name": "blue_player1_name",
 				"x": 510,
 				"y": 290,
@@ -61,6 +69,14 @@
 				"height": 60,
 				"charSet": "0123456789,",
 				"y": 290
+			},
+			{
+				"name": "blue_player2_hero",
+				"x": 365,
+				"y": 362,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "blue_player2_name",
@@ -120,6 +136,14 @@
 				"y": 370
 			},
 			{
+				"name": "blue_player3_hero",
+				"x": 365,
+				"y": 442,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
+			},
+			{
 				"name": "blue_player3_name",
 				"x": 510,
 				"y": 450,
@@ -175,6 +199,14 @@
 				"height": 60,
 				"charSet": "0123456789,",
 				"y": 450
+			},
+			{
+				"name": "blue_player4_hero",
+				"x": 365,
+				"y": 522,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "blue_player4_name",
@@ -234,6 +266,14 @@
 				"y": 530
 			},
 			{
+				"name": "blue_player5_hero",
+				"x": 365,
+				"y": 602,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
+			},
+			{
 				"name": "blue_player5_name",
 				"x": 510,
 				"y": 610,
@@ -289,6 +329,14 @@
 				"height": 60,
 				"charSet": "0123456789,",
 				"y": 610
+			},
+			{
+				"name": "red_player1_hero",
+				"x": 365,
+				"y": 802,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player1_name",
@@ -348,6 +396,14 @@
 				"y": 810
 			},
 			{
+				"name": "red_player2_hero",
+				"x": 365,
+				"y": 882,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
+			},
+			{
 				"name": "red_player2_name",
 				"x": 450,
 				"y": 890,
@@ -403,6 +459,14 @@
 				"height": 60,
 				"charSet": "0123456789,",
 				"y": 890
+			},
+			{
+				"name": "red_player3_hero",
+				"x": 365,
+				"y": 962,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player3_name",
@@ -462,6 +526,14 @@
 				"y": 970
 			},
 			{
+				"name": "red_player4_hero",
+				"x": 365,
+				"y": 1042,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
+			},
+			{
 				"name": "red_player4_name",
 				"x": 450,
 				"y": 1050,
@@ -517,6 +589,14 @@
 				"height": 60,
 				"charSet": "0123456789,",
 				"y": 1050
+			},
+			{
+				"name": "red_player5_hero",
+				"x": 365,
+				"y": 1122,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player5_name",
@@ -584,8 +664,9 @@
 				"height": 40
 			}
 		],
-		"createdAt": "2025-11-25T00:00:00.000Z",
-		"updatedAt": "2025-11-25T00:00:00.000Z"
+		"hashSets": [],
+		"createdAt": "2025-11-28T00:00:00.000Z",
+		"updatedAt": "2025-11-28T00:00:00.000Z"
 	},
-	"exportedAt": "2025-11-25T00:00:00.000Z"
+	"exportedAt": "2025-11-28T00:00:00.000Z"
 }

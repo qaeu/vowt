@@ -3,7 +3,7 @@
  * This file contains all shared type definitions used across the application
  */
 
-type ExportFileType = 'vowt-game-records' | 'vowt-region-profile';
+type ExportFileType = 'vowt-game-records' | 'vowt-region-profile' | 'vowt-image-hashes';
 
 interface ExportFileBase {
 	type: ExportFileType;
@@ -49,7 +49,7 @@ export interface MatchInfo {
 	date: string;
 	game_mode: string;
 	game_length: string;
-	map?: string;
+	map: string;
 }
 
 export interface GameRecord {
@@ -75,11 +75,12 @@ export interface TextRegion {
 	height: number;
 	charSet?: string;
 	isItalic?: boolean;
+	imgHashSet?: string;
 }
 
 export type DrawnRegion = TextRegion & {
 	id: string;
-	color: string;
+	colour: string;
 };
 
 export interface ProfileDetails {
@@ -89,6 +90,7 @@ export interface ProfileDetails {
 
 export interface RegionProfile extends ProfileDetails {
 	regions: TextRegion[];
+	hashSets: ImageHashSet[];
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -96,4 +98,22 @@ export interface RegionProfile extends ProfileDetails {
 export interface ExportedProfile extends ExportFileBase {
 	type: 'vowt-region-profile';
 	profile: ExportedRecord<RegionProfile>;
+}
+
+export interface ImageHash {
+	name: string;
+	hash: string;
+}
+
+export interface ImageHashSet {
+	id: string;
+	description: string;
+	hashes: ImageHash[];
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface ExportedImageHashSet extends ExportFileBase {
+	type: 'vowt-image-hashes';
+	hashSet: ExportedRecord<ImageHashSet>;
 }

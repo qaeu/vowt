@@ -6,8 +6,16 @@
 		"description": "Post-game F1 match info screen (5v5)",
 		"regions": [
 			{
+				"name": "blue_player1_hero",
+				"x": 400,
+				"y": 335,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
+			},
+			{
 				"name": "blue_player1_name",
-				"x": 480,
+				"x": 490,
 				"y": 340,
 				"width": 300,
 				"height": 60,
@@ -25,46 +33,54 @@
 			{
 				"name": "blue_player1_a",
 				"x": 907,
+				"y": 340,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 340
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player1_d",
 				"x": 974,
+				"y": 340,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 340
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player1_dmg",
 				"x": 1051,
+				"y": 340,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 340
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player1_h",
 				"x": 1179,
+				"y": 340,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 340
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player1_mit",
 				"x": 1307,
+				"y": 340,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 340
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "blue_player2_hero",
+				"x": 400,
+				"y": 417,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "blue_player2_name",
-				"x": 480,
+				"x": 490,
 				"y": 422,
 				"width": 300,
 				"height": 60,
@@ -74,54 +90,62 @@
 			{
 				"name": "blue_player2_e",
 				"x": 840,
+				"y": 422,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 422
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player2_a",
 				"x": 907,
+				"y": 422,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 422
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player2_d",
 				"x": 974,
+				"y": 422,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 422
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player2_dmg",
 				"x": 1051,
+				"y": 422,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 422
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player2_h",
 				"x": 1179,
+				"y": 422,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 422
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player2_mit",
 				"x": 1307,
+				"y": 422,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 422
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "blue_player3_hero",
+				"x": 400,
+				"y": 499,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "blue_player3_name",
-				"x": 480,
+				"x": 490,
 				"y": 504,
 				"width": 300,
 				"height": 60,
@@ -131,54 +155,62 @@
 			{
 				"name": "blue_player3_e",
 				"x": 840,
+				"y": 504,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 504
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player3_a",
 				"x": 907,
+				"y": 504,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 504
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player3_d",
 				"x": 974,
+				"y": 504,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 504
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player3_dmg",
 				"x": 1051,
+				"y": 504,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 504
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player3_h",
 				"x": 1179,
+				"y": 504,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 504
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player3_mit",
 				"x": 1307,
+				"y": 504,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 504
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "blue_player4_hero",
+				"x": 400,
+				"y": 581,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "blue_player4_name",
-				"x": 480,
+				"x": 490,
 				"y": 586,
 				"width": 300,
 				"height": 60,
@@ -188,54 +220,62 @@
 			{
 				"name": "blue_player4_e",
 				"x": 840,
+				"y": 586,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 586
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player4_a",
 				"x": 907,
+				"y": 586,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 586
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player4_d",
 				"x": 974,
+				"y": 586,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 586
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player4_dmg",
 				"x": 1051,
+				"y": 586,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 586
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player4_h",
 				"x": 1179,
+				"y": 586,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 586
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player4_mit",
 				"x": 1307,
+				"y": 586,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 586
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "blue_player5_hero",
+				"x": 400,
+				"y": 663,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "blue_player5_name",
-				"x": 480,
+				"x": 490,
 				"y": 668,
 				"width": 300,
 				"height": 60,
@@ -245,54 +285,62 @@
 			{
 				"name": "blue_player5_e",
 				"x": 840,
+				"y": 668,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 668
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player5_a",
 				"x": 907,
+				"y": 668,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 668
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player5_d",
 				"x": 974,
+				"y": 668,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 668
+				"charSet": "0123456789"
 			},
 			{
 				"name": "blue_player5_dmg",
 				"x": 1051,
+				"y": 668,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 668
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player5_h",
 				"x": 1179,
+				"y": 668,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 668
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "blue_player5_mit",
 				"x": 1307,
+				"y": 668,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 668
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "red_player1_hero",
+				"x": 400,
+				"y": 875,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player1_name",
-				"x": 480,
+				"x": 490,
 				"y": 880,
 				"width": 300,
 				"height": 60,
@@ -302,54 +350,62 @@
 			{
 				"name": "red_player1_e",
 				"x": 840,
+				"y": 880,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 880
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player1_a",
 				"x": 907,
+				"y": 880,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 880
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player1_d",
 				"x": 974,
+				"y": 880,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 880
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player1_dmg",
 				"x": 1051,
+				"y": 880,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 880
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player1_h",
 				"x": 1179,
+				"y": 880,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 880
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player1_mit",
 				"x": 1307,
+				"y": 880,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 880
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "red_player2_hero",
+				"x": 400,
+				"y": 957,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player2_name",
-				"x": 480,
+				"x": 490,
 				"y": 962,
 				"width": 300,
 				"height": 60,
@@ -359,54 +415,62 @@
 			{
 				"name": "red_player2_e",
 				"x": 840,
+				"y": 962,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 962
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player2_a",
 				"x": 907,
+				"y": 962,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 962
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player2_d",
 				"x": 974,
+				"y": 962,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 962
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player2_dmg",
 				"x": 1051,
+				"y": 962,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 962
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player2_h",
 				"x": 1179,
+				"y": 962,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 962
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player2_mit",
 				"x": 1307,
+				"y": 962,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 962
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "red_player3_hero",
+				"x": 400,
+				"y": 1039,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player3_name",
-				"x": 480,
+				"x": 490,
 				"y": 1044,
 				"width": 300,
 				"height": 60,
@@ -416,54 +480,62 @@
 			{
 				"name": "red_player3_e",
 				"x": 840,
+				"y": 1044,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1044
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player3_a",
 				"x": 907,
+				"y": 1044,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1044
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player3_d",
 				"x": 974,
+				"y": 1044,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1044
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player3_dmg",
 				"x": 1051,
+				"y": 1044,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1044
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player3_h",
 				"x": 1179,
+				"y": 1044,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1044
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player3_mit",
 				"x": 1307,
+				"y": 1044,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1044
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "red_player4_hero",
+				"x": 400,
+				"y": 1121,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player4_name",
-				"x": 480,
+				"x": 490,
 				"y": 1126,
 				"width": 300,
 				"height": 60,
@@ -473,54 +545,62 @@
 			{
 				"name": "red_player4_e",
 				"x": 840,
+				"y": 1126,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1126
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player4_a",
 				"x": 907,
+				"y": 1126,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1126
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player4_d",
 				"x": 974,
+				"y": 1126,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1126
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player4_dmg",
 				"x": 1051,
+				"y": 1126,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1126
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player4_h",
 				"x": 1179,
+				"y": 1126,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1126
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player4_mit",
 				"x": 1307,
+				"y": 1126,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1126
+				"charSet": "0123456789,"
+			},
+			{
+				"name": "red_player5_hero",
+				"x": 400,
+				"y": 1203,
+				"width": 76,
+				"height": 76,
+				"imgHashSet": "hero-portrait"
 			},
 			{
 				"name": "red_player5_name",
-				"x": 480,
+				"x": 490,
 				"y": 1208,
 				"width": 300,
 				"height": 60,
@@ -530,50 +610,50 @@
 			{
 				"name": "red_player5_e",
 				"x": 840,
+				"y": 1208,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1208
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player5_a",
 				"x": 907,
+				"y": 1208,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1208
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player5_d",
 				"x": 974,
+				"y": 1208,
 				"width": 67,
 				"height": 60,
-				"charSet": "0123456789",
-				"y": 1208
+				"charSet": "0123456789"
 			},
 			{
 				"name": "red_player5_dmg",
 				"x": 1051,
+				"y": 1208,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1208
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player5_h",
 				"x": 1179,
+				"y": 1208,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1208
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "red_player5_mit",
 				"x": 1307,
+				"y": 1208,
 				"width": 128,
 				"height": 60,
-				"charSet": "0123456789,",
-				"y": 1208
+				"charSet": "0123456789,"
 			},
 			{
 				"name": "result",
@@ -617,8 +697,9 @@
 				"height": 37
 			}
 		],
-		"createdAt": "2025-11-17T00:00:00.000Z",
-		"updatedAt": "2025-11-17T00:00:00.000Z"
+		"hashSets": [],
+		"createdAt": "2025-11-28T00:00:00.000Z",
+		"updatedAt": "2025-11-28T00:00:00.000Z"
 	},
-	"exportedAt": "2025-11-17T00:00:00.000Z"
+	"exportedAt": "2025-11-28T00:00:00.000Z"
 }

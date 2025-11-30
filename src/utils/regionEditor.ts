@@ -4,8 +4,10 @@
 
 import type { DrawnRegion } from '#types';
 
+const REGION_COLOUR_NEW = '#FF0000';
+
 function drawRegion(ctx: CanvasRenderingContext2D, r: DrawnRegion): void {
-	ctx.strokeStyle = r.color;
+	ctx.strokeStyle = r.colour;
 	ctx.lineWidth = 2;
 	ctx.strokeRect(r.x, r.y, r.width, r.height);
 }
@@ -51,18 +53,6 @@ export async function startRegionEditor(
 			let startX = 0;
 			let startY = 0;
 			let regionCount = 0;
-			const colors = [
-				'#FF0000',
-				'#00FF00',
-				'#0000FF',
-				'#FFFF00',
-				'#FF00FF',
-				'#00FFFF',
-				'#FFA500',
-				'#800080',
-				'#FFC0CB',
-				'#A52A2A',
-			];
 
 			const redrawImage = () => {
 				ctx.drawImage(img, 0, 0);
@@ -98,24 +88,10 @@ export async function startRegionEditor(
 				// Draw the current rectangle being drawn
 				const width = currentX - startX;
 				const height = currentY - startY;
-				const color = colors[regionCount % colors.length];
 
-				ctx.strokeStyle = color;
+				ctx.strokeStyle = REGION_COLOUR_NEW;
 				ctx.lineWidth = 2;
 				ctx.strokeRect(startX, startY, width, height);
-
-				// Show coordinates in real-time
-				ctx.fillStyle = color;
-				ctx.font = 'bold 14px monospace';
-				ctx.fillRect(startX, startY - 25, 250, 22);
-				ctx.fillStyle = '#000000';
-				ctx.fillText(
-					`x:${Math.round(startX)} y:${Math.round(
-						startY
-					)} w:${Math.round(Math.abs(width))} h:${Math.round(Math.abs(height))}`,
-					startX + 3,
-					startY - 8
-				);
 			};
 
 			const handleMouseUp = (e: MouseEvent) => {
@@ -131,7 +107,6 @@ export async function startRegionEditor(
 				const y = Math.min(startY, endY);
 				const width = Math.abs(endX - startX);
 				const height = Math.abs(endY - startY);
-				const color = colors[regionCount % colors.length];
 
 				if (width > 5 && height > 5) {
 					const region: DrawnRegion = {
@@ -141,7 +116,7 @@ export async function startRegionEditor(
 						y: Math.round(y),
 						width: Math.round(width),
 						height: Math.round(height),
-						color,
+						colour: REGION_COLOUR_NEW,
 					};
 
 					onRegionComplete(region);
@@ -151,9 +126,9 @@ export async function startRegionEditor(
 					redrawImage();
 
 					// Redraw all previous regions
-					ctx.strokeStyle = color;
-					ctx.lineWidth = 2;
-					ctx.strokeRect(x, y, width, height);
+					// ctx.strokeStyle = region.colour;
+					// ctx.lineWidth = 2;
+					// ctx.strokeRect(x, y, width, height);
 				}
 			};
 
