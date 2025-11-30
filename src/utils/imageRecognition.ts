@@ -66,7 +66,7 @@ export function dhash(
 	const ctx = canvas.getContext('2d');
 
 	if (!ctx) {
-		return '0'.repeat((hashSize * hashSize) / 4);
+		return '0'.repeat(hashSize ** 2 / 4);
 	}
 
 	// Resize to (hashSize+1) x hashSize for horizontal comparisons
@@ -81,7 +81,7 @@ export function dhash(
 	const tempCtx = tempCanvas.getContext('2d');
 
 	if (!tempCtx) {
-		return '0'.repeat(16);
+		return '0'.repeat(hashSize ** 2 / 4);
 	}
 
 	tempCanvas.width = imageData.width;
