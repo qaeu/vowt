@@ -338,8 +338,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 							alt="Pre-processed scoreboard with regions and unskew applied"
 						/>
 						<p>
-							Filtered for OCR clarity. Red boxes show scoreboard regions. Green boxes
-							show scoreboard regions with transformed italic text.
+							Filtered for OCR clarity. Red boxes show text regions. Green boxes show
+							regions with transformed italic text. Blue boxes show image matching
+							regions.
 						</p>
 					</div>
 				</Show>
