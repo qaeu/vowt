@@ -71,6 +71,16 @@
 	.image-container {
 		@include theme.card(theme.$background);
 
+		cursor: pointer;
+
+		&.expanded {
+			grid-column: 1 / -1;
+		}
+
+		&.hidden {
+			display: none;
+		}
+
 		h2 {
 			margin-top: 0;
 			color: theme.$foreground-dark;

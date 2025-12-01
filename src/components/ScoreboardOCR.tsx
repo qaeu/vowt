@@ -53,6 +53,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [error, setError] = createSignal<string>('');
 	const [progress, setProgress] = createSignal<number>(0);
 	const [currentScreenshot, setCurrentScreenshot] = createSignal<string>();
+	const [expandedImage, setExpandedImage] = createSignal<
+		'uploaded' | 'preprocessed' | null
+	>(null);
 
 	let recordId: string;
 	let activeSchedulers: Tesseract.Scheduler[] = [];
@@ -494,14 +497,34 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			<div class="image-grid">
 				<Show when={currentScreenshot()}>
-					<div class="image-container">
+					<div
+						class="image-container"
+						classList={{
+							expanded: expandedImage() === 'uploaded',
+							hidden: expandedImage() === 'preprocessed',
+						}}
+						onClick={() =>
+							setExpandedImage(expandedImage() === 'uploaded' ? null : 'uploaded')
+						}
+					>
 						<h2>Uploaded Image</h2>
 						<img src={currentScreenshot()} alt="Uploaded Image" />
 					</div>
 				</Show>
 
 				<Show when={preprocessedImagePreview()}>
-					<div class="image-container">
+					<div
+						class="image-container"
+						classList={{
+							expanded: expandedImage() === 'preprocessed',
+							hidden: expandedImage() === 'uploaded',
+						}}
+						onClick={() =>
+							setExpandedImage(
+								expandedImage() === 'preprocessed' ? null : 'preprocessed'
+							)
+						}
+					>
 						<h2>Pre-processed Image</h2>
 						<img
 							src={preprocessedImagePreview()}
