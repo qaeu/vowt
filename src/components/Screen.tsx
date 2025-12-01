@@ -18,14 +18,11 @@ const Screen: Component<ScreenProps> = (props) => {
 
 				<div class="button-group actions">
 					<For each={props.actions()}>
-						{(action) => {
-							const attrs = { ...action.opts?.(), id: action.id };
-							return (
-								<button onClick={action.onClick} {...attrs}>
-									{action.text}
-								</button>
-							);
-						}}
+						{(action) => (
+							<button id={action.id} onClick={action.onClick} {...action.opts?.()}>
+								{action.text}
+							</button>
+						)}
 					</For>
 				</div>
 			</header>
