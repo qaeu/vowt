@@ -1,3 +1,5 @@
+import type { JSX } from 'solid-js';
+
 /**
  * Centralized type definitions for VOWT
  * This file contains all shared type definitions used across the application
@@ -19,6 +21,13 @@ interface ExportRecordBase {
 type ExportedRecord<T> = Merge<T, ExportRecordBase>;
 
 export type DateFieldName = 'createdAt' | 'updatedAt' | 'exportedAt';
+
+export interface ScreenAction {
+	id: string;
+	text: string;
+	onClick: () => void;
+	opts?: () => JSX.ButtonHTMLAttributes<HTMLButtonElement>;
+}
 
 // Utility Types
 

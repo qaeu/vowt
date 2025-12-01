@@ -1,6 +1,8 @@
-import { createSignal, batch, For, Show, onMount, type Component } from 'solid-js';
+import type { Component } from 'solid-js';
+import { createSignal, batch, For, Show, onMount } from 'solid-js';
 
-import type { TextRegion, DrawnRegion } from '#types';
+import type { TextRegion, DrawnRegion, ScreenAction } from '#types';
+import Screen from '#c/Screen';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/EditableRegionsData';
@@ -30,7 +32,14 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		initialActiveProfileDesc
 	);
 
-	const getImageSource = () => props.previewImage;
+	const screenActions: ScreenAction[] = [
+		{
+			id: 'close-button',
+			text: '✕ Close',
+			onClick: () => props.onClose(),
+		},
+	];
+
 	let canvasRef: HTMLCanvasElement | undefined;
 
 	onMount(async () => {
@@ -61,6 +70,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			console.error('Region editor error:', err);
 		}
 	});
+
+	const getImageSource = () => props.previewImage;
 
 	const makeDrawnRegions = (
 		textRegions: TextRegion[],
@@ -247,19 +258,11 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	};
 
 	return (
-		<div class="region-profile-manager-container">
-			<header>
-				<h1>Image Region Profiles</h1>
-				<button
-					onClick={() => {
-						props.onClose();
-					}}
-					class="close-button"
-				>
-					✕ Close
-				</button>
-			</header>
-
+		<Screen
+			id="region-profile-manager"
+			title="Image Region Profiles"
+			actions={() => screenActions}
+		>
 			<div class="info-box">
 				<p>
 					Create and manage region profiles for different scoreboard types. Profiles are
@@ -344,21 +347,13 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				<div class="section">
 					<h2>Region Editor</h2>
 					<div class="button-group">
-						<button
-							onClick={handleClearRegions}
-							disabled={editingRegions().length === 0}
-							class="primary"
-						>
+						<button onClick={handleClearRegions} disabled={editingRegions().length === 0}>
 							Clear All
 						</button>
 
-						<button onClick={handleExportProfile} class="primary">
-							Export
-						</button>
+						<button onClick={handleExportProfile}>Export</button>
 
-						<button onClick={handleImportProfile} class="primary">
-							Import
-						</button>
+						<button onClick={handleImportProfile}>Import</button>
 					</div>
 
 					<div class="canvas-wrapper">
@@ -373,7 +368,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 					/>
 				</div>
 			</div>
-		</div>
+		</Screen>
 	);
 };
 

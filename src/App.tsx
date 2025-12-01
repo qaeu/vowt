@@ -77,7 +77,7 @@ const App: Component = () => {
 	};
 
 	return (
-		<main>
+		<div>
 			{isDragging() && (
 				<div class="drag-overlay">
 					<div class="drag-overlay-content">
@@ -106,7 +106,7 @@ const App: Component = () => {
 					/>
 				</Match>
 			</Switch>
-		</main>
+		</div>
 	);
 };
 
