@@ -12,7 +12,7 @@ import {
 } from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
-import RecordFieldInput from '#c/RecordFieldInput';
+import RecordFieldInput from '#c/ui/RecordFieldInput';
 import '#styles/EditableRegionsData';
 
 interface EditableRegionsDataProps {

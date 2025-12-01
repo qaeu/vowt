@@ -11,7 +11,7 @@ import type {
 	RecognitionResult,
 } from '#types';
 import Screen from '#c/Screen';
-import EditableGameData from '#c/EditableGameData';
+import EditableGameData from '#c/ui/EditableGameData';
 import {
 	preprocessImageForOCR,
 	preprocessRegionsForOCR,

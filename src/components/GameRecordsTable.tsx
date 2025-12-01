@@ -3,7 +3,7 @@ import { createSignal, onMount, For, Show } from 'solid-js';
 
 import type { ScreenAction, GameRecord, PlayerStats, MatchInfo } from '#types';
 import Screen from '#c/Screen';
-import EditableGameData from '#c/EditableGameData';
+import EditableGameData from '#c/ui/EditableGameData';
 import {
 	loadGameRecords,
 	deleteGameRecord,

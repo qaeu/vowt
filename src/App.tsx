@@ -24,8 +24,8 @@ const App: Component = () => {
 		e.preventDefault();
 		e.stopPropagation();
 		if (
-			e.dataTransfer?.items[0]?.kind === 'file' &&
-			e.dataTransfer.items[0].type.startsWith('image/')
+			e.dataTransfer?.items[0]?.kind === 'file'
+			&& e.dataTransfer.items[0].type.startsWith('image/')
 		) {
 			setIsDragging(true);
 		}
