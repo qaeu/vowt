@@ -720,13 +720,6 @@ describe('preprocess', () => {
 		});
 	});
 
-	describe('loadImageDimensions', () => {
-		// Note: These tests are skipped because jsdom doesn't properly support
-		// Image loading. The function is tested indirectly via integration tests.
-		it.todo('returns dimensions for a valid image');
-		it.todo('rejects for invalid image source');
-	});
-
 	describe('partitionRegionGroups', () => {
 		it('partitions groups into large and small based on SCHEDULER_JOBS_MIN', () => {
 			const charSetGroups = new Map<string, TextRegion[]>();
