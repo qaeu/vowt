@@ -1,4 +1,4 @@
-import type { TextRegion, ExportedProfile } from '#types';
+import type { TextRegion, ExportedProfile, ImageHashSet } from '#types';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
 	saveProfile,
@@ -8,6 +8,8 @@ import {
 	setActiveProfile,
 	getActiveProfileId,
 	getActiveProfile,
+	getProfileHashSets,
+	getActiveProfileHashSets,
 	exportProfile,
 	importProfile,
 } from '#utils/regionProfiles';
@@ -23,6 +25,7 @@ vi.mock('#data/profiles', () => ({
 				id: 'mock_profile',
 				description: 'Built-in default profile',
 				regions: [],
+				hashSets: [],
 				createdAt: '2025-11-11T00:00:00.000Z',
 				updatedAt: '2025-11-12T00:00:00.000Z',
 			},
@@ -561,6 +564,149 @@ describe('Region Profiles', () => {
 				(p: { id: string }) => p.id === profileId
 			);
 			expect(importedProfile.createdAt).toBe(exportedProfile.createdAt);
+		});
+	});
+
+	describe('getProfileHashSets', () => {
+		it('should return null for non-existent profile', () => {
+			const hashSets = getProfileHashSets('non_existent_id');
+			expect(hashSets).toBeNull();
+		});
+
+		it('should return empty array when profile has no hash sets', () => {
+			const profileId = saveProfile(mockRegions, {
+				description: 'Profile without hash sets',
+			});
+
+			const hashSets = getProfileHashSets(profileId);
+			expect(hashSets).toEqual([]);
+		});
+
+		it('should return hash sets from storage when profile has them', () => {
+			// Create a profile with hash sets by manually setting storage
+			const profileId = saveProfile(mockRegions, {
+				description: 'Profile with hash sets',
+			});
+
+			// Add hash sets to the profile in storage
+			const storageKey = 'vowt_region_profiles';
+			const storage = JSON.parse(localStorage.getItem(storageKey)!);
+			const profileIndex = storage.profiles.findIndex(
+				(p: { id: string }) => p.id === profileId
+			);
+
+			const testHashSet: ImageHashSet = {
+				id: 'test-heroes',
+				description: 'Test hero hashes',
+				hashes: [
+					{ name: 'ana', hash: '6b2b17451147b400' },
+					{ name: 'ashe', hash: '0a26b7350e052580' },
+				],
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			};
+
+			storage.profiles[profileIndex].hashSets = [testHashSet];
+			localStorage.setItem(storageKey, JSON.stringify(storage));
+
+			const hashSets = getProfileHashSets(profileId);
+			expect(hashSets).toHaveLength(1);
+			expect(hashSets![0].id).toBe('test-heroes');
+			expect(hashSets![0].hashes).toHaveLength(2);
+		});
+	});
+
+	describe('getActiveProfileHashSets', () => {
+		it('should return empty array when active profile has no hash sets', () => {
+			const profileId = saveProfile(mockRegions, {
+				description: 'Profile without hash sets',
+			});
+			setActiveProfile(profileId);
+
+			const hashSets = getActiveProfileHashSets();
+			expect(hashSets).toEqual([]);
+		});
+
+		it('should return hash sets from active profile', () => {
+			const profileId = saveProfile(mockRegions, {
+				description: 'Profile with hash sets',
+			});
+			setActiveProfile(profileId);
+
+			// Add hash sets to the active profile in storage
+			const storageKey = 'vowt_region_profiles';
+			const storage = JSON.parse(localStorage.getItem(storageKey)!);
+			const profileIndex = storage.profiles.findIndex(
+				(p: { id: string }) => p.id === profileId
+			);
+
+			const testHashSet: ImageHashSet = {
+				id: 'custom-heroes',
+				description: 'Custom hero hashes',
+				hashes: [{ name: 'reinhardt', hash: 'abcdef1234567890' }],
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			};
+
+			storage.profiles[profileIndex].hashSets = [testHashSet];
+			localStorage.setItem(storageKey, JSON.stringify(storage));
+
+			const hashSets = getActiveProfileHashSets();
+			expect(hashSets).toHaveLength(1);
+			expect(hashSets[0].id).toBe('custom-heroes');
+			expect(hashSets[0].hashes[0].name).toBe('reinhardt');
+		});
+
+		it('should return different hash sets when active profile changes', () => {
+			// Create two profiles with different hash sets
+			const profileId1 = saveProfile(mockRegions, {
+				description: 'Profile 1 with hash sets',
+			});
+			const profileId2 = saveProfile(mockRegions, {
+				description: 'Profile 2 with hash sets',
+			});
+
+			// Add hash sets to both profiles
+			const storageKey = 'vowt_region_profiles';
+			const storage = JSON.parse(localStorage.getItem(storageKey)!);
+			const profile1Index = storage.profiles.findIndex(
+				(p: { id: string }) => p.id === profileId1
+			);
+			const profile2Index = storage.profiles.findIndex(
+				(p: { id: string }) => p.id === profileId2
+			);
+
+			storage.profiles[profile1Index].hashSets = [
+				{
+					id: 'heroes-set-1',
+					description: 'Heroes set 1',
+					hashes: [{ name: 'ana', hash: 'hash1' }],
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
+			];
+			storage.profiles[profile2Index].hashSets = [
+				{
+					id: 'heroes-set-2',
+					description: 'Heroes set 2',
+					hashes: [{ name: 'zenyatta', hash: 'hash2' }],
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
+			];
+			localStorage.setItem(storageKey, JSON.stringify(storage));
+
+			// Set profile 1 as active and check hash sets
+			setActiveProfile(profileId1);
+			const hashSets1 = getActiveProfileHashSets();
+			expect(hashSets1[0].id).toBe('heroes-set-1');
+			expect(hashSets1[0].hashes[0].name).toBe('ana');
+
+			// Switch to profile 2 and check hash sets
+			setActiveProfile(profileId2);
+			const hashSets2 = getActiveProfileHashSets();
+			expect(hashSets2[0].id).toBe('heroes-set-2');
+			expect(hashSets2[0].hashes[0].name).toBe('zenyatta');
 		});
 	});
 });

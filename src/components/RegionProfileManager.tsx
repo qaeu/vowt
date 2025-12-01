@@ -6,6 +6,10 @@ import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/EditableRegionsData';
 import '#styles/RegionProfileManager';
 
+const REGION_COLOUR_DEFAULT = '#ff0000';
+const REGION_COLOUR_ITALIC = '#4caf50';
+const REGION_COLOUR_IMAGE = '#3131da';
+
 interface RegionProfileManagerProps {
 	previewImage: string | null;
 	onClose: () => void;
@@ -58,19 +62,25 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		}
 	});
 
-	const makeDrawnRegions = (textRegions: TextRegion[], profileId: string) => {
+	const makeDrawnRegions = (
+		textRegions: TextRegion[],
+		profileId: string
+	): DrawnRegion[] => {
 		return textRegions.map((r, index) => ({
 			...r,
 			id: `${profileId}-${index}`,
-			color: r.isItalic ? '#4caf50' : '#ff0000',
+			colour:
+				r.imgHashSet && r.imgHashSet.length > 0 ? REGION_COLOUR_IMAGE
+				: r.isItalic ? REGION_COLOUR_ITALIC
+				: REGION_COLOUR_DEFAULT,
 		}));
 	};
 
-	const makeTextRegions = (drawnRegions: DrawnRegion[]) => {
+	const makeTextRegions = (drawnRegions: DrawnRegion[]): TextRegion[] => {
 		return drawnRegions.map((r) => ({
 			...r,
 			id: undefined,
-			color: undefined,
+			colour: undefined,
 		}));
 	};
 

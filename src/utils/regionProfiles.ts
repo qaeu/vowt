@@ -4,6 +4,7 @@ import type {
 	ProfileDetails,
 	RegionProfile,
 	ExportedProfile,
+	ImageHashSet,
 } from '#types';
 import { DEFAULT_PROFILES } from '#data/profiles';
 
@@ -214,6 +215,7 @@ export function saveProfile(
 			id: profileId,
 			description: profileDesc,
 			regions,
+			hashSets: existingIndex >= 0 ? stored.profiles[existingIndex].hashSets : [],
 			createdAt: existingIndex >= 0 ? stored.profiles[existingIndex].createdAt : now,
 			updatedAt: now,
 		};
@@ -258,6 +260,12 @@ export function getProfile(
 export function getProfileDetails(profileId: string): ProfileDetails | null {
 	const profile = _loadProfile(profileId);
 	return profile || null;
+}
+
+export function getProfileHashSets(profileId: string): ImageHashSet[] | null {
+	const profile = _loadProfile(profileId);
+	if (!profile) return null;
+	return profile.hashSets || [];
 }
 
 /**
@@ -343,6 +351,15 @@ export function getActiveProfileDetails(): ProfileDetails {
 }
 
 /**
+ * Gets the hash sets from the currently active region profile
+ * @returns The hash sets from the active profile, or empty array if none
+ */
+export function getActiveProfileHashSets(): ImageHashSet[] {
+	const profileId = getActiveProfileId();
+	return getProfileHashSets(profileId)!; // Active profile should always exist
+}
+
+/**
  * Exports a region profile to JSON format
  * @param profileId - The profile ID to export
  * @returns JSON string representation of the profile, or null if not found
@@ -389,9 +406,9 @@ export function importProfile(jsonData: string): number | null {
 
 		// Validate required fields
 		if (
-			!importedProfile.id ||
-			!importedProfile.regions ||
-			!Array.isArray(importedProfile.regions)
+			!importedProfile.id
+			|| !importedProfile.regions
+			|| !Array.isArray(importedProfile.regions)
 		) {
 			console.error('Invalid profile import: missing required fields');
 			return null;

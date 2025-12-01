@@ -2,10 +2,13 @@ import {
 	createSignal,
 	createEffect,
 	createMemo,
+	on,
 	batch,
 	For,
 	Show,
 	type Component,
+	type OnEffectFunction,
+	onCleanup,
 } from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
@@ -18,6 +21,9 @@ interface EditableRegionsDataProps {
 	savedRegions: DrawnRegion[];
 	onChange: (regions: DrawnRegion[]) => void;
 }
+
+type OnEffectFnInput = [DrawnRegion[], string, number];
+type OnEffectFnValue = { prevProfileId: string; prevRegionsCount: number };
 
 const findRegionIndex = (regionList: DrawnRegion[], regionId: string) => {
 	return regionList.findIndex((region) => region.id === regionId);
@@ -44,40 +50,52 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 		Map<string, { isModified: () => boolean; reset: () => void }>
 	>(new Map());
 
-	createEffect(
-		({ prevProfileId, prevRegionsCount }) => {
-			// Sync saved regions on profile save or change
-			if (savedRegions() !== props.savedRegions) {
-				setSavedRegions(props.savedRegions);
-				setJustSavedFieldIds(getModifiedFieldIds());
-				resetAllModifiedFields();
+	const handlePropChange: OnEffectFunction<
+		OnEffectFnInput,
+		OnEffectFnValue | undefined,
+		undefined
+	> = ([propsSavedRegions, propsProfileId, propsCurrentRegionsCount], prev) => {
+		// Sync saved regions on profile save or change
+		if (savedRegions() !== propsSavedRegions) {
+			setSavedRegions(propsSavedRegions);
+			setJustSavedFieldIds(getModifiedFieldIds());
+			resetAllModifiedFields();
 
-				// Clear the saved state after animation completes
-				setTimeout(() => {
-					setJustSavedFieldIds(new Set<string>());
-				}, 2000);
-			}
-
-			// Sync on profile change
-			if (prevProfileId !== props.profileId) {
-				setFieldRegistry(new Map());
+			// Clear the just-saved state after animation completes
+			clearTimeout(justSavedTimeoutId);
+			justSavedTimeoutId = setTimeout(() => {
 				setJustSavedFieldIds(new Set<string>());
-				setEditableRegions(structuredClone(props.currentRegions));
-				syncEditableRegionIds();
-			}
+			}, 2000);
+		}
 
-			// Sync on region added or removed
-			else if (props.currentRegions.length !== prevRegionsCount) {
-				setEditableRegions(props.currentRegions);
-				syncEditableRegionIds();
-			}
+		// Sync on profile change
+		if (prev?.[1] !== propsProfileId) {
+			setFieldRegistry(new Map());
+			setJustSavedFieldIds(new Set<string>());
+			setEditableRegions(structuredClone(props.currentRegions));
+			syncEditableRegionIds();
+		}
 
-			return {
-				prevProfileId: props.profileId,
-				prevRegionsCount: props.currentRegions.length,
-			};
-		},
-		{ prevProfileId: '', prevRegionsCount: 0 }
+		// Sync on region added or removed
+		else if (propsCurrentRegionsCount !== prev?.[2]) {
+			setEditableRegions(structuredClone(props.currentRegions));
+			syncEditableRegionIds();
+		}
+	};
+
+	let justSavedTimeoutId: number;
+	onCleanup(() => {
+		clearTimeout(justSavedTimeoutId);
+	});
+	createEffect(
+		on(
+			[
+				() => props.savedRegions,
+				() => props.profileId,
+				() => props.currentRegions.length,
+			],
+			handlePropChange
+		)
 	);
 
 	const syncEditableRegionIds = () => {
@@ -86,13 +104,13 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 
 	const registerField = (
 		fieldId: string,
-		isModifiedGetter: () => boolean,
-		resetModified: () => void
+		isModified: () => boolean,
+		reset: () => void
 	) => {
 		setFieldRegistry((prev) =>
 			new Map(prev).set(fieldId, {
-				isModified: isModifiedGetter,
-				reset: resetModified,
+				isModified: isModified,
+				reset: reset,
 			})
 		);
 	};
@@ -224,6 +242,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 								<th>Height</th>
 								<th>Char Set</th>
 								<th>Italic</th>
+								<th>Image Hash Set</th>
 								<th class="delete-column">Delete</th>
 							</tr>
 						</thead>
@@ -326,6 +345,20 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 														updateRegionField(region.id, 'isItalic', e.target.checked)
 													}
 													class="italic-checkbox"
+												/>
+											</td>
+											<td>
+												<RecordFieldInput
+													staticId={`region-${region.id}-imgHashSet`}
+													initialValue={region.imgHashSet ?? ''}
+													baseline={() => savedRegion()?.imgHashSet ?? ''}
+													onInput={(value) =>
+														updateRegionField(region.id, 'imgHashSet', value || undefined)
+													}
+													initialIsJustSaved={isFieldJustSaved(
+														`region-${region.id}-imgHashSet`
+													)}
+													staticRegisterField={registerField}
 												/>
 											</td>
 											<td class="delete-column">

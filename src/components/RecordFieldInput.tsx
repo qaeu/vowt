@@ -10,8 +10,8 @@ interface RecordFieldInputProps {
 	initialIsJustSaved: Readonly<boolean>;
 	staticRegisterField?: (
 		fieldId: string,
-		isModifiedGetter: () => boolean,
-		resetModified: () => void
+		isModified: () => boolean,
+		reset: () => void
 	) => void;
 	onInput: (value: string) => void;
 }
@@ -31,9 +31,10 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
 	// Register this field's modification state with parent during component initialization
 	onMount(() => {
 		if (props.staticRegisterField) {
+			// eslint-disable-next-line solid/reactivity
 			props.staticRegisterField(props.staticId, isModified, () => {
 				setIsModified(false);
-				setValue(props.baseline);
+				setValue(props.baseline());
 			});
 		}
 	});
