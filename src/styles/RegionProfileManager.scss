@@ -65,6 +65,14 @@
 			&.action-btn.delete {
 				@include theme.button(theme.$accent2-error);
 			}
+
+			&.save-profile {
+				@include theme.button(theme.$accent2-success);
+			}
+
+			&.clear-regions {
+				@include theme.button(theme.$accent2-error);
+			}
 		}
 	}
 

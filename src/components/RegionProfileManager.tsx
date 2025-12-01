@@ -337,7 +337,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						/>
 
 						<div class="button-group">
-							<button onClick={handleSaveProfile} class="success">
+							<button onClick={handleSaveProfile} class="save-profile">
 								Save Profile
 							</button>
 						</div>
@@ -347,7 +347,11 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				<div class="section">
 					<h2>Region Editor</h2>
 					<div class="button-group">
-						<button onClick={handleClearRegions} disabled={editingRegions().length === 0}>
+						<button
+							onClick={handleClearRegions}
+							class="clear-regions"
+							disabled={editingRegions().length === 0}
+						>
 							Clear All
 						</button>
 
