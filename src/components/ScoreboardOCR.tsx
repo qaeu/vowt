@@ -19,8 +19,11 @@ import type {
 import EditableGameData from '#c/EditableGameData';
 import {
 	preprocessImageForOCR,
+	preprocessRegionsForOCR,
 	drawRegionsOnImage,
 	groupRegionsByCharSet,
+	getRegionImageData,
+	getRegionDataURLs,
 	loadImageDimensions,
 	partitionRegionGroups,
 } from '#utils/preprocess';
@@ -92,9 +95,17 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	/** Preprocesses image and updates preview state */
-	const prepareImageForOCR = async (imageSrc: string) => {
-		const preprocessed = await preprocessImageForOCR(imageSrc);
-		const preprocessedPreview = await drawRegionsOnImage(preprocessed, imageSrc);
+	const prepareImageForOCR = async (
+		imageSrc: string,
+		regions: TextRegion[],
+		preprocessedRegionMap: Map<string, ImageData>
+	) => {
+		const preprocessed = await preprocessImageForOCR(
+			imageSrc,
+			regions,
+			preprocessedRegionMap
+		);
+		const preprocessedPreview = await drawRegionsOnImage(preprocessed, regions);
 		setPreprocessedImagePreview(preprocessedPreview);
 		return preprocessed;
 	};
@@ -102,7 +113,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	/** Processes image hash regions using image recognition */
 	const processImageHashRegions = async (
 		regions: TextRegion[],
-		originalImage: string,
+		imageDataMap: Map<string, ImageData>,
 		allHashSets: ImageHashSet[],
 		onProgress: () => void
 	): Promise<RecognitionResult[]> => {
@@ -112,14 +123,18 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			if (isProcessingCancelled) break;
 
 			const hashSet = allHashSets.find((hs) => hs.id === region.imgHashSet);
+			const imageData = imageDataMap.get(region.name);
 
 			if (!hashSet) {
 				console.warn(
 					`Hash set '${region.imgHashSet}' not found for region '${region.name}'`
 				);
 				results.push({ name: region.name, value: '', confidence: 0 });
+			} else if (!imageData) {
+				console.warn(`ImageData not found for region '${region.name}'`);
+				results.push({ name: region.name, value: '', confidence: 0 });
 			} else {
-				const result = await recogniseRegionImage(originalImage, region, hashSet);
+				const result = recogniseImage(imageData, hashSet);
 				results.push({
 					name: region.name,
 					value: result.name,
@@ -168,19 +183,28 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const processRegionsWithScheduler = async (
 		scheduler: Tesseract.Scheduler,
 		regions: TextRegion[],
-		preprocessedImage: string,
+		dataURLMap: Map<string, string>,
 		onProgress: () => void
 	): Promise<RecognitionResult[]> => {
-		const regionPromises = regions.map((region) =>
-			recogniseRegionText(scheduler, preprocessedImage, region).then((result) => {
+		const regionPromises = regions.map((region) => {
+			const dataUrl = dataURLMap.get(region.name);
+			if (!dataUrl) {
+				onProgress();
+				return Promise.resolve({
+					name: region.name,
+					value: '',
+					confidence: 0,
+				});
+			}
+			return scheduler.addJob('recognize', dataUrl).then((result) => {
 				onProgress();
 				return {
 					name: region.name,
 					value: result.data.text.trim(),
 					confidence: result.data.confidence,
 				};
-			})
-		);
+			});
+		});
 		return Promise.all(regionPromises);
 	};
 
@@ -189,7 +213,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		worker: Tesseract.Worker,
 		charSet: string,
 		regions: TextRegion[],
-		preprocessedImage: string,
+		dataURLMap: Map<string, string>,
 		onProgress: () => void
 	): Promise<RecognitionResult[]> => {
 		const results: RecognitionResult[] = [];
@@ -206,14 +230,14 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		for (const region of regions) {
 			if (isProcessingCancelled) break;
 
-			const result = await worker.recognize(preprocessedImage, {
-				rectangle: {
-					left: region.x,
-					top: region.y,
-					width: region.width,
-					height: region.height,
-				},
-			});
+			const dataUrl = dataURLMap.get(region.name);
+			if (!dataUrl) {
+				results.push({ name: region.name, value: '', confidence: 0 });
+				onProgress();
+				continue;
+			}
+
+			const result = await worker.recognize(dataUrl);
 			results.push({
 				name: region.name,
 				value: result.data.text.trim(),
@@ -228,7 +252,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	/** Processes large region groups using schedulers */
 	const processLargeGroups = async (
 		largeGroups: { charSet: string; regions: TextRegion[] }[],
-		preprocessedImage: string,
+		dataURLMap: Map<string, string>,
 		onProgress: () => void
 	) => {
 		const schedulerPromises = largeGroups.map(({ charSet }) =>
@@ -242,7 +266,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			processRegionsWithScheduler(
 				scheduler,
 				largeGroups[i].regions,
-				preprocessedImage,
+				dataURLMap,
 				onProgress
 			)
 		);
@@ -251,7 +275,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	/** Processes small region groups sequentially with a reusable worker */
 	const processSmallGroups = async (
 		smallGroups: { charSet: string; regions: TextRegion[] }[],
-		preprocessedImage: string,
+		dataURLMap: Map<string, string>,
 		onProgress: () => void
 	) => {
 		const results: RecognitionResult[] = [];
@@ -265,7 +289,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				standaloneWorker,
 				charSet,
 				groupRegions,
-				preprocessedImage,
+				dataURLMap,
 				onProgress
 			);
 			results.push(...groupResults);
@@ -277,8 +301,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	/** Start recognition of all regions */
 	const processRegions = async (
 		regions: TextRegion[],
-		preprocessedImage: string,
-		originalImage: string,
+		ocrDataURLMap: Map<string, string>,
+		hashImageDataMap: Map<string, ImageData>,
 		allHashSets: ImageHashSet[]
 	): Promise<{ ocrTextParts: string[]; regionResults: Map<string, string> } | null> => {
 		if (isProcessingCancelled) return null;
@@ -297,6 +321,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				setProgress(Math.round((completedJobs / regions.length) * 100));
 			};
 
+			if (isProcessingCancelled) return null;
+
 			// Partition OCR regions by size
 			const charSetGroups = groupRegionsByCharSet(ocrRegions);
 			const { largeGroups, smallGroups } = partitionRegionGroups(charSetGroups);
@@ -304,18 +330,18 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			// Start all parallel processing
 			const imageHashResultsPromise = processImageHashRegions(
 				imageHashRegions,
-				originalImage,
+				hashImageDataMap,
 				allHashSets,
 				onProgress
 			);
 			const schedulerResultPromises = await processLargeGroups(
 				largeGroups,
-				preprocessedImage,
+				ocrDataURLMap,
 				onProgress
 			);
 			const smallGroupResults = await processSmallGroups(
 				smallGroups,
-				preprocessedImage,
+				ocrDataURLMap,
 				onProgress
 			);
 
@@ -349,7 +375,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			setError('');
 
 			const { width, height } = await loadImageDimensions(imageToProcess);
-			const preprocessed = await prepareImageForOCR(imageToProcess);
 
 			const scoreboardRegions = getActiveProfile(width, height);
 			if (!scoreboardRegions || scoreboardRegions.length === 0) {
@@ -357,11 +382,50 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				return;
 			}
 
+			// Partition regions by type
+			const { imageHashRegions = [], ocrRegions = [] } = Object.groupBy(
+				scoreboardRegions,
+				({ imgHashSet }) =>
+					imgHashSet && imgHashSet.length > 0 ? 'imageHashRegions' : 'ocrRegions'
+			);
+
+			const allRegionImageDataMap = await getRegionImageData(
+				imageToProcess,
+				scoreboardRegions
+			);
+
+			if (isProcessingCancelled) return;
+
+			// Preprocess OCR regions
+			const preprocessedRegionMap = preprocessRegionsForOCR(
+				allRegionImageDataMap,
+				ocrRegions
+			);
+			const preprocessedImage = await prepareImageForOCR(
+				imageToProcess,
+				scoreboardRegions,
+				preprocessedRegionMap
+			);
+
+			if (isProcessingCancelled) return;
+
+			const ocrDataURLMap = await getRegionDataURLs(preprocessedImage, ocrRegions);
+
+			if (isProcessingCancelled) return;
+
+			const hashImageDataMap = new Map<string, ImageData>();
+			for (const region of imageHashRegions) {
+				const imageData = allRegionImageDataMap.get(region.name);
+				if (imageData) {
+					hashImageDataMap.set(region.name, imageData);
+				}
+			}
+
 			const allHashSets = [...getActiveProfileHashSets(), ...DEFAULT_HASH_SETS];
 			const ocrResults = await processRegions(
 				scoreboardRegions,
-				preprocessed,
-				imageToProcess,
+				ocrDataURLMap,
+				hashImageDataMap,
 				allHashSets
 			);
 
@@ -378,74 +442,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		} finally {
 			setIsProcessing(false);
 		}
-	};
-
-	const recogniseRegionText = async (
-		scheduler: Tesseract.Scheduler,
-		image: string,
-		region: TextRegion
-	) => {
-		// Recognize text in this region
-		const result = await scheduler.addJob('recognize', image, {
-			rectangle: {
-				left: region.x,
-				top: region.y,
-				width: region.width,
-				height: region.height,
-			},
-		});
-
-		return result;
-	};
-
-	/**
-	 * Recognises an image region by extracting it and comparing against known hashes
-	 * @param image - Source image URL (not preprocessed)
-	 * @param region - Region definition with imgHash property
-	 * @param hashSet - Set of hashes to compare against
-	 * @param threshold - Minimum similarity score for a match (0-1)
-	 * @returns Promise resolving to the matched image ID or empty string if no match
-	 */
-	const recogniseRegionImage = async (
-		image: string,
-		region: TextRegion,
-		hashSet: ImageHashSet,
-		threshold?: number
-	): Promise<{ name: string; confidence: number }> => {
-		return new Promise((resolve) => {
-			const img = new Image();
-
-			img.onload = () => {
-				const canvas = document.createElement('canvas');
-				const ctx = canvas.getContext('2d');
-
-				if (!ctx) {
-					resolve({ name: '', confidence: 0 });
-					return;
-				}
-
-				canvas.width = region.width;
-				canvas.height = region.height;
-
-				ctx.drawImage(
-					img,
-					region.x,
-					region.y,
-					region.width,
-					region.height,
-					0,
-					0,
-					region.width,
-					region.height
-				);
-
-				const imageData = ctx.getImageData(0, 0, region.width, region.height);
-				resolve(recogniseImage(imageData, hashSet, threshold));
-			};
-
-			img.onerror = () => resolve({ name: '', confidence: 0 });
-			img.src = image;
-		});
 	};
 
 	const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {

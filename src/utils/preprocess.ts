@@ -3,7 +3,6 @@
  */
 
 import type { TextRegion, PartitionGroup } from '#types';
-import { getActiveProfile } from '#utils/regionProfiles';
 
 const SKEW_ANGLE_DEFAULT = -14;
 const REGION_COLOUR_DEFAULT = '#ff0000';
@@ -62,9 +61,15 @@ function unskewItalicText(
 /**
  * Converts an image to grayscale and enhances contrast for better OCR results
  * @param imageUrl - URL of the image to preprocess
+ * @param regions - Array of region definitions for preprocessing
+ * @param regionImageDataMap - Pre-extracted ImageData for each region
  * @returns Promise resolving to a data URL of the preprocessed image
  */
-export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
+export async function preprocessImageForOCR(
+	imageUrl: string,
+	regions: TextRegion[],
+	preprocessedRegionMap: Map<string, ImageData>
+): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const img = new Image();
 
@@ -82,16 +87,11 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 
 			ctx.drawImage(img, 0, 0);
 
-			const regions = getActiveProfile(img.width, img.height);
 			for (const region of regions) {
-				// Extract region image data
-				const regionImageData = ctx.getImageData(
-					region.x,
-					region.y,
-					region.width,
-					region.height
-				);
-				const imageData = preprocessRegionForOCR(regionImageData, region);
+				// Use pre-processed region image data
+				const imageData = preprocessedRegionMap.get(region.name);
+				if (!imageData) continue;
+
 				ctx.putImageData(imageData, region.x, region.y);
 			}
 
@@ -111,59 +111,158 @@ export async function preprocessImageForOCR(imageUrl: string): Promise<string> {
 }
 
 /**
+ * Extracts ImageData for multiple regions from an image in a single pass
+ * @param imageSrc - Source image URL or data URL
+ * @param regions - Array of region definitions with coordinates
+ * @returns Promise resolving to Map of region name to ImageData
+ */
+export const getRegionImageData = (
+	imageSrc: string,
+	regions: TextRegion[]
+): Promise<Map<string, ImageData>> => {
+	return new Promise((resolve, reject) => {
+		const img = new Image();
+
+		img.onload = () => {
+			const canvas = document.createElement('canvas');
+			const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+			if (!ctx) {
+				reject(new Error('Failed to get canvas context'));
+				return;
+			}
+
+			canvas.width = img.width;
+			canvas.height = img.height;
+			ctx.drawImage(img, 0, 0);
+
+			const imageDataMap = new Map<string, ImageData>();
+			for (const region of regions) {
+				const imageData = ctx.getImageData(
+					region.x,
+					region.y,
+					region.width,
+					region.height
+				);
+				imageDataMap.set(region.name, imageData);
+			}
+
+			resolve(imageDataMap);
+		};
+
+		img.onerror = () => reject(new Error('Failed to load image'));
+		img.src = imageSrc;
+	});
+};
+
+/**
+ * Extracts regions from an image as data URL strings
+ * @param imageSrc - Source image URL or data URL
+ * @param regions - Array of region definitions with coordinates
+ * @returns Promise resolving to Map of region name to data URL string
+ */
+export const getRegionDataURLs = (
+	imageSrc: string,
+	regions: TextRegion[]
+): Promise<Map<string, string>> => {
+	return new Promise((resolve, reject) => {
+		const img = new Image();
+
+		img.onload = () => {
+			const sourceCanvas = document.createElement('canvas');
+			const sourceCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
+
+			if (!sourceCtx) {
+				reject(new Error('Failed to get canvas context'));
+				return;
+			}
+
+			sourceCanvas.width = img.width;
+			sourceCanvas.height = img.height;
+			sourceCtx.drawImage(img, 0, 0);
+
+			// Reusable canvas for region extraction
+			const regionCanvas = document.createElement('canvas');
+			const regionCtx = regionCanvas.getContext('2d');
+
+			if (!regionCtx) {
+				reject(new Error('Failed to get region canvas context'));
+				return;
+			}
+
+			const dataURLMap = new Map<string, string>();
+			for (const region of regions) {
+				const imageData = sourceCtx.getImageData(
+					region.x,
+					region.y,
+					region.width,
+					region.height
+				);
+
+				// Resize region canvas only when needed
+				if (
+					regionCanvas.width !== region.width
+					|| regionCanvas.height !== region.height
+				) {
+					regionCanvas.width = region.width;
+					regionCanvas.height = region.height;
+				}
+
+				regionCtx.putImageData(imageData, 0, 0);
+				dataURLMap.set(region.name, regionCanvas.toDataURL('image/png'));
+			}
+
+			resolve(dataURLMap);
+		};
+
+		img.onerror = () => reject(new Error('Failed to load image'));
+		img.src = imageSrc;
+	});
+};
+
+/**
  * Draws italic regions with unskew visualization on the preprocessed image
  * Uses green overlay for regions to show which ones are being unskewed
  * @param imageUrl - URL of the preprocessed image
- * @param sourceImageUrl - URL of the source image to extract region data
+ * @param regions - Array of region definitions to draw
  * @returns Promise resolving to data URL with unskew regions highlighted
  */
 export async function drawRegionsOnImage(
 	imageUrl: string,
-	sourceImageUrl: string
+	regions: TextRegion[]
 ): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const img = new Image();
 
 		img.onload = () => {
-			const sourceImg = new Image();
+			const canvas = document.createElement('canvas');
+			const ctx = canvas.getContext('2d');
 
-			sourceImg.onload = () => {
-				const canvas = document.createElement('canvas');
-				const ctx = canvas.getContext('2d');
+			if (!ctx) {
+				reject(new Error('Failed to get canvas context'));
+				return;
+			}
 
-				if (!ctx) {
-					reject(new Error('Failed to get canvas context'));
-					return;
+			canvas.width = img.width;
+			canvas.height = img.height;
+
+			// Draw the preprocessed image with regions
+			ctx.drawImage(img, 0, 0);
+
+			ctx.lineWidth = 1;
+
+			for (const region of regions) {
+				if (region.imgHashSet && region.imgHashSet.length > 0) {
+					ctx.strokeStyle = REGION_COLOUR_IMAGE;
+				} else if (region.isItalic) {
+					ctx.strokeStyle = REGION_COLOUR_ITALIC;
+				} else {
+					ctx.strokeStyle = REGION_COLOUR_DEFAULT;
 				}
+				ctx.strokeRect(region.x, region.y, region.width, region.height);
+			}
 
-				canvas.width = img.width;
-				canvas.height = img.height;
-
-				// Draw the preprocessed image with regions
-				ctx.drawImage(img, 0, 0);
-
-				ctx.lineWidth = 1;
-
-				const regions = getActiveProfile(img.width, img.height);
-				for (const region of regions) {
-					if (region.imgHashSet && region.imgHashSet.length > 0) {
-						ctx.strokeStyle = REGION_COLOUR_IMAGE;
-					} else if (region.isItalic) {
-						ctx.strokeStyle = REGION_COLOUR_ITALIC;
-					} else {
-						ctx.strokeStyle = REGION_COLOUR_DEFAULT;
-					}
-					ctx.strokeRect(region.x, region.y, region.width, region.height);
-				}
-
-				resolve(canvas.toDataURL('image/png'));
-			};
-
-			sourceImg.onerror = () => {
-				reject(new Error('Failed to load source image'));
-			};
-
-			sourceImg.src = sourceImageUrl;
+			resolve(canvas.toDataURL('image/png'));
 		};
 
 		img.onerror = () => {
@@ -175,34 +274,47 @@ export async function drawRegionsOnImage(
 }
 
 /**
- * Preprocesses a specific region of the image for OCR
- * @param imageData - Region image data
- * @param region - Region definition
- * @returns Promise resolving to preprocessed region data URL
+ * Preprocesses multiple regions for OCR
+ * Reuses a single canvas and context for efficiency
+ * @param regionImageDataMap - Map of region name to ImageData
+ * @param regions - Array of region definitions
+ * @returns Map of region name to preprocessed ImageData
  */
-function preprocessRegionForOCR(imageData: ImageData, region: TextRegion): ImageData {
+export const preprocessRegionsForOCR = (
+	regionImageDataMap: Map<string, ImageData>,
+	regions: TextRegion[]
+): Map<string, ImageData> => {
+	const preprocessedMap = new Map<string, ImageData>();
+
+	// Create canvas and context once, reuse for all regions
 	const canvas = document.createElement('canvas');
-	const ctx = canvas.getContext('2d');
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-	if (!ctx || !region.isItalic) {
-		return imageData;
+	for (const region of regions) {
+		const imageData = regionImageDataMap.get(region.name);
+		if (!imageData) continue;
+
+		// Skip preprocessing for non-italic regions
+		if (!ctx || !region.isItalic) {
+			preprocessedMap.set(region.name, imageData);
+			continue;
+		}
+
+		// Resize canvas only when needed
+		if (canvas.width !== region.width || canvas.height !== region.height) {
+			canvas.width = region.width;
+			canvas.height = region.height;
+		}
+
+		// Apply italic correction
+		const unskewed = unskewItalicText(imageData);
+		ctx.putImageData(unskewed, 0, 0);
+
+		preprocessedMap.set(region.name, ctx.getImageData(0, 0, canvas.width, canvas.height));
 	}
 
-	// Set canvas to region size
-	canvas.width = region.width;
-	canvas.height = region.height;
-
-	// Put the image data on canvas
-	ctx.putImageData(imageData, 0, 0);
-
-	// Apply italic correction if needed
-	if (region.isItalic) {
-		imageData = unskewItalicText(imageData);
-		ctx.putImageData(imageData, 0, 0);
-	}
-
-	return ctx.getImageData(0, 0, canvas.width, canvas.height);
-}
+	return preprocessedMap;
+};
 
 /**
  * Groups OCR regions by their charSet value
