@@ -10,7 +10,7 @@ import type {
 	ImageHashSet,
 	RecognitionResult,
 } from '#types';
-import Screen from '#c/Screen';
+import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
 import {
 	preprocessImageForOCR,

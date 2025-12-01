@@ -2,7 +2,7 @@ import type { Component } from 'solid-js';
 import { createSignal, onMount, For, Show } from 'solid-js';
 
 import type { ScreenAction, GameRecord, PlayerStats, MatchInfo } from '#types';
-import Screen from '#c/Screen';
+import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
 import {
 	loadGameRecords,

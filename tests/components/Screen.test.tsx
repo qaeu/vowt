@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@solidjs/testing-library';
 
-import Screen from '#c/Screen';
+import Screen from '#c/ui/Screen';
 import type { ScreenAction } from '#types';
 
 describe('Screen', () => {

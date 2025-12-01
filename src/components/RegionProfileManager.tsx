@@ -2,7 +2,7 @@ import type { Component } from 'solid-js';
 import { createSignal, batch, For, Show, onMount } from 'solid-js';
 
 import type { TextRegion, DrawnRegion, ScreenAction } from '#types';
-import Screen from '#c/Screen';
+import Screen from '#c/ui/Screen';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/ui/EditableRegionsData';
