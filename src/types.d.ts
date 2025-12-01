@@ -117,3 +117,18 @@ export interface ExportedImageHashSet extends ExportFileBase {
 	type: 'vowt-image-hashes';
 	hashSet: ExportedRecord<ImageHashSet>;
 }
+
+// Recognition processing
+
+/** Partitioned region group for processing */
+export interface PartitionGroup {
+	charSet: string;
+	regions: TextRegion[];
+}
+
+/** Result from OCR or image hash recognition */
+export interface RecognitionResult {
+	name: string;
+	value: string;
+	confidence: number;
+}

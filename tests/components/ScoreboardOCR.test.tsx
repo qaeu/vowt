@@ -23,21 +23,44 @@ beforeEach(() => {
 	(globalThis as unknown as Record<string, typeof MockImage>).Image = MockImage;
 });
 
-// Mock tesseract.js
-vi.mock('tesseract.js', () => ({
-	default: {
-		createWorker: vi.fn().mockResolvedValue({
-			recognize: vi.fn().mockResolvedValue({
-				data: {
-					text: 'VICTORY',
-				},
-			}),
-			terminate: vi.fn().mockResolvedValue(undefined),
-			setParameters: vi.fn().mockResolvedValue(undefined),
+// Mock tesseract.js with scheduler support
+vi.mock('tesseract.js', () => {
+	const mockAddJob = vi.fn().mockResolvedValue({
+		data: {
+			text: 'VICTORY',
+			confidence: 95,
+		},
+	});
+	const mockSchedulerTerminate = vi.fn().mockResolvedValue(undefined);
+	const mockAddWorker = vi.fn();
+	const mockCreateScheduler = vi.fn().mockReturnValue({
+		addWorker: mockAddWorker,
+		addJob: mockAddJob,
+		terminate: mockSchedulerTerminate,
+	});
+	const mockWorker = {
+		recognize: vi.fn().mockResolvedValue({
+			data: {
+				text: 'VICTORY',
+				confidence: 95,
+			},
 		}),
-		PSM: { SINGLE_WORD: 'word' },
-	},
-}));
+		terminate: vi.fn().mockResolvedValue(undefined),
+		setParameters: vi.fn().mockResolvedValue(undefined),
+	};
+	const mockCreateWorker = vi.fn().mockResolvedValue(mockWorker);
+
+	return {
+		default: {
+			PSM: { SINGLE_LINE: 7 },
+			createScheduler: mockCreateScheduler,
+			createWorker: mockCreateWorker,
+		},
+		PSM: { SINGLE_LINE: 7 },
+		createScheduler: mockCreateScheduler,
+		createWorker: mockCreateWorker,
+	};
+});
 
 // Mock EditableGameData component
 vi.mock('#c/EditableGameData', () => ({
@@ -67,13 +90,64 @@ vi.mock('#c/EditableGameData', () => ({
 // Mock the image preprocessing module
 vi.mock('#utils/preprocess', () => ({
 	preprocessImageForOCR: vi.fn().mockResolvedValue('data:image/png;base64,mockdata'),
+	preprocessRegionsForOCR: vi.fn().mockImplementation((regionImageDataMap, regions) => {
+		// Return the same map - in tests we don't need actual preprocessing
+		const preprocessedMap = new Map();
+		for (const region of regions) {
+			const imageData = regionImageDataMap.get(region.name);
+			if (imageData) {
+				preprocessedMap.set(region.name, imageData);
+			}
+		}
+		return preprocessedMap;
+	}),
 	drawRegionsOnImage: vi.fn().mockResolvedValue('data:image/png;base64,regionmockdata'),
+	getRegionImageData: vi.fn().mockImplementation((imageSrc, regions) => {
+		const map = new Map();
+		for (const region of regions) {
+			map.set(region.name, {
+				width: region.width,
+				height: region.height,
+				data: new Uint8ClampedArray(region.width * region.height * 4),
+			});
+		}
+		return Promise.resolve(map);
+	}),
+	getRegionDataURLs: vi.fn().mockImplementation((imageSrc, regions) => {
+		const map = new Map();
+		for (const region of regions) {
+			map.set(region.name, `data:image/png;base64,region_${region.name}`);
+		}
+		return Promise.resolve(map);
+	}),
 	getScoreboardRegions: vi
 		.fn()
 		.mockReturnValue([{ name: 'region_0', x: 0, y: 0, width: 100, height: 100 }]),
 	getMatchInfoRegions: vi
 		.fn()
 		.mockReturnValue([{ name: 'region_1', x: 0, y: 0, width: 100, height: 100 }]),
+	groupRegionsByCharSet: vi.fn((regions) => {
+		const groups = new Map<string, typeof regions>();
+		for (const region of regions) {
+			const key = region.charSet || '';
+			const existing = groups.get(key) || [];
+			existing.push(region);
+			groups.set(key, existing);
+		}
+		return groups;
+	}),
+	loadImageDimensions: vi.fn().mockResolvedValue({ width: 2560, height: 1440 }),
+	partitionRegionGroups: vi.fn((charSetGroups) => {
+		const entries = [...charSetGroups.entries()].map(
+			([charSet, regions]: [string, unknown[]]) => ({
+				charSet,
+				regions,
+			})
+		);
+		const large = entries.filter(({ regions }) => regions.length > 3);
+		const small = entries.filter(({ regions }) => regions.length <= 3);
+		return { largeGroups: large, smallGroups: small };
+	}),
 }));
 
 vi.mock('#utils/postprocess', () => ({
@@ -96,6 +170,15 @@ vi.mock('#utils/postprocess', () => ({
 			date: '09/15/25 - 02:49',
 			game_mode: 'ESCORT',
 		},
+	}),
+	formatResults: vi.fn((allResults) => {
+		const ocrTextParts: string[] = [];
+		const regionResults = new Map<string, string>();
+		for (const result of allResults) {
+			ocrTextParts.push(`${result.name} (${result.confidence}%): ${result.value}`);
+			regionResults.set(result.name, result.value);
+		}
+		return { ocrTextParts, regionResults };
 	}),
 }));
 
@@ -202,7 +285,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(getByText('Pre-processed Image')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -220,7 +303,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(getByText('Raw OCR Text Output')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -238,7 +321,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(getByText('Extracted Game Stats (JSON)')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -257,7 +340,7 @@ describe('ScoreboardOCR', () => {
 					const jsonHeader = queryByText(/Extracted Game Stats \(JSON\)/);
 					expect(jsonHeader).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -275,7 +358,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(queryByText(/Raw OCR Text Output/)).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -293,7 +376,7 @@ describe('ScoreboardOCR', () => {
 				() => {
 					expect(queryByTestId('editable-game-data')).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -313,7 +396,7 @@ describe('ScoreboardOCR', () => {
 					expect(playerElement).not.toBeNull();
 					expect(playerElement?.textContent).toBe('VEQ');
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -332,7 +415,7 @@ describe('ScoreboardOCR', () => {
 					const matchInfoElement = queryByTestId('match-info-data');
 					expect(matchInfoElement?.textContent).toBe('VICTORY');
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -351,7 +434,7 @@ describe('ScoreboardOCR', () => {
 					const saveButton = queryByTestId('save-button');
 					expect(saveButton).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 	});
@@ -389,7 +472,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -427,7 +510,7 @@ describe('ScoreboardOCR', () => {
 					const processingText = queryByText(/Processing image/);
 					expect(processingText).toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -461,7 +544,7 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
 			);
 		});
 
@@ -509,7 +592,280 @@ describe('ScoreboardOCR', () => {
 					const rawText = queryByText(/Raw OCR Text Output/);
 					expect(rawText).not.toBeNull();
 				},
-				{ timeout: 3000 }
+				{ timeout: 1500 }
+			);
+		});
+	});
+
+	describe('charSet-based scheduler grouping', () => {
+		it('should create scheduler for charSet groups with more than 3 regions', async () => {
+			const { createScheduler, createWorker } = await import('tesseract.js');
+			const mockCreateScheduler = vi.mocked(createScheduler);
+			const mockCreateWorker = vi.mocked(createWorker);
+
+			mockCreateScheduler.mockClear();
+			mockCreateWorker.mockClear();
+
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure 4 regions with same charSet (should trigger scheduler creation)
+			mockGetActiveProfile.mockReturnValue([
+				{ name: 'stat_1', x: 0, y: 0, width: 50, height: 30, charSet: '0123456789' },
+				{ name: 'stat_2', x: 50, y: 0, width: 50, height: 30, charSet: '0123456789' },
+				{ name: 'stat_3', x: 100, y: 0, width: 50, height: 30, charSet: '0123456789' },
+				{ name: 'stat_4', x: 150, y: 0, width: 50, height: 30, charSet: '0123456789' },
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// Scheduler should be created for the group of 4 regions
+					expect(mockCreateScheduler).toHaveBeenCalled();
+				},
+				{ timeout: 1500 }
+			);
+		});
+
+		it('should use standalone workers for charSet groups with 3 or fewer regions', async () => {
+			const { createScheduler, createWorker } = await import('tesseract.js');
+			const mockCreateScheduler = vi.mocked(createScheduler);
+			const mockCreateWorker = vi.mocked(createWorker);
+
+			mockCreateScheduler.mockClear();
+			mockCreateWorker.mockClear();
+
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure 2 regions with same charSet (should use standalone worker)
+			mockGetActiveProfile.mockReturnValue([
+				{ name: 'stat_1', x: 0, y: 0, width: 50, height: 30, charSet: '0123456789' },
+				{ name: 'stat_2', x: 50, y: 0, width: 50, height: 30, charSet: '0123456789' },
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// Worker should be created (standalone, not via scheduler)
+					expect(mockCreateWorker).toHaveBeenCalled();
+				},
+				{ timeout: 1500 }
+			);
+		});
+
+		it('should set tessedit_char_whitelist when charSet is defined', async () => {
+			const { createWorker } = await import('tesseract.js');
+			const mockCreateWorker = vi.mocked(createWorker);
+
+			// Get the mock worker to check setParameters calls
+			const mockWorker = await mockCreateWorker();
+			const mockSetParameters = vi.mocked(mockWorker.setParameters);
+			mockSetParameters.mockClear();
+
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure region with specific charSet
+			mockGetActiveProfile.mockReturnValue([
+				{ name: 'stat_1', x: 0, y: 0, width: 50, height: 30, charSet: '0123456789' },
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// setParameters should be called with tessedit_char_whitelist
+					expect(mockSetParameters).toHaveBeenCalledWith(
+						expect.objectContaining({
+							tessedit_char_whitelist: '0123456789',
+						})
+					);
+				},
+				{ timeout: 1500 }
+			);
+		});
+
+		it('should not set tessedit_char_whitelist when charSet is empty', async () => {
+			const { createWorker } = await import('tesseract.js');
+			const mockCreateWorker = vi.mocked(createWorker);
+
+			// Get the mock worker to check setParameters calls
+			const mockWorker = await mockCreateWorker();
+			const mockSetParameters = vi.mocked(mockWorker.setParameters);
+			mockSetParameters.mockClear();
+
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure region without charSet
+			mockGetActiveProfile.mockReturnValue([
+				{ name: 'text_region', x: 0, y: 0, width: 100, height: 30 },
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// setParameters should be called without tessedit_char_whitelist
+					expect(mockSetParameters).toHaveBeenCalledWith(
+						expect.not.objectContaining({
+							tessedit_char_whitelist: expect.any(String),
+						})
+					);
+				},
+				{ timeout: 1500 }
+			);
+		});
+
+		it('should process regions with different charSets separately', async () => {
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Configure regions with different charSets
+			mockGetActiveProfile.mockReturnValue([
+				{
+					name: 'name_1',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 30,
+					charSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+				},
+				{ name: 'stat_1', x: 100, y: 0, width: 50, height: 30, charSet: '0123456789' },
+				{ name: 'stat_2', x: 150, y: 0, width: 50, height: 30, charSet: '0123456789' },
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			const { queryByText } = render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// Processing should complete successfully
+					const rawText = queryByText(/Raw OCR Text Output/);
+					expect(rawText).not.toBeNull();
+				},
+				{ timeout: 1500 }
+			);
+		});
+
+		it('should group regions without charSet under empty string key', async () => {
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Mix of regions with and without charSet
+			mockGetActiveProfile.mockReturnValue([
+				{ name: 'text_1', x: 0, y: 0, width: 100, height: 30 },
+				{ name: 'text_2', x: 100, y: 0, width: 100, height: 30, charSet: '' },
+				{ name: 'text_3', x: 200, y: 0, width: 100, height: 30, charSet: undefined },
+				{ name: 'stat_1', x: 300, y: 0, width: 50, height: 30, charSet: '0123456789' },
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			const { queryByText } = render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// Processing should complete successfully with all regions processed
+					const rawText = queryByText(/Raw OCR Text Output/);
+					expect(rawText).not.toBeNull();
+				},
+				{ timeout: 1500 }
+			);
+		});
+
+		it('should process mixed image hash and OCR regions correctly', async () => {
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const mockGetActiveProfile = vi.mocked(getActiveProfile);
+
+			// Mix of image hash and OCR regions
+			mockGetActiveProfile.mockReturnValue([
+				{
+					name: 'hero_1',
+					x: 0,
+					y: 0,
+					width: 64,
+					height: 64,
+					imgHashSet: 'hero-portraits',
+				},
+				{
+					name: 'hero_2',
+					x: 70,
+					y: 0,
+					width: 64,
+					height: 64,
+					imgHashSet: 'hero-portraits',
+				},
+				{ name: 'stat_1', x: 140, y: 0, width: 50, height: 30, charSet: '0123456789' },
+				{ name: 'stat_2', x: 200, y: 0, width: 50, height: 30, charSet: '0123456789' },
+				{
+					name: 'name_1',
+					x: 260,
+					y: 0,
+					width: 100,
+					height: 30,
+					charSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+				},
+			]);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			const { queryByText } = render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(
+				() => {
+					// Processing should complete with all regions
+					const rawText = queryByText(/Raw OCR Text Output/);
+					expect(rawText).not.toBeNull();
+				},
+				{ timeout: 1500 }
 			);
 		});
 	});
