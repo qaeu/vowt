@@ -90,7 +90,36 @@ vi.mock('#c/EditableGameData', () => ({
 // Mock the image preprocessing module
 vi.mock('#utils/preprocess', () => ({
 	preprocessImageForOCR: vi.fn().mockResolvedValue('data:image/png;base64,mockdata'),
+	preprocessRegionsForOCR: vi.fn().mockImplementation((regionImageDataMap, regions) => {
+		// Return the same map - in tests we don't need actual preprocessing
+		const preprocessedMap = new Map();
+		for (const region of regions) {
+			const imageData = regionImageDataMap.get(region.name);
+			if (imageData) {
+				preprocessedMap.set(region.name, imageData);
+			}
+		}
+		return preprocessedMap;
+	}),
 	drawRegionsOnImage: vi.fn().mockResolvedValue('data:image/png;base64,regionmockdata'),
+	getRegionImageData: vi.fn().mockImplementation((imageSrc, regions) => {
+		const map = new Map();
+		for (const region of regions) {
+			map.set(region.name, {
+				width: region.width,
+				height: region.height,
+				data: new Uint8ClampedArray(region.width * region.height * 4),
+			});
+		}
+		return Promise.resolve(map);
+	}),
+	getRegionDataURLs: vi.fn().mockImplementation((imageSrc, regions) => {
+		const map = new Map();
+		for (const region of regions) {
+			map.set(region.name, `data:image/png;base64,region_${region.name}`);
+		}
+		return Promise.resolve(map);
+	}),
 	getScoreboardRegions: vi
 		.fn()
 		.mockReturnValue([{ name: 'region_0', x: 0, y: 0, width: 100, height: 100 }]),
