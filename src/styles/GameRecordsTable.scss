@@ -14,19 +14,7 @@
 			@include theme.button(theme.$accent1);
 			flex: 1;
 
-			&.primary {
-				@include theme.button(theme.$accent1-light);
-			}
-
-			&.success {
-				@include theme.button(theme.$accent2-success);
-			}
-
-			&.warning {
-				@include theme.button(theme.$accent2-warning);
-			}
-
-			&.danger {
+			&#delete-all-records {
 				@include theme.button(theme.$accent2-error);
 			}
 		}

@@ -9,17 +9,17 @@
 		align-items: center;
 		margin-bottom: 20px;
 
-		.header-buttons {
+		.actions {
 			display: flex;
 			gap: 10px;
 
-			.region-button {
+			#show-region-profiles {
 				@include theme.button(theme.$accent1);
 				padding: 8px 16px;
 				font-size: 14px;
 			}
 
-			.close-button {
+			#close-screen {
 				@include theme.button(theme.$accent1);
 				padding: 8px 16px;
 				font-size: 14px;
