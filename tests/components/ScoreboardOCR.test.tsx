@@ -437,6 +437,169 @@ describe('ScoreboardOCR', () => {
 				{ timeout: 1500 }
 			);
 		});
+
+		describe('click-to-zoom functionality', () => {
+			it('should add expanded class to uploaded image container when clicked', async () => {
+				const testImageData = 'data:image/png;base64,testdata';
+				const { container, getByText } = render(() => (
+					<ScoreboardOCR
+						onClose={() => {}}
+						onOpenRegionManager={() => {}}
+						uploadedImage={testImageData}
+					/>
+				));
+
+				await waitFor(
+					() => {
+						expect(getByText('Pre-processed Image')).not.toBeNull();
+					},
+					{ timeout: 1500 }
+				);
+
+				const uploadedContainer = container.querySelector(
+					'.image-container:not(.expanded)'
+				);
+				expect(uploadedContainer).not.toBeNull();
+				uploadedContainer!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+				await waitFor(() => {
+					const expandedContainer = container.querySelector('.image-container.expanded');
+					expect(expandedContainer).not.toBeNull();
+				});
+			});
+
+			it('should remove expanded class when clicking expanded image again', async () => {
+				const testImageData = 'data:image/png;base64,testdata';
+				const { container, getByText } = render(() => (
+					<ScoreboardOCR
+						onClose={() => {}}
+						onOpenRegionManager={() => {}}
+						uploadedImage={testImageData}
+					/>
+				));
+
+				await waitFor(
+					() => {
+						expect(getByText('Pre-processed Image')).not.toBeNull();
+					},
+					{ timeout: 1500 }
+				);
+
+				// Click to expand
+				const imageContainers = container.querySelectorAll('.image-container');
+				const uploadedContainer = imageContainers[0];
+				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+				await waitFor(() => {
+					expect(uploadedContainer.classList.contains('expanded')).toBe(true);
+				});
+
+				// Click again to collapse
+				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+				await waitFor(() => {
+					expect(uploadedContainer.classList.contains('expanded')).toBe(false);
+				});
+			});
+
+			it('should hide other image container when one is expanded', async () => {
+				const testImageData = 'data:image/png;base64,testdata';
+				const { container, getByText } = render(() => (
+					<ScoreboardOCR
+						onClose={() => {}}
+						onOpenRegionManager={() => {}}
+						uploadedImage={testImageData}
+					/>
+				));
+
+				await waitFor(
+					() => {
+						expect(getByText('Pre-processed Image')).not.toBeNull();
+					},
+					{ timeout: 1500 }
+				);
+
+				// Click uploaded image to expand it
+				const imageContainers = container.querySelectorAll('.image-container');
+				const uploadedContainer = imageContainers[0];
+				const preprocessedContainer = imageContainers[1];
+
+				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+				await waitFor(() => {
+					expect(uploadedContainer.classList.contains('expanded')).toBe(true);
+					expect(preprocessedContainer.classList.contains('hidden')).toBe(true);
+				});
+			});
+
+			it('should show both images when collapsing from expanded state', async () => {
+				const testImageData = 'data:image/png;base64,testdata';
+				const { container, getByText } = render(() => (
+					<ScoreboardOCR
+						onClose={() => {}}
+						onOpenRegionManager={() => {}}
+						uploadedImage={testImageData}
+					/>
+				));
+
+				await waitFor(
+					() => {
+						expect(getByText('Pre-processed Image')).not.toBeNull();
+					},
+					{ timeout: 1500 }
+				);
+
+				const imageContainers = container.querySelectorAll('.image-container');
+				const uploadedContainer = imageContainers[0];
+				const preprocessedContainer = imageContainers[1];
+
+				// Click to expand
+				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+				await waitFor(() => {
+					expect(uploadedContainer.classList.contains('expanded')).toBe(true);
+				});
+
+				// Click to collapse
+				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+				await waitFor(() => {
+					expect(uploadedContainer.classList.contains('expanded')).toBe(false);
+					expect(uploadedContainer.classList.contains('hidden')).toBe(false);
+					expect(preprocessedContainer.classList.contains('expanded')).toBe(false);
+					expect(preprocessedContainer.classList.contains('hidden')).toBe(false);
+				});
+			});
+
+			it('should expand preprocessed image when clicked', async () => {
+				const testImageData = 'data:image/png;base64,testdata';
+				const { container, getByText } = render(() => (
+					<ScoreboardOCR
+						onClose={() => {}}
+						onOpenRegionManager={() => {}}
+						uploadedImage={testImageData}
+					/>
+				));
+
+				await waitFor(
+					() => {
+						expect(getByText('Pre-processed Image')).not.toBeNull();
+					},
+					{ timeout: 1500 }
+				);
+
+				const imageContainers = container.querySelectorAll('.image-container');
+				const uploadedContainer = imageContainers[0];
+				const preprocessedContainer = imageContainers[1];
+
+				preprocessedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+				await waitFor(() => {
+					expect(preprocessedContainer.classList.contains('expanded')).toBe(true);
+					expect(uploadedContainer.classList.contains('hidden')).toBe(true);
+				});
+			});
+		});
 	});
 
 	describe('image recognition integration', () => {
