@@ -13,7 +13,7 @@ import {
 
 import type { TextRegion, DrawnRegion } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
-import '#styles/EditableRegionsData';
+import '#styles/ui/EditableRegionsData';
 
 interface EditableRegionsDataProps {
 	profileId: string;

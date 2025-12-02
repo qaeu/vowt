@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, mergeProps } from 'solid-js';
 
-import '#styles/RecordFieldInput';
+import '#styles/ui/RecordFieldInput';
 
 interface RecordFieldInputProps {
 	staticId: Readonly<string>;
