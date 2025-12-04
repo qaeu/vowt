@@ -6,7 +6,6 @@ import Screen from '#c/ui/Screen';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/ui/EditableRegionsData';
-import '#styles/RegionProfileManager';
 
 const REGION_COLOUR_DEFAULT = '#ff0000';
 const REGION_COLOUR_ITALIC = '#4caf50';
@@ -259,9 +258,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 	return (
 		<Screen
-			id="region-profile-manager"
+			id="region-profile-manager-screen"
 			title="Image Region Profiles"
-			actions={() => screenActions}
+			navActions={() => screenActions}
 		>
 			<div class="info-box">
 				<p>

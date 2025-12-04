@@ -1,176 +1,154 @@
 @use 'theme';
 
-.scoreboard-container {
-	@include theme.container;
+@layer screen {
+	#scoreboard-ocr-screen {
+		@include theme.container;
 
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 20px;
-
-		.actions {
-			display: flex;
-			gap: 10px;
-
-			#show-region-profiles {
-				@include theme.button(theme.$accent1);
-				padding: 8px 16px;
-				font-size: 14px;
-			}
-
-			#close-screen {
-				@include theme.button(theme.$accent1);
-				padding: 8px 16px;
-				font-size: 14px;
-			}
-		}
-	}
-
-	.scoreboard-title {
-		color: theme.$accent1;
-	}
-
-	.upload-button {
-		@include theme.button(theme.$accent2-success);
-	}
-
-	.info-box {
-		@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
-	}
-
-	.error-box {
-		@include theme.info-box(theme.$accent2-error-light, theme.$accent2-error-border);
-
-		color: theme.$accent2-error-dark;
-	}
-
-	.progress-container {
-		margin-bottom: 30px;
-
-		.progress-text {
-			font-weight: bold;
+		.scoreboard-title {
 			color: theme.$accent1;
 		}
 
-		.progress-bar-wrapper {
-			@include theme.progress-bar-wrapper;
+		.upload-button {
+			@include theme.button(theme.$accent2-success);
 		}
 
-		.progress-bar {
-			@include theme.progress-bar-fill;
-		}
-	}
-
-	.image-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 30px;
-	}
-
-	.image-container {
-		@include theme.card(theme.$background);
-
-		cursor: pointer;
-
-		&.expanded {
-			grid-column: 1 / -1;
+		.info-box {
+			@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
 		}
 
-		&.hidden {
-			display: none;
+		.error-box {
+			@include theme.info-box(theme.$accent2-error-light, theme.$accent2-error-border);
+
+			color: theme.$accent2-error-dark;
 		}
 
-		h2 {
-			margin-top: 0;
-			color: theme.$foreground-dark;
+		.progress-container {
+			margin-bottom: 30px;
+
+			.progress-text {
+				font-weight: bold;
+				color: theme.$accent1;
+			}
+
+			.progress-bar-wrapper {
+				@include theme.progress-bar-wrapper;
+			}
+
+			.progress-bar {
+				@include theme.progress-bar-fill;
+			}
 		}
 
-		img {
-			max-width: 100%;
-			border: 2px solid theme.$border-light;
-			border-radius: 4px;
-			display: block;
+		.image-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 30px;
 		}
 
-		p {
-			font-size: 13px;
-			color: theme.$foreground-light;
-			margin-top: 10px;
-		}
-	}
+		.image-container {
+			@include theme.card(theme.$background);
 
-	.ocr-output-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 30px;
-		margin-top: 60px;
-	}
+			cursor: pointer;
 
-	.stats-box {
-		@include theme.card(theme.$accent2-success-light);
+			&.expanded {
+				grid-column: 1 / -1;
+			}
 
-		h2 {
-			margin-top: 0;
-			margin-bottom: 15px;
-			color: theme.$accent2-success;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-		}
+			&.hidden {
+				display: none;
+			}
 
-		span {
-			font-size: 20px;
-		}
+			h2 {
+				margin-top: 0;
+				color: theme.$foreground-dark;
+			}
 
-		.scrollable-content {
-			max-height: 400px;
-			overflow-y: auto;
+			img {
+				max-width: 100%;
+				border: 2px solid theme.$border-light;
+				border-radius: 4px;
+				display: block;
+			}
+
+			p {
+				font-size: 13px;
+				color: theme.$foreground-light;
+				margin-top: 10px;
+			}
 		}
 
-		pre {
-			@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
-
-			font-size: 14px;
-			padding: 15px;
-			margin: 0;
+		.ocr-output-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 30px;
+			margin-top: 60px;
 		}
 
-		.stats-message {
-			font-size: 13px;
-			color: theme.$accent2-success;
-			margin-top: 15px;
-			margin-bottom: 0;
+		.stats-box {
+			@include theme.card(theme.$accent2-success-light);
+
+			h2 {
+				margin-top: 0;
+				margin-bottom: 15px;
+				color: theme.$accent2-success;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			span {
+				font-size: 20px;
+			}
+
+			.scrollable-content {
+				max-height: 400px;
+				overflow-y: auto;
+			}
+
+			pre {
+				@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
+
+				font-size: 14px;
+				padding: 15px;
+				margin: 0;
+			}
+
+			.stats-message {
+				font-size: 13px;
+				color: theme.$accent2-success;
+				margin-top: 15px;
+				margin-bottom: 0;
+			}
 		}
-	}
 
-	.ocr-output-box {
-		@include theme.card(theme.$background);
+		.ocr-output-box {
+			@include theme.card(theme.$background);
 
-		h2 {
-			margin-top: 0;
-			margin-bottom: 15px;
-			color: theme.$foreground-dark;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-		}
+			h2 {
+				margin-top: 0;
+				margin-bottom: 15px;
+				color: theme.$foreground-dark;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
 
-		span {
-			font-size: 20px;
-		}
+			span {
+				font-size: 20px;
+			}
 
-		.scrollable-content {
-			max-height: 400px;
-			overflow-y: auto;
-		}
+			.scrollable-content {
+				max-height: 400px;
+				overflow-y: auto;
+			}
 
-		pre {
-			@include theme.code-block(theme.$background-light, theme.$border-light);
+			pre {
+				@include theme.code-block(theme.$background-light, theme.$border-light);
 
-			font-size: 14px;
-			padding: 15px;
-			margin: 0;
+				font-size: 14px;
+				padding: 15px;
+				margin: 0;
+			}
 		}
 	}
 }

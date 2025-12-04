@@ -1,251 +1,235 @@
 @use 'theme';
 
-.region-profile-manager-container {
-	@include theme.container;
+@layer screen {
+	#region-profile-manager-screen {
+		@include theme.container;
 
-	&.dragging {
-		background-color: rgba(theme.$accent1, 0.02);
-	}
-
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-
-		.actions button {
-			@include theme.button(theme.$foreground-light);
-			padding: 8px 16px;
-			font-size: 14px;
-		}
-	}
-
-	.info-box {
-		@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
-		margin-bottom: 30px;
-	}
-
-	.manager-layout {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 10px;
-		margin-bottom: 30px;
-	}
-
-	.section {
-		@include theme.card(theme.$background);
-		border: 1px solid theme.$border-light;
-		padding: 20px;
-		border-radius: 8px;
-
-		h2 {
-			color: theme.$foreground;
+		&.dragging {
+			background-color: rgba(theme.$accent1, 0.02);
 		}
 
-		h3 {
-			color: theme.$foreground;
+		.info-box {
+			@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
+			margin-bottom: 30px;
 		}
-	}
 
-	.button-group {
-		display: flex;
-		gap: 10px;
-		flex-wrap: wrap;
-
-		button {
-			@include theme.button(theme.$accent1);
-			flex: 1;
-			min-width: 120px;
-
-			&.action-btn.active:not(:disabled) {
-				background-color: theme.$accent2-success;
-				color: white;
-				border-color: theme.$accent2-success;
-			}
-
-			&.action-btn.delete {
-				@include theme.button(theme.$accent2-error);
-			}
-
-			&.save-profile {
-				@include theme.button(theme.$accent2-success);
-			}
-
-			&.clear-regions {
-				@include theme.button(theme.$accent2-error);
-			}
+		.manager-layout {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 10px;
+			margin-bottom: 30px;
 		}
-	}
 
-	.canvas-wrapper {
-		@include theme.card(theme.$background);
-		border: 2px solid theme.$accent1;
-		margin: 20px 0;
-		border-radius: 4px;
-		overflow: hidden;
-		position: relative;
-
-		canvas {
-			display: block;
-			width: 100%;
+		.section {
+			@include theme.card(theme.$background);
 			border: 1px solid theme.$border-light;
-			border-radius: 4px;
-		}
+			padding: 20px;
+			border-radius: 8px;
 
-		.drag-overlay {
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background-color: rgba(theme.$accent1, 0.1);
-			border: 2px dashed theme.$accent1;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 18px;
-			font-weight: 600;
-			color: theme.$accent1;
-			pointer-events: none;
-		}
-	}
-
-	.regions-display {
-		@include theme.card(theme.$accent2-success-light);
-		border: 1px solid theme.$accent2-success-border;
-		border-radius: 4px;
-		padding: 15px;
-		margin-top: 20px;
-
-		h3 {
-			color: theme.$accent2-success;
-		}
-
-		pre {
-			@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
-			font-size: 11px;
-			line-height: 1.4;
-			max-height: 300px;
-			overflow-y: auto;
-		}
-	}
-
-	.profile-actions {
-		display: flex;
-		flex-direction: column;
-		gap: 15px;
-	}
-
-	.input-label {
-		display: block;
-		font-size: 13px;
-		font-weight: 600;
-		color: theme.$foreground;
-		margin-bottom: 6px;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-	}
-
-	.profile-input {
-		width: 100%;
-		border: 0;
-		padding: 12px;
-		font-size: 14px;
-		box-sizing: border-box;
-		background-color: transparent;
-		color: theme.$foreground;
-		transition: all 0.15s ease;
-
-		&:hover {
-			background-color: theme.$background-alt;
-			border-color: theme.$border-light;
-		}
-
-		&:focus {
-			outline: none;
-			background-color: theme.$background-light;
-			border-color: theme.$accent1;
-			box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
-		}
-
-		&:disabled,
-		&.disabled {
-			background-color: theme.$background;
-			color: theme.$accent1-light;
-			cursor: not-allowed;
-		}
-	}
-
-	.profile-textarea {
-		width: 100%;
-		border: 0;
-		padding: 12px;
-		box-sizing: border-box;
-		background-color: transparent;
-		color: theme.$foreground;
-		min-height: 80px;
-		resize: vertical;
-		transition: all 0.15s ease;
-
-		&:hover {
-			background-color: theme.$background-alt;
-			border-color: theme.$border-light;
-		}
-
-		&:focus {
-			outline: none;
-			background-color: theme.$background-light;
-			border-color: theme.$accent1;
-			box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
-		}
-	}
-
-	.profiles-list {
-		display: flex;
-		flex-direction: column;
-		gap: 15px;
-	}
-
-	.profile-card {
-		@include theme.card(theme.$background-light);
-
-		margin-bottom: 15px;
-		border: 2px solid theme.$border-light;
-		border-radius: 8px;
-		padding: 15px;
-		transition: all 0.2s ease;
-
-		&:hover {
-			border-color: theme.$accent1;
-			box-shadow: 0 2px 8px rgba(theme.$accent1, 0.1);
-		}
-
-		&.active {
-			border-color: theme.$accent2-success;
-			background-color: rgba(theme.$accent2-success, 0.05);
-		}
-
-		.profile-header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
+			h2 {
+				color: theme.$foreground;
+			}
 
 			h3 {
-				flex: 1;
+				color: theme.$foreground;
 			}
 		}
 
-		.profile-description {
-			margin: 0 0 22px;
-			font-size: 13px;
-			color: theme.$accent1-light;
-			min-height: 18px;
-		}
-	}
+		.button-group {
+			flex-wrap: wrap;
 
-	.empty-state {
-		text-align: center;
-		color: theme.$accent1-light;
-		padding: 40px 20px;
-		font-style: italic;
+			button {
+				&.action-btn.active:not(:disabled) {
+					background-color: theme.$accent2-success;
+					color: white;
+					border-color: theme.$accent2-success;
+				}
+
+				&.action-btn.delete {
+					@include theme.button(theme.$accent2-error);
+				}
+
+				&.save-profile {
+					@include theme.button(theme.$accent2-success);
+				}
+
+				&.clear-regions {
+					@include theme.button(theme.$accent2-error);
+				}
+			}
+		}
+
+		.canvas-wrapper {
+			@include theme.card(theme.$background);
+			border: 2px solid theme.$accent1;
+			margin: 20px 0;
+			border-radius: 4px;
+			overflow: hidden;
+			position: relative;
+
+			canvas {
+				display: block;
+				width: 100%;
+				border: 1px solid theme.$border-light;
+				border-radius: 4px;
+			}
+
+			.drag-overlay {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: rgba(theme.$accent1, 0.1);
+				border: 2px dashed theme.$accent1;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 18px;
+				font-weight: 600;
+				color: theme.$accent1;
+				pointer-events: none;
+			}
+		}
+
+		.regions-display {
+			@include theme.card(theme.$accent2-success-light);
+			border: 1px solid theme.$accent2-success-border;
+			border-radius: 4px;
+			padding: 15px;
+			margin-top: 20px;
+
+			h3 {
+				color: theme.$accent2-success;
+			}
+
+			pre {
+				@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
+				font-size: 11px;
+				line-height: 1.4;
+				max-height: 300px;
+				overflow-y: auto;
+			}
+		}
+
+		.profile-actions {
+			display: flex;
+			flex-direction: column;
+			gap: 15px;
+		}
+
+		.input-label {
+			display: block;
+			font-size: 13px;
+			font-weight: 600;
+			color: theme.$foreground;
+			margin-bottom: 6px;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+
+		.profile-input {
+			width: 100%;
+			border: 0;
+			padding: 12px;
+			font-size: 14px;
+			box-sizing: border-box;
+			background-color: transparent;
+			color: theme.$foreground;
+			transition: all 0.15s ease;
+
+			&:hover {
+				background-color: theme.$background-alt;
+				border-color: theme.$border-light;
+			}
+
+			&:focus {
+				outline: none;
+				background-color: theme.$background-light;
+				border-color: theme.$accent1;
+				box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
+			}
+
+			&:disabled,
+			&.disabled {
+				background-color: theme.$background;
+				color: theme.$accent1-light;
+				cursor: not-allowed;
+			}
+		}
+
+		.profile-textarea {
+			width: 100%;
+			border: 0;
+			padding: 12px;
+			box-sizing: border-box;
+			background-color: transparent;
+			color: theme.$foreground;
+			min-height: 80px;
+			resize: vertical;
+			transition: all 0.15s ease;
+
+			&:hover {
+				background-color: theme.$background-alt;
+				border-color: theme.$border-light;
+			}
+
+			&:focus {
+				outline: none;
+				background-color: theme.$background-light;
+				border-color: theme.$accent1;
+				box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
+			}
+		}
+
+		.profiles-list {
+			display: flex;
+			flex-direction: column;
+			gap: 15px;
+		}
+
+		.profile-card {
+			@include theme.card(theme.$background-light);
+
+			margin-bottom: 15px;
+			border: 2px solid theme.$border-light;
+			border-radius: 8px;
+			padding: 15px;
+			transition: all 0.2s ease;
+
+			&:hover {
+				border-color: theme.$accent1;
+				box-shadow: 0 2px 8px rgba(theme.$accent1, 0.1);
+			}
+
+			&.active {
+				border-color: theme.$accent2-success;
+				background-color: rgba(theme.$accent2-success, 0.05);
+			}
+
+			.profile-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+
+				h3 {
+					flex: 1;
+				}
+			}
+
+			.profile-description {
+				margin: 0 0 22px;
+				font-size: 13px;
+				color: theme.$accent1-light;
+				min-height: 18px;
+			}
+		}
+
+		.empty-state {
+			text-align: center;
+			color: theme.$accent1-light;
+			padding: 40px 20px;
+			font-style: italic;
+		}
 	}
 }

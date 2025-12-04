@@ -1,135 +1,137 @@
 @use '../theme';
 
-.editable-data-container {
-	@include theme.card(theme.$background-light);
+@layer ui {
+	.editable-data-container {
+		@include theme.card(theme.$background-light);
 
-	margin-bottom: 30px;
-
-	.editable-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 20px;
-		flex-wrap: wrap;
-		gap: 15px;
-
-		h2 {
-			margin: 0;
-			color: theme.$accent1;
-		}
-
-		.action-buttons {
-			display: flex;
-			gap: 10px;
-
-			.save-button {
-				@include theme.button(theme.$accent2-success);
-			}
-
-			.cancel-button {
-				@include theme.button(theme.$foreground-light);
-			}
-		}
-	}
-
-	h3 {
-		margin-top: 0;
-		margin-bottom: 15px;
-		color: theme.$foreground-dark;
-	}
-
-	.match-info-edit {
 		margin-bottom: 30px;
 
-		.form-grid {
+		.editable-header {
 			display: flex;
-			flex-flow: row wrap;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
 			gap: 15px;
 
-			.form-group {
-				min-width: 120px;
+			h2 {
+				margin: 0;
+				color: theme.$accent1;
+			}
+
+			.button-group {
+				max-width: calc(66% - 40px);
+
+				button {
+					flex: 0 0 150px;
+					padding: 11px 18px;
+
+					&.save-button {
+						@include theme.button(theme.$accent2-success);
+					}
+				}
+			}
+		}
+
+		h3 {
+			margin-top: 0;
+			margin-bottom: 15px;
+			color: theme.$foreground-dark;
+		}
+
+		.match-info-edit {
+			margin-bottom: 30px;
+
+			.form-grid {
 				display: flex;
-				flex-direction: column;
-				flex: 2;
+				flex-flow: row wrap;
+				gap: 15px;
 
-				&.score-field {
-					flex: 1;
-				}
+				.form-group {
+					min-width: 120px;
+					display: flex;
+					flex-direction: column;
+					flex: 2;
 
-				label {
-					height: 100%;
-					font-weight: bold;
-					margin-bottom: 5px;
-					padding: 4px 12px;
-					color: theme.$foreground-dark;
-					font-size: 13px;
-				}
-			}
-		}
-	}
-	.players-edit {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 20px;
+					&.score-field {
+						flex: 1;
+					}
 
-		@media (max-width: 1200px) {
-			grid-template-columns: 1fr;
-		}
-
-		.team-section {
-			h4 {
-				margin-top: 0;
-				margin-bottom: 10px;
-
-				&.blue-team {
-					color: theme.$accent1;
-				}
-
-				&.red-team {
-					color: theme.$accent2-error;
+					label {
+						height: 100%;
+						font-weight: bold;
+						margin-bottom: 5px;
+						padding: 4px 12px;
+						color: theme.$foreground-dark;
+						font-size: 13px;
+					}
 				}
 			}
 		}
-	}
+		.players-edit {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 20px;
 
-	.table-wrapper table {
-		width: 100%;
-		border-collapse: collapse;
-
-		thead tr {
-			background-color: theme.$background;
-			border-bottom: 2px solid theme.$border-default;
-
-			th.hero-column,
-			th.name-column {
-				text-align: left;
+			@media (max-width: 1200px) {
+				grid-template-columns: 1fr;
 			}
-			th {
-				padding: 12px;
-				text-align: right;
-				font-size: 14px;
-				font-weight: 600;
-				color: theme.$foreground-dark;
+
+			.team-section {
+				h4 {
+					margin-top: 0;
+					margin-bottom: 10px;
+
+					&.blue-team {
+						color: theme.$accent1;
+					}
+
+					&.red-team {
+						color: theme.$accent2-error;
+					}
+				}
 			}
 		}
 
-		tbody tr {
-			border-bottom: 1px solid theme.$border-light;
+		.table-wrapper table {
+			width: 100%;
+			border-collapse: collapse;
 
-			td {
-				padding: 0;
+			thead tr {
+				background-color: theme.$background;
+				border-bottom: 2px solid theme.$border-default;
 
-				&.name-column {
-					width: 23%;
-				}
-				&.hero-column input,
-				&.name-column input {
+				th.hero-column,
+				th.name-column {
 					text-align: left;
 				}
-
-				input {
-					width: 100%;
+				th {
+					padding: 12px;
 					text-align: right;
+					font-size: 14px;
+					font-weight: 600;
+					color: theme.$foreground-dark;
+				}
+			}
+
+			tbody tr {
+				border-bottom: 1px solid theme.$border-light;
+
+				td {
+					padding: 0;
+
+					&.name-column {
+						width: 23%;
+					}
+					&.hero-column input,
+					&.name-column input {
+						text-align: left;
+					}
+
+					input {
+						width: 100%;
+						text-align: right;
+					}
 				}
 			}
 		}

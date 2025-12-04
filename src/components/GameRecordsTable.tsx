@@ -12,7 +12,6 @@ import {
 	exportGameRecords,
 	importGameRecords,
 } from '#utils/gameStorage';
-import '#styles/GameRecordsTable';
 
 interface GameRecordsTableProps {
 	onUploadClick: () => void;
@@ -139,7 +138,11 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	};
 
 	return (
-		<Screen id="records" title="Game History" actions={() => screenActions}>
+		<Screen
+			id="game-records-screen"
+			title="Game History"
+			screenActions={() => screenActions}
+		>
 			<Show when={!records() || records().length === 0}>
 				<div class="empty-state">
 					<p>No game records found</p>

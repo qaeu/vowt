@@ -27,7 +27,6 @@ import { extractGameStats, formatResults } from '#utils/postprocess';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
-import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
 	uploadedImage?: string | null;
@@ -464,7 +463,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	return (
-		<Screen id="scoreboard" title="Image Processing" actions={() => screenActions}>
+		<Screen
+			id="scoreboard-ocr-screen"
+			title="Image Processing"
+			navActions={() => screenActions}
+		>
 			<Show when={error()}>
 				<div class="error-box">
 					<strong>Error:</strong> {error()}
