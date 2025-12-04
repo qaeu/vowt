@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@solidjs/testing-library';
 
 import type { DrawnRegion } from '#types';
-import EditableRegionsData from '#c/EditableRegionsData';
+import EditableRegionsData from '#c/ui/EditableRegionsData';
 
 describe('EditableRegionsData', () => {
 	const mockRegions: DrawnRegion[] = [

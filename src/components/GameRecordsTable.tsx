@@ -1,7 +1,9 @@
-import { createSignal, onMount, For, Show, type Component } from 'solid-js';
+import type { Component } from 'solid-js';
+import { createSignal, onMount, For, Show } from 'solid-js';
 
-import type { GameRecord, PlayerStats, MatchInfo } from '#types';
-import EditableGameData from '#c/EditableGameData';
+import type { ScreenAction, GameRecord, PlayerStats, MatchInfo } from '#types';
+import Screen from '#c/ui/Screen';
+import EditableGameData from '#c/ui/EditableGameData';
 import {
 	loadGameRecords,
 	deleteGameRecord,
@@ -10,7 +12,6 @@ import {
 	exportGameRecords,
 	importGameRecords,
 } from '#utils/gameStorage';
-import '#styles/GameRecordsTable';
 
 interface GameRecordsTableProps {
 	onUploadClick: () => void;
@@ -20,13 +21,38 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [records, setRecords] = createSignal<GameRecord[]>([]);
 	const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(null);
 
-	const loadRecords = () => {
-		setRecords(loadGameRecords());
-	};
+	const screenActions: ScreenAction[] = [
+		{
+			id: 'upload-screenshot',
+			text: 'Upload Screenshot',
+			onClick: () => props.onUploadClick(),
+		},
+		{
+			id: 'export-records',
+			text: 'Export Records',
+			onClick: () => handleExport(),
+			opts: () => ({ disabled: records().length === 0 }),
+		},
+		{
+			id: 'import-records',
+			text: 'Import Records',
+			onClick: () => handleImport(),
+		},
+		{
+			id: 'delete-all-records',
+			text: 'Delete All',
+			onClick: () => handleClearAll(),
+			opts: () => ({ disabled: records().length === 0 }),
+		},
+	];
 
 	onMount(() => {
 		loadRecords();
 	});
+
+	const loadRecords = () => {
+		setRecords(loadGameRecords());
+	};
 
 	const handleDelete = (id: string) => {
 		if (confirm('Are you sure you want to delete this game record?')) {
@@ -112,26 +138,11 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	};
 
 	return (
-		<div class="records-container">
-			<header>
-				<h1>Game History</h1>
-			</header>
-
-			<div class="button-group">
-				<button onClick={() => props.onUploadClick()} class="primary">
-					Upload Screenshot
-				</button>
-				<button onClick={handleExport} class="primary" disabled={!records()}>
-					Export Records
-				</button>
-				<button onClick={handleImport} class="primary">
-					Import Records
-				</button>
-				<button onClick={handleClearAll} class="danger" disabled={!records()}>
-					Delete All
-				</button>
-			</div>
-
+		<Screen
+			id="game-records-screen"
+			title="Game History"
+			screenActions={() => screenActions}
+		>
 			<Show when={!records() || records().length === 0}>
 				<div class="empty-state">
 					<p>No game records found</p>
@@ -207,7 +218,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 					</table>
 				</div>
 			</Show>
-		</div>
+		</Screen>
 	);
 };
 

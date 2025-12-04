@@ -1,55 +1,52 @@
-@use 'theme';
+@use '../theme';
 
-.editable-regions-container {
-	margin-top: 20px;
+@layer ui {
+	.editable-regions-container {
+		margin-top: 20px;
 
-	.editable-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 15px;
-		flex-wrap: wrap;
-		gap: 15px;
-
-		h3 {
-			margin: 0;
-			color: theme.$foreground-dark;
-		}
-
-		.action-buttons {
+		.editable-header {
 			display: flex;
-			gap: 10px;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15px;
+			flex-wrap: wrap;
+			gap: 15px;
 
-			.cancel-button {
+			h3 {
+				margin: 0;
+				color: theme.$foreground-dark;
+			}
+
+			.action-buttons .cancel-button {
 				@include theme.button(theme.$foreground-light);
 			}
 		}
-	}
 
-	.empty-state {
-		padding: 20px;
-		text-align: center;
-		color: theme.$foreground-light;
-		background-color: theme.$background-alt;
-		border-radius: 4px;
+		.empty-state {
+			padding: 20px;
+			text-align: center;
+			color: theme.$foreground-light;
+			background-color: theme.$background-alt;
+			border-radius: 4px;
 
-		p {
-			margin: 0;
+			p {
+				margin: 0;
+			}
 		}
-	}
 
-	.table-wrapper {
-		max-height: 400px;
-		overflow-x: auto;
-		overflow-y: auto;
-		border: 1px solid theme.$border-light;
-		border-radius: 4px;
+		.table-wrapper {
+			max-height: 400px;
+			overflow-x: auto;
+			overflow-y: auto;
+			border: 1px solid theme.$border-light;
+			border-radius: 4px;
 
-		table {
-			width: 100%;
-			border-collapse: collapse;
-			font-size: 13px;
-			background-color: theme.$background-light;
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 13px;
+				background-color: theme.$background-light;
+			}
 
 			thead tr {
 				background-color: theme.$background;

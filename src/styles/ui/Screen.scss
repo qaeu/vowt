@@ -1,0 +1,38 @@
+@use '../theme';
+
+@layer ui {
+	.screen {
+		header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 20px;
+
+			h1 {
+				margin: 0;
+				color: theme.$foreground;
+			}
+		}
+
+		:where(section.button-group, header) button {
+			font-size: 14px;
+		}
+
+		.nav-actions {
+			flex-wrap: wrap;
+			max-width: calc(66% - 40px);
+			justify-content: right;
+
+			button {
+				flex: 0 0 150px;
+				padding: 11px 18px;
+				text-wrap: nowrap;
+				text-align: left;
+			}
+		}
+
+		.screen-actions {
+			margin-bottom: 10px;
+		}
+	}
+}

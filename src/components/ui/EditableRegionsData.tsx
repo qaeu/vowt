@@ -12,8 +12,7 @@ import {
 } from 'solid-js';
 
 import type { TextRegion, DrawnRegion } from '#types';
-import RecordFieldInput from '#c/RecordFieldInput';
-import '#styles/EditableRegionsData';
+import RecordFieldInput from '#c/ui/RecordFieldInput';
 
 interface EditableRegionsDataProps {
 	profileId: string;
@@ -214,7 +213,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 			<div class="editable-header">
 				<h3>Drawn Regions ({editableRegionIds().length})</h3>
 
-				<div class="action-buttons">
+				<div class="button-group">
 					<Show when={hasUnsavedChanges()}>
 						<button onClick={handleCancel} class="cancel-button">
 							Cancel Changes

@@ -13,6 +13,7 @@ vi.mock('#utils/gameStorage', () => ({
 	clearAllGameRecords: vi.fn(),
 	exportGameRecords: vi.fn(),
 	importGameRecords: vi.fn(),
+	PLAYER_STATS_NUMBER_FIELD_NAMES: ['e', 'a', 'd', 'dmg', 'h', 'mit'],
 }));
 
 interface EditableGameDataProps {
@@ -22,13 +23,15 @@ interface EditableGameDataProps {
 }
 
 // Mock EditableGameData component
-vi.mock('#c/EditableGameData', () => ({
+vi.mock('#c/ui/EditableGameData', () => ({
 	default: (props: EditableGameDataProps) => (
 		<div data-testid="editable-game-data">
-			<div data-testid="players-count">{props.initialPlayers.length} players</div>
-			<div data-testid="match-result">{props.initialMatchInfo.result}</div>
+			<div data-testid="players-count">{props.initialPlayers?.length || 0} players</div>
+			<div data-testid="match-result">{props.initialMatchInfo?.result || 'unknown'}</div>
 			<button
-				onClick={() => props.onSave(props.initialPlayers, props.initialMatchInfo)}
+				onClick={() =>
+					props.onSave?.(props.initialPlayers || [], props.initialMatchInfo || {})
+				}
 				data-testid="save-edits-button"
 			>
 				Save Edits
@@ -306,16 +309,16 @@ describe('GameRecordsTable', () => {
 		expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
 	});
 
-	it('should disable export button when records undefined', () => {
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+	it('should disable export button when no records exist', () => {
+		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue([]);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const exportButton = screen.getByText(/Export/);
 		expect((exportButton as HTMLButtonElement).disabled).toBe(true);
 	});
 
-	it('should disable clear all button when records undefined', () => {
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+	it('should disable clear all button when no records exist', () => {
+		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue([]);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);

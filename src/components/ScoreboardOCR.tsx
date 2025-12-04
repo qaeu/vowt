@@ -1,11 +1,5 @@
-import {
-	createSignal,
-	onMount,
-	onCleanup,
-	createEffect,
-	Show,
-	type Component,
-} from 'solid-js';
+import type { Component } from 'solid-js';
+import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 
 import type {
@@ -16,7 +10,8 @@ import type {
 	ImageHashSet,
 	RecognitionResult,
 } from '#types';
-import EditableGameData from '#c/EditableGameData';
+import Screen from '#c/ui/Screen';
+import EditableGameData from '#c/ui/EditableGameData';
 import {
 	preprocessImageForOCR,
 	preprocessRegionsForOCR,
@@ -32,7 +27,6 @@ import { extractGameStats, formatResults } from '#utils/postprocess';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
-import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
 	uploadedImage?: string | null;
@@ -56,6 +50,19 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [expandedImage, setExpandedImage] = createSignal<
 		'uploaded' | 'preprocessed' | null
 	>(null);
+
+	const screenActions = [
+		{
+			id: 'show-region-profiles',
+			text: 'Region Profiles',
+			onClick: () => props.onOpenRegionManager(),
+		},
+		{
+			id: 'close-screen',
+			text: '✕ Close',
+			onClick: () => props.onClose(),
+		},
+	];
 
 	let recordId: string;
 	let activeSchedulers: Tesseract.Scheduler[] = [];
@@ -456,30 +463,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	return (
-		<div class="scoreboard-container">
-			<header>
-				<h1>Image Processing</h1>
-
-				<div class="header-buttons">
-					<button
-						onClick={() => {
-							props.onOpenRegionManager();
-						}}
-						class="region-button"
-					>
-						Region Profiles
-					</button>
-					<button
-						onClick={() => {
-							props.onClose();
-						}}
-						class="close-button"
-					>
-						✕ Close
-					</button>
-				</div>
-			</header>
-
+		<Screen
+			id="scoreboard-ocr-screen"
+			title="Image Processing"
+			navActions={() => screenActions}
+		>
 			<Show when={error()}>
 				<div class="error-box">
 					<strong>Error:</strong> {error()}
@@ -520,9 +508,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 							hidden: expandedImage() === 'uploaded',
 						}}
 						onClick={() =>
-							setExpandedImage(
-								expandedImage() === 'preprocessed' ? null : 'preprocessed'
-							)
+							setExpandedImage(expandedImage() === 'preprocessed' ? null : 'preprocessed')
 						}
 					>
 						<h2>Pre-processed Image</h2>
@@ -578,7 +564,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 					</div>
 				</Show>
 			</div>
-		</div>
+		</Screen>
 	);
 };
 

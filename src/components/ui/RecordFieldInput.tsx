@@ -1,6 +1,5 @@
-import { createSignal, onMount, mergeProps, type Component } from 'solid-js';
-
-import '#styles/RecordFieldInput';
+import type { Component } from 'solid-js';
+import { createSignal, onMount, mergeProps } from 'solid-js';
 
 interface RecordFieldInputProps {
 	staticId: Readonly<string>;

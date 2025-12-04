@@ -63,7 +63,7 @@ vi.mock('tesseract.js', () => {
 });
 
 // Mock EditableGameData component
-vi.mock('#c/EditableGameData', () => ({
+vi.mock('#c/ui/EditableGameData', () => ({
 	default: (props: {
 		initialPlayers?: Array<{ name: string }>;
 		initialMatchInfo: { result: string };
@@ -204,6 +204,12 @@ vi.mock('#data/hashSets', () => ({
 			updatedAt: new Date(),
 		},
 	],
+}));
+
+// Mock gameStorage module
+vi.mock('#utils/gameStorage', () => ({
+	saveGameRecord: vi.fn().mockReturnValue('game_123'),
+	updateGameRecord: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('ScoreboardOCR', () => {

@@ -24,8 +24,8 @@ const App: Component = () => {
 		e.preventDefault();
 		e.stopPropagation();
 		if (
-			e.dataTransfer?.items[0]?.kind === 'file' &&
-			e.dataTransfer.items[0].type.startsWith('image/')
+			e.dataTransfer?.items[0]?.kind === 'file'
+			&& e.dataTransfer.items[0].type.startsWith('image/')
 		) {
 			setIsDragging(true);
 		}
@@ -77,7 +77,7 @@ const App: Component = () => {
 	};
 
 	return (
-		<main>
+		<div>
 			{isDragging() && (
 				<div class="drag-overlay">
 					<div class="drag-overlay-content">
@@ -106,7 +106,7 @@ const App: Component = () => {
 					/>
 				</Match>
 			</Switch>
-		</main>
+		</div>
 	);
 };
 
