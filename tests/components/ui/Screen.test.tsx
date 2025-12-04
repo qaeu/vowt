@@ -5,50 +5,70 @@ import Screen from '#c/ui/Screen';
 import type { ScreenAction } from '#types';
 
 describe('Screen', () => {
-	it('should render the component with correct ID and container class', () => {
-		const actions: ScreenAction[] = [];
-		render(() => <Screen id="test-screen" title="Test Screen" actions={() => actions} />);
+	it('should render the component with correct ID and screen class', () => {
+		render(() => <Screen id="test-screen" title="Test Screen" />);
 
-		const container = document.querySelector('.test-screen-container');
+		const container = document.querySelector('#test-screen.screen');
 		expect(container).toBeDefined();
 	});
 
 	it('should display the screen title in the header', () => {
-		const actions: ScreenAction[] = [];
-		render(() => (
-			<Screen id="test-screen" title="My Test Screen" actions={() => actions} />
-		));
+		render(() => <Screen id="test-screen" title="My Test Screen" />);
 
 		expect(screen.getByText('My Test Screen')).toBeDefined();
 	});
 
-	it('should render action buttons with correct text', () => {
-		const actions: ScreenAction[] = [
+	it('should render nav action buttons with correct text', () => {
+		const navActions: ScreenAction[] = [
 			{
-				id: 'action-1',
-				text: 'Action 1',
+				id: 'nav-action-1',
+				text: 'Nav 1',
 				onClick: vi.fn(),
 			},
 			{
-				id: 'action-2',
-				text: 'Action 2',
+				id: 'nav-action-2',
+				text: 'Nav 2',
 				onClick: vi.fn(),
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => <Screen id="test-screen" title="Test" navActions={() => navActions} />);
 
-		expect(screen.getByText('Action 1')).toBeDefined();
-		expect(screen.getByText('Action 2')).toBeDefined();
+		expect(screen.getByText('Nav 1')).toBeDefined();
+		expect(screen.getByText('Nav 2')).toBeDefined();
+	});
+
+	it('should render screen action buttons with correct text', () => {
+		const screenActions: ScreenAction[] = [
+			{
+				id: 'screen-action-1',
+				text: 'Screen Action 1',
+				onClick: vi.fn(),
+			},
+			{
+				id: 'screen-action-2',
+				text: 'Screen Action 2',
+				onClick: vi.fn(),
+			},
+		];
+
+		render(() => (
+			<Screen id="test-screen" title="Test" screenActions={() => screenActions} />
+		));
+
+		expect(screen.getByText('Screen Action 1')).toBeDefined();
+		expect(screen.getByText('Screen Action 2')).toBeDefined();
 	});
 
 	it('should render buttons with correct IDs', () => {
-		const actions: ScreenAction[] = [
+		const navActions: ScreenAction[] = [
 			{
 				id: 'upload-btn',
 				text: 'Upload',
 				onClick: vi.fn(),
 			},
+		];
+		const screenActions: ScreenAction[] = [
 			{
 				id: 'export-btn',
 				text: 'Export',
@@ -56,15 +76,22 @@ describe('Screen', () => {
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => (
+			<Screen
+				id="test-screen"
+				title="Test"
+				navActions={() => navActions}
+				screenActions={() => screenActions}
+			/>
+		));
 
 		expect(document.getElementById('upload-btn')).toBeDefined();
 		expect(document.getElementById('export-btn')).toBeDefined();
 	});
 
-	it('should call onClick handler when button is clicked', () => {
+	it('should call onClick handler when nav button is clicked', () => {
 		const mockHandler = vi.fn();
-		const actions: ScreenAction[] = [
+		const navActions: ScreenAction[] = [
 			{
 				id: 'test-action',
 				text: 'Click Me',
@@ -72,7 +99,7 @@ describe('Screen', () => {
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => <Screen id="test-screen" title="Test" navActions={() => navActions} />);
 
 		const button = screen.getByText('Click Me');
 		fireEvent.click(button);
@@ -83,7 +110,7 @@ describe('Screen', () => {
 	it('should call multiple onClick handlers independently', () => {
 		const mockHandler1 = vi.fn();
 		const mockHandler2 = vi.fn();
-		const actions: ScreenAction[] = [
+		const screenActions: ScreenAction[] = [
 			{
 				id: 'action-1',
 				text: 'Action 1',
@@ -96,7 +123,9 @@ describe('Screen', () => {
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => (
+			<Screen id="test-screen" title="Test" screenActions={() => screenActions} />
+		));
 
 		fireEvent.click(screen.getByText('Action 1'));
 		fireEvent.click(screen.getByText('Action 2'));
@@ -106,9 +135,8 @@ describe('Screen', () => {
 	});
 
 	it('should render children content in main section', () => {
-		const actions: ScreenAction[] = [];
 		render(() => (
-			<Screen id="test-screen" title="Test" actions={() => actions}>
+			<Screen id="test-screen" title="Test">
 				<div data-testid="test-content">Test Content</div>
 			</Screen>
 		));
@@ -118,16 +146,14 @@ describe('Screen', () => {
 	});
 
 	it('should render empty main section when no children provided', () => {
-		const actions: ScreenAction[] = [];
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => <Screen id="test-screen" title="Test" />);
 
 		const main = document.querySelector('main');
 		expect(main).toBeDefined();
 	});
 
 	it('should have proper semantic HTML structure', () => {
-		const actions: ScreenAction[] = [];
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => <Screen id="test-screen" title="Test" />);
 
 		const header = document.querySelector('header');
 		const main = document.querySelector('main');
@@ -136,8 +162,8 @@ describe('Screen', () => {
 		expect(main).toBeDefined();
 	});
 
-	it('should apply button group class to actions container', () => {
-		const actions: ScreenAction[] = [
+	it('should apply button group class to nav-actions container', () => {
+		const navActions: ScreenAction[] = [
 			{
 				id: 'test-action',
 				text: 'Test',
@@ -145,14 +171,14 @@ describe('Screen', () => {
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => <Screen id="test-screen" title="Test" navActions={() => navActions} />);
 
-		const buttonGroup = document.querySelector('.button-group.actions');
+		const buttonGroup = document.querySelector('.button-group.nav-actions');
 		expect(buttonGroup).toBeDefined();
 	});
 
 	it('should apply button attributes from opts() when provided', () => {
-		const actions: ScreenAction[] = [
+		const screenActions: ScreenAction[] = [
 			{
 				id: 'test-action',
 				text: 'Test Button',
@@ -161,7 +187,9 @@ describe('Screen', () => {
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => (
+			<Screen id="test-screen" title="Test" screenActions={() => screenActions} />
+		));
 
 		const button = document.getElementById('test-action') as HTMLButtonElement;
 		expect(button.disabled).toBe(true);
@@ -169,7 +197,7 @@ describe('Screen', () => {
 	});
 
 	it('should apply dynamic button attributes when opts provides them', () => {
-		const actions: ScreenAction[] = [
+		const screenActions: ScreenAction[] = [
 			{
 				id: 'dynamic-button',
 				text: 'Dynamic',
@@ -178,15 +206,24 @@ describe('Screen', () => {
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => (
+			<Screen id="test-screen" title="Test" screenActions={() => screenActions} />
+		));
 
 		const button = document.getElementById('dynamic-button');
 		expect(button?.getAttribute('aria-label')).toBe('Dynamic Button');
 		expect(button?.getAttribute('title')).toBe('Hover Text');
 	});
 
-	it('should handle empty actions array', () => {
-		render(() => <Screen id="test-screen" title="Test" actions={() => []} />);
+	it('should handle empty navActions and screenActions arrays', () => {
+		render(() => (
+			<Screen
+				id="test-screen"
+				title="Test"
+				navActions={() => []}
+				screenActions={() => []}
+			/>
+		));
 
 		const header = document.querySelector('header');
 		expect(header).toBeDefined();
@@ -196,24 +233,20 @@ describe('Screen', () => {
 	});
 
 	it('should handle different screen IDs correctly', () => {
-		const actions: ScreenAction[] = [];
-		const { unmount } = render(() => (
-			<Screen id="screen-a" title="Screen A" actions={() => actions} />
-		));
+		const { unmount } = render(() => <Screen id="screen-a" title="Screen A" />);
 
-		expect(document.querySelector('.screen-a-container')).toBeDefined();
+		expect(document.querySelector('#screen-a.screen')).toBeDefined();
 
 		unmount();
 
-		render(() => <Screen id="screen-b" title="Screen B" actions={() => actions} />);
+		render(() => <Screen id="screen-b" title="Screen B" />);
 
-		expect(document.querySelector('.screen-b-container')).toBeDefined();
+		expect(document.querySelector('#screen-b.screen')).toBeDefined();
 	});
 
 	it('should render multiple children elements', () => {
-		const actions: ScreenAction[] = [];
 		render(() => (
-			<Screen id="test-screen" title="Test" actions={() => actions}>
+			<Screen id="test-screen" title="Test">
 				<div data-testid="child-1">Child 1</div>
 				<div data-testid="child-2">Child 2</div>
 				<div data-testid="child-3">Child 3</div>
@@ -226,18 +259,15 @@ describe('Screen', () => {
 	});
 
 	it('should preserve title text exactly as provided', () => {
-		const actions: ScreenAction[] = [];
 		const specialTitle = 'Game Records & Analysis (v2.0)';
 
-		render(() => (
-			<Screen id="test-screen" title={specialTitle} actions={() => actions} />
-		));
+		render(() => <Screen id="test-screen" title={specialTitle} />);
 
 		expect(screen.getByText(specialTitle)).toBeDefined();
 	});
 
 	it('should preserve action text exactly as provided', () => {
-		const actions: ScreenAction[] = [
+		const screenActions: ScreenAction[] = [
 			{
 				id: 'action-1',
 				text: '✕ Close Window',
@@ -245,21 +275,23 @@ describe('Screen', () => {
 			},
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => (
+			<Screen id="test-screen" title="Test" screenActions={() => screenActions} />
+		));
 
 		expect(screen.getByText('✕ Close Window')).toBeDefined();
 	});
 
 	it('should render action buttons in the order provided', () => {
-		const actions: ScreenAction[] = [
+		const navActions: ScreenAction[] = [
 			{ id: 'first', text: 'First', onClick: vi.fn() },
 			{ id: 'second', text: 'Second', onClick: vi.fn() },
 			{ id: 'third', text: 'Third', onClick: vi.fn() },
 		];
 
-		render(() => <Screen id="test-screen" title="Test" actions={() => actions} />);
+		render(() => <Screen id="test-screen" title="Test" navActions={() => navActions} />);
 
-		const buttons = document.querySelectorAll('.button-group.actions button');
+		const buttons = document.querySelectorAll('.button-group.nav-actions button');
 		expect(buttons[0]?.id).toBe('first');
 		expect(buttons[1]?.id).toBe('second');
 		expect(buttons[2]?.id).toBe('third');
