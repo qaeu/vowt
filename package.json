@@ -30,6 +30,7 @@
         "vitest": "^3.2.4"
     },
     "dependencies": {
+        "@ark-ui/solid": "^5.29.1",
         "@solid-devtools/overlay": "^0.33.5",
         "solid-js": "^1.9.5",
         "tesseract.js": "^6.0.1"
