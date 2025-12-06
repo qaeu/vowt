@@ -1,25 +1,25 @@
-@use 'theme';
+@use 'theme' as *;
 
 @layer screen {
 	#scoreboard-ocr-screen {
-		@include theme.container;
+		@include container;
 
 		.scoreboard-title {
-			color: theme.$accent1;
+			color: $primary;
 		}
 
 		.upload-button {
-			@include theme.button(theme.$accent2-success);
+			@include button($success);
 		}
 
 		.info-box {
-			@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
+			@include info-box(get($accent, 'bg-dark'), get($accent, 'sep'));
 		}
 
 		.error-box {
-			@include theme.info-box(theme.$accent2-error-light, theme.$accent2-error-border);
+			@include info-box(get($error, 'bg-dark'), get($error, 'sep'));
 
-			color: theme.$accent2-error-dark;
+			color: get($error, 'sep-dark');
 		}
 
 		.progress-container {
@@ -27,15 +27,15 @@
 
 			.progress-text {
 				font-weight: bold;
-				color: theme.$accent1;
+				color: $primary;
 			}
 
 			.progress-bar-wrapper {
-				@include theme.progress-bar-wrapper;
+				@include progress-bar-wrapper;
 			}
 
 			.progress-bar {
-				@include theme.progress-bar-fill;
+				@include progress-bar-fill;
 			}
 		}
 
@@ -46,7 +46,7 @@
 		}
 
 		.image-container {
-			@include theme.card(theme.$background);
+			@include card($background);
 
 			cursor: pointer;
 
@@ -60,19 +60,18 @@
 
 			h2 {
 				margin-top: 0;
-				color: theme.$foreground-dark;
 			}
 
 			img {
 				max-width: 100%;
-				border: 2px solid theme.$border-light;
+				border: 2px solid get($neutral, 'sep');
 				border-radius: 4px;
 				display: block;
 			}
 
 			p {
 				font-size: 13px;
-				color: theme.$foreground-light;
+				color: get($neutral, 'fg-light');
 				margin-top: 10px;
 			}
 		}
@@ -85,12 +84,12 @@
 		}
 
 		.stats-box {
-			@include theme.card(theme.$accent2-success-light);
+			@include card(get($success, 'bg-dark'));
 
 			h2 {
 				margin-top: 0;
 				margin-bottom: 15px;
-				color: theme.$accent2-success;
+				color: get($success, 'base');
 				display: flex;
 				align-items: center;
 				justify-content: space-between;
@@ -106,7 +105,7 @@
 			}
 
 			pre {
-				@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
+				@include code-block(get($grey, 'bg'), get($success, 'sep'));
 
 				font-size: 14px;
 				padding: 15px;
@@ -115,19 +114,19 @@
 
 			.stats-message {
 				font-size: 13px;
-				color: theme.$accent2-success;
+				color: get($success, 'base');
 				margin-top: 15px;
 				margin-bottom: 0;
 			}
 		}
 
 		.ocr-output-box {
-			@include theme.card(theme.$background);
+			@include card($background);
 
 			h2 {
 				margin-top: 0;
 				margin-bottom: 15px;
-				color: theme.$foreground-dark;
+				color: $foreground;
 				display: flex;
 				align-items: center;
 				justify-content: space-between;
@@ -143,7 +142,7 @@
 			}
 
 			pre {
-				@include theme.code-block(theme.$background-light, theme.$border-light);
+				@include code-block(get($neutral, 'bg-light'), get($neutral, 'sep'));
 
 				font-size: 14px;
 				padding: 15px;

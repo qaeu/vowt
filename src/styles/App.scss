@@ -1,4 +1,4 @@
-@use 'base' as theme;
+@use 'base' as *;
 @use 'components';
 
 @layer base {
@@ -19,20 +19,20 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background-color: rgba(theme.$accent1, 0.2);
+		background-color: get($accent, 'fade');
 		z-index: 9999;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border: 4px dashed theme.$accent1;
+		border: 4px dashed $primary;
 		pointer-events: none;
 	}
 
 	.drag-overlay-content {
-		background-color: theme.$background-light;
+		@include shadow;
+		background-color: get($neutral, 'bg');
 		padding: 40px 60px;
 		border-radius: 12px;
-		box-shadow: 0 8px 24px theme.$shadow-subtle;
 		text-align: center;
 	}
 
@@ -44,6 +44,6 @@
 	.drag-overlay-text {
 		font-size: 24px;
 		font-weight: bold;
-		color: theme.$accent1;
+		color: $primary;
 	}
 }

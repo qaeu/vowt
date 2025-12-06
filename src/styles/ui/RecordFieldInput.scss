@@ -1,4 +1,4 @@
-@use '../theme';
+@use '../theme' as *;
 
 @layer ui {
 	input[type='text'] {
@@ -10,14 +10,14 @@
 		transition: all 0.15s ease;
 
 		&:hover {
-			background-color: theme.$background-alt;
-			border-color: theme.$border-light;
+			background-color: $background;
+			border-color: get($neutral, 'sep');
 		}
 
 		&:focus {
 			outline: none;
-			background-color: theme.$background-light;
-			border-color: theme.$accent1;
+			background-color: get($neutral, 'bg-light');
+			border-color: get($accent, 'sep');
 			box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
 		}
 

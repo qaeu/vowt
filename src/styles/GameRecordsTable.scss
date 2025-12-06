@@ -1,21 +1,31 @@
-@use 'theme';
+@use 'sass:color';
+@use 'theme' as *;
 
 @layer override {
 	button#delete-all-records {
-		@include theme.button(theme.$accent2-error);
+		@include button($error);
 	}
 }
 
 @layer screen {
+	@scope (#game-records-screen) to (.expanded-details) {
+		.records-table-wrapper thead tr {
+			@include shadow;
+			position: sticky;
+			z-index: 1;
+			top: 0;
+		}
+	}
+
 	#game-records-screen {
-		@include theme.container;
+		@include container;
 
 		.empty-state {
-			@include theme.card(theme.$background);
+			@include card($background);
 
 			padding: 40px;
 			text-align: center;
-			color: theme.$foreground-light;
+			color: get($neutral, 'fg-light');
 
 			p {
 				font-size: 18px;
@@ -24,9 +34,9 @@
 		}
 
 		.records-table-wrapper {
-			@include theme.card(theme.$background-light);
-
-			overflow: hidden;
+			@include card(get($neutral, 'bg-light'));
+			padding: 0;
+			contain: paint;
 
 			table {
 				width: 100%;
@@ -34,8 +44,8 @@
 			}
 
 			thead tr {
-				background-color: theme.$accent1;
-				color: white;
+				background-color: get($grey, 'base');
+				color: $white;
 
 				th {
 					padding: 12px;
@@ -49,12 +59,12 @@
 			}
 
 			tbody tr {
-				border-bottom: 1px solid theme.$border-default;
+				border-bottom: 1px solid get($neutral, 'sep');
 				cursor: pointer;
-				background-color: white;
 
 				&.expanded {
-					background-color: theme.$background;
+					background-color: $background;
+					border-bottom-color: transparent;
 				}
 
 				td {
@@ -70,35 +80,60 @@
 				}
 
 				.delete-button {
-					@include theme.button-small(theme.$accent2-error);
+					@include button-small(get($error, 'base'));
 				}
 			}
 		}
 
 		.result-badge {
-			@include theme.badge;
+			@include badge($background);
+
+			&:not(.empty)::after {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: radial-gradient(
+					circle at calc(50% - 14px) calc(50% - 28px),
+					hsla(240, 100%, 100%, 0.35) 0%,
+					hsla(257, 100%, 97%, 0.1) 66%,
+					transparent 100%
+				);
+				border-radius: 4px;
+				pointer-events: none;
+			}
 
 			&.victory {
-				background-color: theme.$accent2-success;
+				@include badge(get($success, 'base'));
+				text-shadow: 1px 2px 1px rgba(0, 8, 4, 0.05);
+				box-shadow:
+					inset 1px 2px 3px rgba(0, 8, 4, 0.05),
+					inset 2px 4px 6px rgba(0, 8, 4, 0.05);
 			}
 
 			&.defeat {
-				background-color: theme.$accent2-error;
+				@include badge(get($error, 'base'));
+				text-shadow: 1px 2px 1px rgba(10, 0, 0, 0.05);
+				box-shadow:
+					inset 1px 2px 3px rgba(10, 0, 0, 0.05),
+					inset 2px 4px 6px rgba(10, 0, 0, 0.05);
 			}
 		}
 
 		.expanded-details {
 			padding: 20px;
-			background-color: theme.$background-alt;
-			border-bottom: 1px solid theme.$border-default;
+			background-color: $background;
+			border-bottom: 1px solid get($neutral, 'sep');
 
 			h3 {
-				color: theme.$foreground-dark;
+				color: $foreground;
 				margin-top: 0;
 			}
 
 			h4 {
-				color: theme.$foreground-dark;
+				color: $foreground;
 				margin-bottom: 10px;
 			}
 
@@ -106,11 +141,11 @@
 				margin-bottom: 10px;
 
 				&.blue-team {
-					color: theme.$accent1;
+					color: $primary;
 				}
 
 				&.red-team {
-					color: theme.$accent2-error;
+					color: get($error, 'base');
 				}
 			}
 
