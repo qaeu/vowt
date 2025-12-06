@@ -17,6 +17,15 @@ interface GameRecordsTableProps {
 	onUploadClick: () => void;
 }
 
+/** Returns a css class for the result */
+const getClassForResult = (resultText: string): 'victory' | 'defeat' | 'empty' => {
+	return (
+		resultText === 'VICTORY' ? 'victory'
+		: resultText === 'DEFEAT' ? 'defeat'
+		: 'empty'
+	);
+};
+
 const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [records, setRecords] = createSignal<GameRecord[]>([]);
 	const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(null);
@@ -174,9 +183,9 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 											<td>{formatDate(record.createdAt)}</td>
 											<td>
 												<span
-													class={`result-badge ${
-														record.matchInfo.result === 'VICTORY' ? 'victory' : 'defeat'
-													}`}
+													class={`result-badge ${getClassForResult(
+														record.matchInfo.result
+													)}`}
 												>
 													{record.matchInfo.result}
 												</span>
