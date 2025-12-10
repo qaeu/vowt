@@ -4,6 +4,7 @@ import { createSignal, onMount, For, Show } from 'solid-js';
 import type { ScreenAction, GameRecord, PlayerStats, MatchInfo } from '#types';
 import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
+import { AlertDialog } from '#c/ui/AlertDialog';
 import {
 	loadGameRecords,
 	deleteGameRecord,
@@ -40,7 +41,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 			id: 'export-records',
 			text: 'Export Records',
 			onClick: () => handleExport(),
-			opts: () => ({ disabled: records().length === 0 }),
+			disabled: () => records().length === 0,
 		},
 		{
 			id: 'import-records',
@@ -50,8 +51,14 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		{
 			id: 'delete-all-records',
 			text: 'Delete All',
-			onClick: () => handleClearAll(),
-			opts: () => ({ disabled: records().length === 0 }),
+			class: 'highlight',
+			disabled: () => records().length === 0,
+			dialog: {
+				title: 'Clear All Records',
+				description:
+					'Are you sure you want to delete all game records? This cannot be undone.',
+				onConfirm: () => handleClearAll(),
+			},
 		},
 	];
 
@@ -64,23 +71,17 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	};
 
 	const handleDelete = (id: string) => {
-		if (confirm('Are you sure you want to delete this game record?')) {
-			deleteGameRecord(id);
-			// If we're editing this record, stop editing
-			if (expandedRecordId() === id) {
-				setExpandedRecordId(null);
-			}
-			loadRecords();
+		deleteGameRecord(id);
+		// If we're editing this record, stop editing
+		if (expandedRecordId() === id) {
+			setExpandedRecordId(null);
 		}
+		loadRecords();
 	};
 
 	const handleClearAll = () => {
-		if (
-			confirm('Are you sure you want to delete all game records? This cannot be undone.')
-		) {
-			clearAllGameRecords();
-			loadRecords();
-		}
+		clearAllGameRecords();
+		loadRecords();
 	};
 
 	const handleExport = () => {
@@ -197,16 +198,13 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 											<td>{record.matchInfo.game_mode}</td>
 											<td>{record.matchInfo.map ?? '-'}</td>
 											<td class="center">
-												<button
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDelete(record.id);
-													}}
+												<AlertDialog
+													triggerText="✕"
+													title="Delete Game Record"
+													description="Are you sure you want to delete this game record?"
 													class="delete-button"
-													title="Delete record"
-												>
-													✕
-												</button>
+													onConfirm={() => handleDelete(record.id)}
+												/>
 											</td>
 										</tr>
 										<Show when={expandedRecordId() === record.id}>

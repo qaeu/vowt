@@ -1,7 +1,8 @@
 import type { Component, JSXElement } from 'solid-js';
-import { For } from 'solid-js';
+import { For, Show } from 'solid-js';
 
 import type { ScreenAction } from '#types';
+import { AlertDialog } from '#c/ui/AlertDialog';
 
 interface ScreenProps {
 	id: string;
@@ -19,9 +20,31 @@ const Screen: Component<ScreenProps> = (props) => {
 				<nav class="button-group nav-actions">
 					<For each={props.navActions?.()}>
 						{(action) => (
-							<button id={action.id} onClick={action.onClick} {...action.opts?.()}>
-								{action.text}
-							</button>
+							<Show
+								when={action.dialog}
+								fallback={
+									<button
+										id={action.id}
+										class={action.class}
+										disabled={action.disabled?.()}
+										onClick={action.onClick}
+									>
+										{action.text}
+									</button>
+								}
+							>
+								<AlertDialog
+									id={action.id}
+									class={action.class}
+									disabled={action.disabled?.()}
+									triggerText={action.text}
+									title={action.dialog!.title}
+									description={action.dialog!.description}
+									actionText={action.dialog!.actionText}
+									condition={action.dialog!.condition || (() => true)}
+									onConfirm={action.dialog!.onConfirm || (() => undefined)}
+								/>
+							</Show>
 						)}
 					</For>
 				</nav>
@@ -30,9 +53,31 @@ const Screen: Component<ScreenProps> = (props) => {
 			<section class="button-group screen-actions">
 				<For each={props.screenActions?.()}>
 					{(action) => (
-						<button id={action.id} onClick={action.onClick} {...action.opts?.()}>
-							{action.text}
-						</button>
+						<Show
+							when={action.dialog}
+							fallback={
+								<button
+									id={action.id}
+									class={action.class}
+									disabled={action.disabled?.()}
+									onClick={action.onClick}
+								>
+									{action.text}
+								</button>
+							}
+						>
+							<AlertDialog
+								id={action.id}
+								class={action.class}
+								disabled={action.disabled?.()}
+								triggerText={action.text}
+								title={action.dialog!.title}
+								description={action.dialog!.description}
+								actionText={action.dialog!.actionText}
+								condition={action.dialog!.condition || (() => true)}
+								onConfirm={action.dialog!.onConfirm || (() => undefined)}
+							/>
+						</Show>
 					)}
 				</For>
 			</section>
