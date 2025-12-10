@@ -1,5 +1,3 @@
-import type { JSX } from 'solid-js';
-
 /**
  * Centralized type definitions for VOWT
  * This file contains all shared type definitions used across the application
@@ -25,8 +23,16 @@ export type DateFieldName = 'createdAt' | 'updatedAt' | 'exportedAt';
 export interface ScreenAction {
 	id: string;
 	text: string;
-	onClick: () => void;
-	opts?: () => JSX.ButtonHTMLAttributes<HTMLButtonElement>;
+	class?: string;
+	disabled?: () => boolean;
+	onClick?: () => void;
+	dialog?: {
+		title: string;
+		description: string;
+		actionText?: string;
+		condition?: () => boolean;
+		onConfirm?: () => void;
+	};
 }
 
 // Utility Types
