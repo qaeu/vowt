@@ -44,38 +44,33 @@
 				width: 100%;
 				border-collapse: collapse;
 				font-size: 13px;
-				background-color: get($neutral, 'bg');
 			}
 
-			thead tr {
-				background-color: get($neutral, 'bg');
-				border-bottom: 2px solid get($neutral, 'sep');
+			thead tr th {
+				@include shadow-short($shadow-light);
+				padding: 12px 8px;
+				text-align: left;
+				font-weight: bold;
+				color: $foreground;
+				position: sticky;
+				top: 0;
+				background-color: get($grey, 'bg-dark');
+				border-bottom: 2px solid get($grey, 'sep');
+				z-index: 1;
 
-				th {
-					padding: 12px 8px;
-					text-align: left;
-					font-weight: bold;
-					color: $foreground;
-					position: sticky;
-					top: 0;
-					background-color: $background;
-					z-index: 1;
-					box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+				&.name-column {
+					min-width: 120px;
+				}
 
-					&.name-column {
-						min-width: 120px;
-					}
-
-					&.delete-column {
-						width: 60px;
-						text-align: center;
-					}
+				&.delete-column {
+					width: 60px;
+					text-align: center;
 				}
 			}
 
 			tbody tr {
 				&:focus-within {
-					background-color: $background;
+					background-color: get($neutral, 'bg-dark');
 				}
 
 				td {
@@ -99,10 +94,9 @@
 					}
 
 					.delete-button {
-						@include button-small(get($error, 'base'));
-
-						padding: 4px 8px;
-						font-size: 11px;
+						@include button-small($error);
+						width: 28px;
+						height: 28px;
 					}
 				}
 			}

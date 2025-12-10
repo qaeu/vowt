@@ -31,10 +31,8 @@
 			flex-wrap: wrap;
 
 			button {
-				&.action-btn.active:not(:disabled) {
-					background-color: get($success, 'base');
-					color: white;
-					border-color: get($success, 'border');
+				&.action-btn.activate {
+					@include button($success);
 				}
 
 				&.action-btn.delete {
@@ -52,9 +50,10 @@
 		}
 
 		.canvas-wrapper {
-			@include card($background);
-			border: 2px solid $primary;
-			margin: 20px 0;
+			@include card(get($neutral, 'bg-dark'));
+			border: 1px solid get($neutral, 'sep');
+			margin: 20px 0 10px;
+			padding: 10px;
 			border-radius: 4px;
 			overflow: hidden;
 			position: relative;
@@ -62,8 +61,6 @@
 			canvas {
 				display: block;
 				width: 100%;
-				border: 1px solid get($neutral, 'sep');
-				border-radius: 4px;
 			}
 
 			.drag-overlay {
@@ -177,22 +174,18 @@
 		.profiles-list {
 			display: flex;
 			flex-direction: column;
-			gap: 15px;
+			gap: 20px;
 		}
 
 		.profile-card {
-			@include card(get($neutral, 'bg'));
+			@include card(get($grey, 'bg'));
 
-			margin-bottom: 15px;
-			border: 2px solid get($neutral, 'sep');
-			border-radius: 8px;
+			margin-bottom: 0;
+			border: 1px solid get($neutral, 'sep');
+			border-width: 0 0 0 6px;
+			border-radius: 6px;
 			padding: 15px;
 			transition: all 0.2s ease;
-
-			&:hover {
-				border-color: $primary;
-				box-shadow: 0 2px 8px rgba($primary, 0.1);
-			}
 
 			&.active {
 				border-color: get($success, 'base');

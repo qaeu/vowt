@@ -291,7 +291,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 										<div class="button-group">
 											<button
 												onClick={() => handleActivateProfile(profile.id)}
-												class={`action-btn ${activeProfileId() === profile.id ? 'active' : ''}`}
+												class={`action-btn activate highlight ${activeProfileId() === profile.id ? 'active' : ''}`}
 											>
 												{activeProfileId() === profile.id ? '✓ Active' : 'Set Active'}
 											</button>
@@ -303,7 +303,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 											</button>
 											<button
 												onClick={() => handleDeleteProfile(profile.id)}
-												class="action-btn delete"
+												class="action-btn delete highlight"
 											>
 												Delete
 											</button>
@@ -336,7 +336,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						/>
 
 						<div class="button-group">
-							<button onClick={handleSaveProfile} class="save-profile">
+							<button onClick={handleSaveProfile} class="save-profile highlight">
 								Save Profile
 							</button>
 						</div>
@@ -346,17 +346,15 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				<div class="section">
 					<h2>Region Editor</h2>
 					<div class="button-group">
+						<button onClick={handleExportProfile}>Export</button>
+						<button onClick={handleImportProfile}>Import</button>
 						<button
 							onClick={handleClearRegions}
-							class="clear-regions"
+							class="clear-regions highlight"
 							disabled={editingRegions().length === 0}
 						>
 							Clear All
 						</button>
-
-						<button onClick={handleExportProfile}>Export</button>
-
-						<button onClick={handleImportProfile}>Import</button>
 					</div>
 
 					<div class="canvas-wrapper">

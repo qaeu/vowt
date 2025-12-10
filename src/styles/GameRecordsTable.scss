@@ -62,6 +62,10 @@
 				border-bottom: 1px solid get($neutral, 'sep');
 				cursor: pointer;
 
+				&:last-child {
+					border-bottom-color: transparent;
+				}
+
 				&.expanded {
 					background-color: $background;
 					border-bottom-color: transparent;
@@ -80,7 +84,7 @@
 				}
 
 				.delete-button {
-					@include button-small(get($error, 'base'));
+					@include button-small($error);
 				}
 			}
 		}

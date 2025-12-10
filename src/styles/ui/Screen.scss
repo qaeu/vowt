@@ -1,4 +1,4 @@
-@use '../theme';
+@use '../theme' as *;
 
 @layer ui {
 	.screen {
@@ -32,6 +32,10 @@
 
 		.screen-actions {
 			margin: 15px 4px;
+		}
+
+		main {
+			isolation: isolate;
 		}
 	}
 }

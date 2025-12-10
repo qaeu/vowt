@@ -1,36 +1,36 @@
 :root,
 .light,
 .light-theme {
-	--red-1: #fbfafa;
-	--red-2: #faf5f6;
-	--red-3: #f5e9ec;
-	--red-4: #f3dde3;
-	--red-5: #edd0d8;
-	--red-6: #e4c2cb;
-	--red-7: #d9b1bb;
-	--red-8: #cb9aa8;
-	--red-9: #b95f7d;
-	--red-10: #ab5270;
-	--red-11: #a44c6b;
-	--red-12: #542837;
+	--vred-1: #fbfafa;
+	--vred-2: #faf5f6;
+	--vred-3: #f5e9ec;
+	--vred-4: #f3dde3;
+	--vred-5: #edd0d8;
+	--vred-6: #e4c2cb;
+	--vred-7: #d9b1bb;
+	--vred-8: #cb9aa8;
+	--vred-9: #b95f7d;
+	--vred-10: #ab5270;
+	--vred-11: #a44c6b;
+	--vred-12: #542837;
 
-	--red-a1: #7e7d3e04;
-	--red-a2: #9e1d1e08;
-	--red-a3: #970a2514;
-	--red-a4: #ae052e20;
-	--red-a5: #a3022c2d;
-	--red-a6: #9102253b;
-	--red-a7: #84011f4c;
-	--red-a8: #7e032464;
-	--red-a9: #9000309f;
-	--red-a10: #85022ead;
-	--red-a11: #7f022eb3;
-	--red-a12: #340012d7;
+	--vred-a1: #7e7d3e04;
+	--vred-a2: #9e1d1e08;
+	--vred-a3: #970a2514;
+	--vred-a4: #ae052e20;
+	--vred-a5: #a3022c2d;
+	--vred-a6: #9102253b;
+	--vred-a7: #84011f4c;
+	--vred-a8: #7e032464;
+	--vred-a9: #9000309f;
+	--vred-a10: #85022ead;
+	--vred-a11: #7f022eb3;
+	--vred-a12: #340012d7;
 
-	--red-contrast: #fff;
-	--red-surface: #f9f4f4cc;
-	--red-indicator: #b95f7d;
-	--red-track: #b95f7d;
+	--vred-contrast: #fff;
+	--vred-surface: #f9f4f4cc;
+	--vred-indicator: #b95f7d;
+	--vred-track: #b95f7d;
 }
 
 @supports (color: color(display-p3 1 1 1)) {

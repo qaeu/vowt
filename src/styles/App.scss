@@ -4,7 +4,7 @@
 @layer base {
 	// Global styles - always show scrollbar to prevent layout shift
 	html {
-		overflow-y: scroll;
+		scrollbar-gutter: stable;
 	}
 
 	body {
