@@ -1,33 +1,34 @@
 import { Dialog } from '@ark-ui/solid/dialog';
 import { Portal } from 'solid-js/web';
-import { createSignal } from 'solid-js';
+import { createSignal, onMount } from 'solid-js';
+
+import type { AlertDialogOptions } from '#types';
 
 interface AlertDialogProps {
-	title: string;
-	triggerText: string;
-	description: string;
-	actionText?: string;
-	id?: string;
-	class?: string;
-	disabled?: boolean;
-	condition?: () => boolean;
-	onConfirm: () => void;
+	openDialog: (fn: (options: AlertDialogOptions) => void) => void;
 }
 
 export const AlertDialog = (props: AlertDialogProps) => {
-	const actionText = () => props.actionText || 'Confirm';
 	const [open, setOpen] = createSignal(false);
+	const [options, setOptions] = createSignal<AlertDialogOptions>({
+		title: '',
+		description: '',
+		onConfirm: () => {},
+	});
 
-	const handleTriggerClick = (e: MouseEvent) => {
-		e.stopPropagation();
-		if (props.condition?.() ?? true) {
+	// Expose openDialog function to parent
+	onMount(() => {
+		props.openDialog((newOptions: AlertDialogOptions) => {
+			setOptions(newOptions);
 			setOpen(true);
-		}
-	};
+		});
+	});
+
+	const actionText = () => options().actionText || 'Confirm';
 
 	const handleConfirm = (e: MouseEvent) => {
 		e.stopPropagation();
-		props.onConfirm();
+		options().onConfirm?.();
 		setOpen(false);
 	};
 
@@ -36,45 +37,33 @@ export const AlertDialog = (props: AlertDialogProps) => {
 	};
 
 	return (
-		<>
-			<button
-				type="button"
-				id={props.id}
-				class={props.class}
-				disabled={props.disabled}
-				onClick={handleTriggerClick}
-			>
-				{props.triggerText}
-			</button>
-
-			<Dialog.Root
-				open={open()}
-				onOpenChange={(details) => setOpen(details.open)}
-				closeOnInteractOutside={true}
-				preventScroll={false}
-			>
-				<Portal>
-					<Dialog.Backdrop />
-					<Dialog.Positioner>
-						<Dialog.Content onClick={handleContentClick}>
-							<Dialog.Title asChild={(props) => <h3 {...props()} />}>
-								{props.title}
-							</Dialog.Title>
-							<Dialog.Description>{props.description}</Dialog.Description>
-							<Dialog.CloseTrigger>✕</Dialog.CloseTrigger>
-							<div class="button-group">
-								<button
-									type="button"
-									class="dialog-action highlight"
-									onClick={handleConfirm}
-								>
-									{actionText()}
-								</button>
-							</div>
-						</Dialog.Content>
-					</Dialog.Positioner>
-				</Portal>
-			</Dialog.Root>
-		</>
+		<Dialog.Root
+			open={open()}
+			onOpenChange={(details) => setOpen(details.open)}
+			closeOnInteractOutside={true}
+			preventScroll={false}
+		>
+			<Portal>
+				<Dialog.Backdrop />
+				<Dialog.Positioner>
+					<Dialog.Content onClick={handleContentClick}>
+						<Dialog.Title asChild={(props) => <h3 {...props()} />}>
+							{options().title}
+						</Dialog.Title>
+						<Dialog.Description>{options().description}</Dialog.Description>
+						<Dialog.CloseTrigger>✕</Dialog.CloseTrigger>
+						<div class="button-group">
+							<button
+								type="button"
+								class="dialog-action highlight"
+								onClick={handleConfirm}
+							>
+								{actionText()}
+							</button>
+						</div>
+					</Dialog.Content>
+				</Dialog.Positioner>
+			</Portal>
+		</Dialog.Root>
 	);
 };

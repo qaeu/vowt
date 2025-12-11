@@ -20,6 +20,8 @@ type ExportedRecord<T> = Merge<T, ExportRecordBase>;
 
 export type DateFieldName = 'createdAt' | 'updatedAt' | 'exportedAt';
 
+// UI Component Types
+
 export interface ScreenAction {
 	id: string;
 	text: string;
@@ -33,6 +35,13 @@ export interface ScreenAction {
 		condition?: () => boolean;
 		onConfirm?: () => void;
 	};
+}
+
+export interface AlertDialogOptions {
+	title: string;
+	description: string;
+	actionText?: string;
+	onConfirm?: () => void;
 }
 
 // Utility Types
