@@ -238,29 +238,39 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should delete record when delete button is clicked', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
 		fireEvent.click(deleteButtons[0]);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Delete Game Record');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
+
 		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
 	});
 
 	it('should not delete record when confirm is cancelled', async () => {
-		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
 		fireEvent.click(deleteButtons[0]);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Delete Game Record');
+		});
+
+		const closeButtons = screen.getAllByText('✕');
+		const dialogCloseButton = closeButtons[closeButtons.length - 1];
+		fireEvent.click(dialogCloseButton);
+
 		expect(gameStorage.deleteGameRecord).not.toHaveBeenCalled();
 	});
 
 	it('should close expanded record when deleted', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const victoryCell = screen.getByText('VICTORY');
@@ -272,6 +282,13 @@ describe('GameRecordsTable', () => {
 
 		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
 		fireEvent.click(deleteButtons[0]);
+
+		await waitFor(() => {
+			screen.getByText('Delete Game Record');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
 
 		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
 	});
@@ -288,24 +305,35 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should call clearAllGameRecords when clear all button is clicked with confirmation', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Clear All Records');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
+
 		expect(gameStorage.clearAllGameRecords).toHaveBeenCalled();
 	});
 
 	it('should not clear records when confirm is cancelled', async () => {
-		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Clear All Records');
+		});
+
+		const closeButtons = screen.getAllByText('✕');
+		const dialogCloseButton = closeButtons[closeButtons.length - 1];
+		fireEvent.click(dialogCloseButton);
+
 		expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
 	});
 

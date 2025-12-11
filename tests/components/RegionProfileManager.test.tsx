@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen } from '@solidjs/testing-library';
+import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
 import RegionProfileManager from '#c/RegionProfileManager';
 import * as regionProfiles from '#utils/regionProfiles';
@@ -114,8 +114,7 @@ describe('RegionProfileManager', () => {
 			expect(regionProfiles.exportProfile).toHaveBeenCalledWith(mockProfiles[1].id);
 		});
 
-		it('should show alert if exportProfile returns null', () => {
-			vi.spyOn(window, 'alert').mockImplementation(() => {});
+		it('should show alert if exportProfile returns null', async () => {
 			vi.mocked(regionProfiles.exportProfile).mockReturnValue(null);
 
 			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
@@ -125,9 +124,12 @@ describe('RegionProfileManager', () => {
 			}) as HTMLButtonElement;
 			button.click();
 
-			expect(window.alert).toHaveBeenCalledWith(
-				'Could not export profile. Please save it first.'
-			);
+			await waitFor(() => {
+				screen.getByText('Export Error');
+			});
+			expect(
+				screen.getByText('Could not export profile. Please save it first.')
+			).toBeDefined();
 		});
 	});
 
@@ -185,28 +187,38 @@ describe('RegionProfileManager', () => {
 			expect(screen.getByText('✓ Active')).toBeDefined();
 		});
 
-		it('should call deleteProfile when deleting a profile', () => {
-			vi.spyOn(window, 'confirm').mockReturnValue(true);
-
+		it('should call deleteProfile when deleting a profile', async () => {
 			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
 
 			const deleteButtons = screen.getAllByRole('button', {
 				name: /Delete/i,
 			});
 			(deleteButtons[0] as HTMLButtonElement).click();
+
+			await waitFor(() => {
+				screen.getByText('Delete Profile');
+			});
+
+			const confirmButton = screen.getByText('Confirm');
+			fireEvent.click(confirmButton);
 
 			expect(vi.mocked(regionProfiles.deleteProfile)).toHaveBeenCalledWith('profile1');
 		});
-
-		it('should not delete profile if user cancels confirmation', () => {
-			vi.spyOn(window, 'confirm').mockReturnValue(false);
-
+		it('should not delete profile if user cancels confirmation', async () => {
 			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
 
 			const deleteButtons = screen.getAllByRole('button', {
 				name: /Delete/i,
 			});
 			(deleteButtons[0] as HTMLButtonElement).click();
+
+			await waitFor(() => {
+				screen.getByText('Delete Profile');
+			});
+
+			// Close dialog by clicking the dialog close trigger
+			const dialogElement = document.querySelector('[data-part="close-trigger"]');
+			fireEvent.click(dialogElement as HTMLElement);
 
 			expect(vi.mocked(regionProfiles.deleteProfile)).not.toHaveBeenCalled();
 		});

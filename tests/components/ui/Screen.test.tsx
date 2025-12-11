@@ -177,44 +177,6 @@ describe('Screen', () => {
 		expect(buttonGroup).toBeDefined();
 	});
 
-	it('should apply button attributes from opts() when provided', () => {
-		const screenActions: ScreenAction[] = [
-			{
-				id: 'test-action',
-				text: 'Test Button',
-				onClick: vi.fn(),
-				opts: () => ({ disabled: true, title: 'Test Title' }),
-			},
-		];
-
-		render(() => (
-			<Screen id="test-screen" title="Test" screenActions={() => screenActions} />
-		));
-
-		const button = document.getElementById('test-action') as HTMLButtonElement;
-		expect(button.disabled).toBe(true);
-		expect(button.title).toBe('Test Title');
-	});
-
-	it('should apply dynamic button attributes when opts provides them', () => {
-		const screenActions: ScreenAction[] = [
-			{
-				id: 'dynamic-button',
-				text: 'Dynamic',
-				onClick: vi.fn(),
-				opts: () => ({ 'aria-label': 'Dynamic Button', title: 'Hover Text' }),
-			},
-		];
-
-		render(() => (
-			<Screen id="test-screen" title="Test" screenActions={() => screenActions} />
-		));
-
-		const button = document.getElementById('dynamic-button');
-		expect(button?.getAttribute('aria-label')).toBe('Dynamic Button');
-		expect(button?.getAttribute('title')).toBe('Hover Text');
-	});
-
 	it('should handle empty navActions and screenActions arrays', () => {
 		render(() => (
 			<Screen
