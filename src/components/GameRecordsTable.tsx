@@ -1,7 +1,13 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, For, Show } from 'solid-js';
 
-import type { ScreenAction, GameRecord, PlayerStats, MatchInfo } from '#types';
+import type {
+	ScreenAction,
+	AlertDialogOptions,
+	GameRecord,
+	PlayerStats,
+	MatchInfo,
+} from '#types';
 import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
 import { AlertDialog } from '#c/ui/AlertDialog';
@@ -31,6 +37,8 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [records, setRecords] = createSignal<GameRecord[]>([]);
 	const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(null);
 
+	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
+
 	const screenActions: ScreenAction[] = [
 		{
 			id: 'upload-screenshot',
@@ -53,11 +61,13 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 			text: 'Delete All',
 			class: 'highlight',
 			disabled: () => records().length === 0,
-			dialog: {
-				title: 'Clear All Records',
-				description:
-					'Are you sure you want to delete all game records? This cannot be undone.',
-				onConfirm: () => handleClearAll(),
+			onClick: () => {
+				openDialog?.({
+					title: 'Clear All Records',
+					description:
+						'Are you sure you want to delete all game records? This cannot be undone.',
+					onConfirm: handleClearAll,
+				});
 			},
 		},
 	];
@@ -70,15 +80,23 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		setRecords(loadGameRecords());
 	};
 
-	const handleDelete = (id: string) => {
-		deleteGameRecord(id);
-		// If we're editing this record, stop editing
-		if (expandedRecordId() === id) {
-			setExpandedRecordId(null);
-		}
-		loadRecords();
+	const openDeleteDialog = (id: string) => {
+		openDialog?.({
+			title: 'Delete Game Record',
+			description: `Are you sure you want to delete this game record?`,
+			onConfirm: () => handleDelete(id),
+		});
 	};
 
+	const handleDeleteClick = (e: MouseEvent, id: string) => {
+		e.stopPropagation();
+		openDeleteDialog(id);
+	};
+
+	const handleDelete = (id: string) => {
+		deleteGameRecord(id);
+		loadRecords();
+	};
 	const handleClearAll = () => {
 		clearAllGameRecords();
 		loadRecords();
@@ -107,10 +125,18 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 					try {
 						const data = event.target?.result as string;
 						const count = importGameRecords(data);
-						alert(`Successfully imported ${count} new game record(s)`);
+						openDialog?.({
+							title: 'Import Success',
+							description: `Successfully imported ${count} new game record(s)`,
+							actionText: 'OK',
+						});
 						loadRecords();
 					} catch (error) {
-						alert('Error importing game records. Please check the file format.');
+						openDialog?.({
+							title: 'Import Error',
+							description: 'Error importing game records. Please check the file format.',
+							actionText: 'OK',
+						});
 						console.error('Import error:', error);
 					}
 				};
@@ -139,7 +165,11 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		try {
 			updateGameRecord(recordId, players, matchInfo);
 		} catch (err) {
-			alert(err instanceof Error ? err.message : 'Failed to update game record');
+			openDialog?.({
+				title: 'Update Error',
+				description: err instanceof Error ? err.message : 'Failed to update game record',
+				actionText: 'OK',
+			});
 		}
 	};
 
@@ -191,6 +221,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 													{record.matchInfo.result}
 												</span>
 											</td>
+
 											<td>
 												{record.matchInfo.final_score.blue} -{' '}
 												{record.matchInfo.final_score.red}
@@ -198,15 +229,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 											<td>{record.matchInfo.game_mode}</td>
 											<td>{record.matchInfo.map ?? '-'}</td>
 											<td class="center">
-												<AlertDialog
-													triggerText="✕"
-													title="Delete Game Record"
-													description="Are you sure you want to delete this game record?"
+												<button
+													type="button"
 													class="delete-button"
-													onConfirm={() => handleDelete(record.id)}
-												/>
+													onClick={(e) => handleDeleteClick(e, record.id)}
+												>
+													✕
+												</button>
 											</td>
 										</tr>
+
 										<Show when={expandedRecordId() === record.id}>
 											<tr>
 												<td colspan="7" class="expanded-details">
@@ -225,6 +257,8 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 					</table>
 				</div>
 			</Show>
+
+			<AlertDialog openDialog={(fn) => (openDialog = fn)} />
 		</Screen>
 	);
 };

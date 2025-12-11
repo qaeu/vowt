@@ -51,7 +51,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		'uploaded' | 'preprocessed' | null
 	>(null);
 
-	const screenActions = [
+	const navActions = [
 		{
 			id: 'show-region-profiles',
 			text: 'Region Profiles',
@@ -60,6 +60,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		{
 			id: 'close-screen',
 			text: '✕ Close',
+			class: 'highlight',
 			onClick: () => props.onClose(),
 		},
 	];
@@ -466,7 +467,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		<Screen
 			id="scoreboard-ocr-screen"
 			title="Image Processing"
-			navActions={() => screenActions}
+			navActions={() => navActions}
 		>
 			<Show when={error()}>
 				<div class="error-box">
