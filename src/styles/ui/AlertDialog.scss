@@ -33,13 +33,15 @@
 
 		&[data-part='title'] {
 			margin-top: 0;
+			font-size: 19px;
 		}
 
 		&[data-part='description'] {
 			margin: 20px 0;
 			color: get($neutral, 'fg-light');
-			font-size: 14px;
+			font-size: 15px;
 			line-height: 1.5;
+			min-height: 41px;
 		}
 
 		&[data-part='content'] {
@@ -85,6 +87,7 @@
 		// Action buttons container
 		&[data-part='content'] .dialog-action {
 			@include button($success);
+			font-size: 14px;
 		}
 
 		// Animations

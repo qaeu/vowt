@@ -4,6 +4,7 @@
 @layer override {
 	button#delete-all-records {
 		@include button($error);
+		font-size: 14px;
 	}
 }
 

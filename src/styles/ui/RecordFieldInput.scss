@@ -16,7 +16,7 @@
 
 		&:focus {
 			outline: none;
-			background-color: get($neutral, 'bg-light');
+			background-color: get($grey, 'bg');
 			border-color: get($accent, 'sep');
 			box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
 		}

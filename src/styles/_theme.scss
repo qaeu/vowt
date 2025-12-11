@@ -149,6 +149,7 @@ $shadow-light: var(--mauve-10);
 	color: get($grey, 'fg-light');
 	cursor: pointer;
 	font-size: 13px;
+	letter-spacing: 1px;
 	transition: all 0.2s ease;
 	filter: drop-shadow(1px 2px 1px oklch(from $shadow-base l c h / 0.03));
 	backdrop-filter: blur(4px);
