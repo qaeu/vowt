@@ -3,7 +3,7 @@ import { createSignal, batch, For, Show, onMount } from 'solid-js';
 
 import type { TextRegion, DrawnRegion, ScreenAction, AlertDialogOptions } from '#types';
 import Screen from '#c/ui/Screen';
-import { AlertDialog } from '#c/ui/AlertDialog';
+import AlertDialog from '#c/ui/AlertDialog';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/ui/EditableRegionsData';

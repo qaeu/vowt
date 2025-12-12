@@ -1,6 +1,7 @@
-import { Dialog } from '@ark-ui/solid/dialog';
-import { Portal } from 'solid-js/web';
+import type { Component } from 'solid-js';
 import { createSignal, onMount } from 'solid-js';
+import { Portal } from 'solid-js/web';
+import { Dialog } from '@ark-ui/solid/dialog';
 
 import type { AlertDialogOptions } from '#types';
 
@@ -8,7 +9,7 @@ interface AlertDialogProps {
 	openDialog: (fn: (options: AlertDialogOptions) => void) => void;
 }
 
-export const AlertDialog = (props: AlertDialogProps) => {
+const AlertDialog: Component<AlertDialogProps> = (props) => {
 	const [open, setOpen] = createSignal(false);
 	const [options, setOptions] = createSignal<AlertDialogOptions>({
 		title: '',
@@ -67,3 +68,5 @@ export const AlertDialog = (props: AlertDialogProps) => {
 		</Dialog.Root>
 	);
 };
+
+export default AlertDialog;

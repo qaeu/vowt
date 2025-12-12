@@ -10,7 +10,7 @@ import type {
 } from '#types';
 import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
-import { AlertDialog } from '#c/ui/AlertDialog';
+import AlertDialog from '#c/ui/AlertDialog';
 import {
 	loadGameRecords,
 	deleteGameRecord,
