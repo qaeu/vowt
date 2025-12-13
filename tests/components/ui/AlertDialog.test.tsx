@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, assert } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
 import type { AlertDialogOptions } from '#types';
@@ -85,8 +85,10 @@ describe('AlertDialog', () => {
 
 			openDialogFn?.(options);
 
+			const closeButton = document.querySelector('[data-part="close-trigger"]');
+			assert(closeButton, 'Could not find close button');
+
 			await waitFor(() => {
-				const closeButton = screen.getByText('✕');
 				expect(closeButton).toBeDefined();
 			});
 		});
@@ -146,8 +148,10 @@ describe('AlertDialog', () => {
 
 			openDialogFn?.(options);
 
+			const closeButton = document.querySelector('[data-part="close-trigger"]');
+			assert(closeButton, 'Could not find close button');
+
 			await waitFor(() => {
-				const closeButton = screen.getByText('✕');
 				fireEvent.click(closeButton);
 			});
 
@@ -168,8 +172,10 @@ describe('AlertDialog', () => {
 
 			openDialogFn?.(options);
 
+			const closeButton = document.querySelector('[data-part="close-trigger"]');
+			assert(closeButton, 'Could not find close button');
+
 			await waitFor(() => {
-				const closeButton = screen.getByText('✕');
 				fireEvent.click(closeButton);
 			});
 
@@ -193,7 +199,9 @@ describe('AlertDialog', () => {
 			});
 
 			// Close it
-			const closeButton = screen.getByText('✕');
+			const closeButton = document.querySelector('[data-part="close-trigger"]');
+			assert(closeButton, 'Could not find close button');
+
 			fireEvent.click(closeButton);
 
 			await waitFor(() => {

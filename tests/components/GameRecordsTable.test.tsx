@@ -240,7 +240,7 @@ describe('GameRecordsTable', () => {
 	it('should delete record when delete button is clicked', async () => {
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
 
 		await waitFor(() => {
@@ -256,7 +256,7 @@ describe('GameRecordsTable', () => {
 	it('should not delete record when confirm is cancelled', async () => {
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
 
 		await waitFor(() => {
@@ -283,7 +283,7 @@ describe('GameRecordsTable', () => {
 			expect(screen.queryByTestId('editable-game-data')).not.toBeNull();
 		});
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
 
 		await waitFor(() => {
