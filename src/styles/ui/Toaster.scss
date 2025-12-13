@@ -1,0 +1,102 @@
+@use '../theme' as *;
+
+@layer ui {
+	[data-scope='toast'] {
+		&[data-part='root'] {
+			@include shadow-tall();
+			@include background-light-glow();
+			background-color: oklch(from get($grey, 'bg') l c h / 0.66);
+			border: 1px solid get($neutral, 'sep');
+			border-radius: 6px;
+			backdrop-filter: blur(8px);
+			color: $foreground;
+			padding: 16px 20px;
+			width: 360px;
+			overflow-wrap: anywhere;
+			translate: var(--x) var(--y);
+			scale: var(--scale);
+			z-index: var(--z-index);
+			height: var(--initial-height);
+			opacity: var(--opacity);
+			will-change: translate, opacity, scale;
+			transition:
+				translate 400ms,
+				scale 400ms,
+				opacity 400ms,
+				height 400ms,
+				box-shadow 200ms;
+			transition-timing-function: cubic-bezier(0.21, 1.02, 0.73, 1);
+
+			&[data-state='closed'] {
+				transition:
+					translate 400ms,
+					scale 400ms,
+					opacity 200ms;
+				transition-timing-function: cubic-bezier(0.06, 0.71, 0.55, 1);
+			}
+
+			&[data-type='error'] {
+				border-color: oklch(from get($error, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($error, 'bg-dark') l c h / 0.2);
+			}
+
+			&[data-type='info'] {
+				border-color: oklch(from get($neutral, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($neutral, 'bg-dark') l c h / 0.2);
+			}
+
+			&[data-type='warning'] {
+				border-color: oklch(from get($warning, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($warning, 'bg-dark') l c h / 0.2);
+			}
+
+			&[data-type='success'] {
+				border-color: oklch(from get($success, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($success, 'bg-dark') l c h / 0.2);
+			}
+		}
+
+		&[data-part='close-trigger'] {
+			@include button-small();
+			position: absolute;
+			right: 16px;
+			top: 14px;
+			border-radius: 4px;
+			font-size: 16px;
+
+			& svg {
+				width: 1em;
+				height: 1em;
+			}
+		}
+
+		&[data-part='title'] {
+			margin: 0 0 8px 0;
+			font-size: 16px;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding-right: 24px;
+		}
+
+		&[data-part='description'] {
+			margin: 0;
+			color: get($neutral, 'fg-light');
+			font-size: 14px;
+			line-height: 1.5;
+			padding-right: 24px;
+		}
+	}
+}
+
+@media (max-width: 640px) {
+	[data-scope='toast'][data-part='group'] {
+		width: 100%;
+	}
+
+	[data-scope='toast'][data-part='root'] {
+		inset-inline: 0;
+		width: calc(100% - var(--gap) * 2);
+	}
+}
