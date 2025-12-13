@@ -23,16 +23,20 @@
 				translate 400ms,
 				scale 400ms,
 				opacity 400ms,
-				height 400ms,
-				box-shadow 200ms;
-			transition-timing-function: cubic-bezier(0.21, 1.02, 0.73, 1);
+				height 400ms;
+			transition-timing-function: cubic-bezier(0.1, 1, 0.45, 2);
+
+			&[data-paused],
+			&:not(:first-child) {
+				transition-timing-function: cubic-bezier(0.21, 1.02, 0.73, 1);
+			}
 
 			&[data-state='closed'] {
 				transition:
 					translate 400ms,
 					scale 400ms,
 					opacity 200ms;
-				transition-timing-function: cubic-bezier(0.06, 0.71, 0.55, 1);
+				transition-timing-function: cubic-bezier(0.33, 0, 1, 1);
 			}
 
 			&[data-type='error'] {
