@@ -44,7 +44,8 @@
 	}
 
 	body {
-		min-width: 100vw;
+		width: 100vw;
+		overflow-x: hidden;
 		min-height: 100vh;
 		font-family: 'Noto Sans', sans-serif;
 		font-weight: 400;
