@@ -12,14 +12,7 @@ import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
 import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
-import {
-	loadGameRecords,
-	deleteGameRecord,
-	updateGameRecord,
-	clearAllGameRecords,
-	exportGameRecords,
-	importGameRecords,
-} from '#utils/gameStorage';
+import * as Store from '#utils/gameStorage';
 
 interface GameRecordsTableProps {
 	onUploadClick: () => void;
@@ -78,7 +71,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	});
 
 	const loadRecords = () => {
-		setRecords(loadGameRecords());
+		setRecords(Store.loadGameRecords());
 	};
 
 	const openDeleteDialog = (id: string) => {
@@ -95,18 +88,20 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	};
 
 	const handleDelete = (id: string) => {
-		deleteGameRecord(id);
+		Store.deleteGameRecord(id);
+		setExpandedRecordId(null);
 		loadRecords();
 		toast('Delete Success', '1 game record deleted.');
 	};
 	const handleClearAll = () => {
-		clearAllGameRecords();
+		Store.clearAllGameRecords();
+		setExpandedRecordId(null);
 		loadRecords();
 		toast('Delete Success', 'All game records deleted.');
 	};
 
 	const handleExport = () => {
-		const data = exportGameRecords();
+		const data = Store.exportGameRecords();
 		const blob = new Blob([data], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -127,7 +122,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 				reader.onload = (event) => {
 					try {
 						const data = event.target?.result as string;
-						const count = importGameRecords(data);
+						const count = Store.importGameRecords(data);
 						toast('Import Success', `${count} new game record(s) created.`);
 						loadRecords();
 					} catch (error) {
@@ -162,7 +157,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		if (!recordId) return;
 
 		try {
-			updateGameRecord(recordId, players, matchInfo);
+			Store.updateGameRecord(recordId, players, matchInfo);
 			toast('Save Success', 'Game record updated.');
 		} catch (err) {
 			openDialog?.({
