@@ -1,4 +1,4 @@
-@use '../theme';
+@use '../theme' as *;
 
 @layer ui {
 	.editable-regions-container {
@@ -14,19 +14,18 @@
 
 			h3 {
 				margin: 0;
-				color: theme.$foreground-dark;
 			}
 
 			.action-buttons .cancel-button {
-				@include theme.button(theme.$foreground-light);
+				@include button($neutrals);
 			}
 		}
 
 		.empty-state {
 			padding: 20px;
 			text-align: center;
-			color: theme.$foreground-light;
-			background-color: theme.$background-alt;
+			color: get($neutrals, 'fg-light');
+			background-color: get($neutrals, 'bg');
 			border-radius: 4px;
 
 			p {
@@ -38,45 +37,40 @@
 			max-height: 400px;
 			overflow-x: auto;
 			overflow-y: auto;
-			border: 1px solid theme.$border-light;
+			border: 1px solid get($neutrals, 'sep');
 			border-radius: 4px;
 
 			table {
 				width: 100%;
 				border-collapse: collapse;
 				font-size: 13px;
-				background-color: theme.$background-light;
 			}
 
-			thead tr {
-				background-color: theme.$background;
-				border-bottom: 2px solid theme.$border-default;
+			thead tr th {
+				@include shadow-short($shadow-light);
+				padding: 12px 8px;
+				text-align: left;
+				font-weight: bold;
+				color: $foreground;
+				position: sticky;
+				top: 0;
+				background-color: get($greys, 'bg-dark');
+				border-bottom: 2px solid get($greys, 'sep');
+				z-index: 1;
 
-				th {
-					padding: 12px 8px;
-					text-align: left;
-					font-weight: bold;
-					color: theme.$foreground-dark;
-					position: sticky;
-					top: 0;
-					background-color: theme.$background;
-					z-index: 1;
-					box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+				&.name-column {
+					min-width: 120px;
+				}
 
-					&.name-column {
-						min-width: 120px;
-					}
-
-					&.delete-column {
-						width: 60px;
-						text-align: center;
-					}
+				&.delete-column {
+					width: 60px;
+					text-align: center;
 				}
 			}
 
 			tbody tr {
 				&:focus-within {
-					background-color: theme.$background-alt;
+					background-color: get($neutrals, 'bg-dark');
 				}
 
 				td {
@@ -100,10 +94,9 @@
 					}
 
 					.delete-button {
-						@include theme.button-small(theme.$accent2-error);
-
-						padding: 4px 8px;
-						font-size: 11px;
+						@include button-small($errors);
+						width: 28px;
+						height: 28px;
 					}
 				}
 			}

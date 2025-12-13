@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, assert } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
 import type { PlayerStats, MatchInfo, GameRecord } from '#types';
@@ -238,29 +238,42 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should delete record when delete button is clicked', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Delete Record');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
+
 		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
 	});
 
 	it('should not delete record when confirm is cancelled', async () => {
-		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Delete Record');
+		});
+
+		const dialogCloseButton = document.querySelector(
+			'[data-scope="dialog"][data-part="close-trigger"]'
+		);
+		assert(dialogCloseButton, 'Dialog close button not found');
+
+		fireEvent.click(dialogCloseButton);
+
 		expect(gameStorage.deleteGameRecord).not.toHaveBeenCalled();
 	});
 
 	it('should close expanded record when deleted', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const victoryCell = screen.getByText('VICTORY');
@@ -270,8 +283,15 @@ describe('GameRecordsTable', () => {
 			expect(screen.queryByTestId('editable-game-data')).not.toBeNull();
 		});
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
+
+		await waitFor(() => {
+			screen.getByText('Delete Record');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
 
 		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
 	});
@@ -288,24 +308,38 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should call clearAllGameRecords when clear all button is clicked with confirmation', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Clear All Records');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
+
 		expect(gameStorage.clearAllGameRecords).toHaveBeenCalled();
 	});
 
 	it('should not clear records when confirm is cancelled', async () => {
-		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Clear All Records');
+		});
+
+		const dialogCloseButton = document.querySelector(
+			'[data-scope="dialog"][data-part="close-trigger"]'
+		);
+		assert(dialogCloseButton, 'Dialog close button not found');
+
+		fireEvent.click(dialogCloseButton);
+
 		expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
 	});
 

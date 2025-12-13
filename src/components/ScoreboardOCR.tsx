@@ -1,6 +1,7 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
+import { X } from 'lucide-solid';
 
 import type {
 	PlayerStats,
@@ -12,6 +13,7 @@ import type {
 } from '#types';
 import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
+import Toaster, { toast } from '#c/ui/Toaster';
 import {
 	preprocessImageForOCR,
 	preprocessRegionsForOCR,
@@ -51,7 +53,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		'uploaded' | 'preprocessed' | null
 	>(null);
 
-	const screenActions = [
+	const navActions = [
 		{
 			id: 'show-region-profiles',
 			text: 'Region Profiles',
@@ -59,7 +61,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		},
 		{
 			id: 'close-screen',
-			text: '✕ Close',
+			text: 'Close',
+			icon: X,
+			class: 'highlight',
 			onClick: () => props.onClose(),
 		},
 	];
@@ -446,6 +450,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			const stats = extractGameStats(ocrResults.regionResults);
 			setExtractedStats(stats);
 			recordId = saveGameRecord(stats.players, stats.matchInfo);
+
+			toast('Recognition Success', 'New game record saved.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Unknown error occurred');
 			console.error('Processing error:', err);
@@ -457,6 +463,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
 		try {
 			updateGameRecord(recordId, players, matchInfo);
+			toast('Save Success', 'Game record updated.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save game record');
 		}
@@ -466,7 +473,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		<Screen
 			id="scoreboard-ocr-screen"
 			title="Image Processing"
-			navActions={() => screenActions}
+			navActions={() => navActions}
 		>
 			<Show when={error()}>
 				<div class="error-box">
@@ -564,6 +571,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 					</div>
 				</Show>
 			</div>
+
+			<Toaster />
 		</Screen>
 	);
 };

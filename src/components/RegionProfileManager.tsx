@@ -1,8 +1,11 @@
 import type { Component } from 'solid-js';
 import { createSignal, batch, For, Show, onMount } from 'solid-js';
+import { X } from 'lucide-solid';
 
-import type { TextRegion, DrawnRegion, ScreenAction } from '#types';
+import type { TextRegion, DrawnRegion, ScreenAction, AlertDialogOptions } from '#types';
 import Screen from '#c/ui/Screen';
+import AlertDialog from '#c/ui/AlertDialog';
+import Toaster, { toast } from '#c/ui/Toaster';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/ui/EditableRegionsData';
@@ -31,14 +34,17 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		initialActiveProfileDesc
 	);
 
-	const screenActions: ScreenAction[] = [
+	const navActions: ScreenAction[] = [
 		{
 			id: 'close-button',
-			text: '✕ Close',
+			text: 'Close',
+			class: 'highlight',
+			icon: X,
 			onClick: () => props.onClose(),
 		},
 	];
 
+	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 	let canvasRef: HTMLCanvasElement | undefined;
 
 	onMount(async () => {
@@ -118,13 +124,21 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const handleExportProfile = () => {
 		const profileId = editingProfileId();
 		if (!profileId) {
-			alert('No profile selected to export');
+			openDialog?.({
+				title: 'Export Error',
+				description: 'No profile selected to export',
+				actionText: 'OK',
+			});
 			return;
 		}
 
 		const data = Profiles.exportProfile(profileId);
 		if (!data) {
-			alert('Could not export profile. Please save it first.');
+			openDialog?.({
+				title: 'Export Error',
+				description: 'Could not export profile. Please save it first.',
+				actionText: 'OK',
+			});
 			return;
 		}
 
@@ -150,13 +164,21 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						const data = event.target?.result as string;
 						const profileCount = Profiles.importProfile(data);
 						if (profileCount === null) {
-							alert('Error importing profile. Please check the file format.');
+							openDialog?.({
+								title: 'Import Error',
+								description: 'Error importing profile. Please check the file format.',
+								actionText: 'OK',
+							});
 							return;
 						}
-						alert('Profile imported successfully!');
+						toast('Import Success', 'Region profile imported');
 						setProfileList(Profiles.listProfiles());
 					} catch (error) {
-						alert('Error importing profile. Please check the file format.');
+						openDialog?.({
+							title: 'Import Error',
+							description: 'Error importing profile. Please check the file format.',
+							actionText: 'OK',
+						});
 						console.error('Import error:', error);
 					}
 				};
@@ -168,7 +190,11 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 	const handleSaveProfile = () => {
 		if (!editingProfileId()) {
-			alert('Profile ID is required');
+			openDialog?.({
+				title: 'Save Error',
+				description: 'Profile ID is required',
+				actionText: 'OK',
+			});
 			return;
 		}
 
@@ -189,17 +215,24 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		// Refresh profile list
 		setProfileList(Profiles.listProfiles());
 
-		alert('Profile saved successfully!');
+		toast('Save Success', `Profile '${editingProfileId()}' saved.`);
 	};
 
 	const handleActivateProfile = (profileId: string) => {
 		activateProfile(profileId);
+		toast(
+			'Activate Success',
+			`Profile '${profileId}' is now active for screenshot recognition.`
+		);
 	};
 
 	const handleEditProfile = (profileId: string) => {
-		// Get profile regions denormalised to canvas dimensions
 		if (!canvasRef) {
-			alert('Canvas not ready');
+			openDialog?.({
+				title: 'Edit Error',
+				description: 'Canvas not ready',
+				actionText: 'OK',
+			});
 			return;
 		}
 
@@ -209,7 +242,11 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			canvasRef.height
 		);
 		if (!profileRegions) {
-			alert('Could not load profile');
+			openDialog?.({
+				title: 'Edit Error',
+				description: `Error loading region data for profile '${profileId}'`,
+				actionText: 'OK',
+			});
 			return;
 		}
 
@@ -226,28 +263,38 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 
 		redrawRegions();
+		toast('Edit Profile', `Now editing profile '${profileId}'.`);
 	};
 
 	const handleDeleteProfile = (profileId: string) => {
 		if (activeProfileId() === profileId && profileList().length === 1) {
-			alert('Cannot delete the last remaining profile.');
+			openDialog?.({
+				title: 'Delete Error',
+				description: 'Cannot delete the last remaining profile.',
+				actionText: 'OK',
+			});
 			return;
 		}
 
-		if (confirm('Are you sure you want to delete this profile?')) {
-			if (activeProfileId() === profileId) {
-				// There must always be an active profile, so activate another
-				activateProfile(profileList()[0].id);
-			}
+		openDialog?.({
+			title: 'Delete Profile',
+			description: `Are you sure you want to delete profile '${profileId}'?`,
+			onConfirm: () => {
+				if (activeProfileId() === profileId) {
+					// There must always be an active profile, so activate another
+					activateProfile(profileList()[0].id);
+				}
 
-			if (editingProfileId() === profileId) {
-				handleEditProfile(activeProfileId());
-			}
-			Profiles.deleteProfile(profileId);
+				if (editingProfileId() === profileId) {
+					handleEditProfile(activeProfileId());
+				}
+				Profiles.deleteProfile(profileId);
 
-			// Refresh profile list
-			setProfileList(Profiles.listProfiles());
-		}
+				// Refresh profile list
+				setProfileList(Profiles.listProfiles());
+				toast('Delete Success', `Profile '${profileId}' deleted.`);
+			},
+		});
 	};
 
 	const handleRegionChange = (regions: TextRegion[]) => {
@@ -260,7 +307,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		<Screen
 			id="region-profile-manager-screen"
 			title="Image Region Profiles"
-			navActions={() => screenActions}
+			navActions={() => navActions}
 		>
 			<div class="info-box">
 				<p>
@@ -291,7 +338,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 										<div class="button-group">
 											<button
 												onClick={() => handleActivateProfile(profile.id)}
-												class={`action-btn ${activeProfileId() === profile.id ? 'active' : ''}`}
+												class={`action-btn activate highlight ${activeProfileId() === profile.id ? 'active' : ''}`}
 											>
 												{activeProfileId() === profile.id ? '✓ Active' : 'Set Active'}
 											</button>
@@ -303,7 +350,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 											</button>
 											<button
 												onClick={() => handleDeleteProfile(profile.id)}
-												class="action-btn delete"
+												class="action-btn delete highlight"
 											>
 												Delete
 											</button>
@@ -336,7 +383,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						/>
 
 						<div class="button-group">
-							<button onClick={handleSaveProfile} class="save-profile">
+							<button onClick={handleSaveProfile} class="save-profile highlight">
 								Save Profile
 							</button>
 						</div>
@@ -346,17 +393,15 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				<div class="section">
 					<h2>Region Editor</h2>
 					<div class="button-group">
+						<button onClick={handleExportProfile}>Export</button>
+						<button onClick={handleImportProfile}>Import</button>
 						<button
 							onClick={handleClearRegions}
-							class="clear-regions"
+							class="clear-regions highlight"
 							disabled={editingRegions().length === 0}
 						>
 							Clear All
 						</button>
-
-						<button onClick={handleExportProfile}>Export</button>
-
-						<button onClick={handleImportProfile}>Import</button>
 					</div>
 
 					<div class="canvas-wrapper">
@@ -371,6 +416,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 					/>
 				</div>
 			</div>
+
+			<Toaster />
+			<AlertDialog openDialog={(fn) => (openDialog = fn)} />
 		</Screen>
 	);
 };

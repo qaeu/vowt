@@ -1,5 +1,7 @@
 import type { Component, JSXElement } from 'solid-js';
+import type { LucideIcon } from 'lucide-solid';
 import { For } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import type { ScreenAction } from '#types';
 
@@ -19,8 +21,13 @@ const Screen: Component<ScreenProps> = (props) => {
 				<nav class="button-group nav-actions">
 					<For each={props.navActions?.()}>
 						{(action) => (
-							<button id={action.id} onClick={action.onClick} {...action.opts?.()}>
-								{action.text}
+							<button
+								id={action.id}
+								class={action.class}
+								disabled={action.disabled?.()}
+								onClick={action.onClick}
+							>
+								<Dynamic<LucideIcon> component={action.icon} size={18} /> {action.text}
 							</button>
 						)}
 					</For>
@@ -30,7 +37,12 @@ const Screen: Component<ScreenProps> = (props) => {
 			<section class="button-group screen-actions">
 				<For each={props.screenActions?.()}>
 					{(action) => (
-						<button id={action.id} onClick={action.onClick} {...action.opts?.()}>
+						<button
+							id={action.id}
+							class={action.class}
+							disabled={action.disabled?.()}
+							onClick={action.onClick}
+						>
 							{action.text}
 						</button>
 					)}
