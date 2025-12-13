@@ -6,7 +6,7 @@ const toaster = createToaster({
 	gap: 46,
 	overlap: true,
 	offsets: '15px',
-	duration: 60000,
+	duration: 20000,
 });
 
 export const toast = (title: string, description: string) => {
