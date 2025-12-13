@@ -4,6 +4,7 @@ import { Toast, Toaster as ArkToaster, createToaster } from '@ark-ui/solid/toast
 const toaster = createToaster({
 	placement: 'bottom-end',
 	gap: 46,
+	max: 6,
 	overlap: true,
 	offsets: '15px',
 	duration: 20000,
