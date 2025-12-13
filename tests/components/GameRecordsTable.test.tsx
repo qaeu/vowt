@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, assert } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
 import type { PlayerStats, MatchInfo, GameRecord } from '#types';
@@ -263,8 +263,11 @@ describe('GameRecordsTable', () => {
 			screen.getByText('Delete Record');
 		});
 
-		const closeButtons = screen.getAllByText('✕');
-		const dialogCloseButton = closeButtons[closeButtons.length - 1];
+		const dialogCloseButton = document.querySelector(
+			'[data-scope="dialog"][data-part="close-trigger"]'
+		);
+		assert(dialogCloseButton, 'Dialog close button not found');
+
 		fireEvent.click(dialogCloseButton);
 
 		expect(gameStorage.deleteGameRecord).not.toHaveBeenCalled();
@@ -330,8 +333,11 @@ describe('GameRecordsTable', () => {
 			screen.getByText('Clear All Records');
 		});
 
-		const closeButtons = screen.getAllByText('✕');
-		const dialogCloseButton = closeButtons[closeButtons.length - 1];
+		const dialogCloseButton = document.querySelector(
+			'[data-scope="dialog"][data-part="close-trigger"]'
+		);
+		assert(dialogCloseButton, 'Dialog close button not found');
+
 		fireEvent.click(dialogCloseButton);
 
 		expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
