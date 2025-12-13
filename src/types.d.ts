@@ -28,13 +28,6 @@ export interface ScreenAction {
 	class?: string;
 	disabled?: () => boolean;
 	onClick?: () => void;
-	dialog?: {
-		title: string;
-		description: string;
-		actionText?: string;
-		condition?: () => boolean;
-		onConfirm?: () => void;
-	};
 }
 
 export interface AlertDialogOptions {
