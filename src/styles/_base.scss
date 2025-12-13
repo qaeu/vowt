@@ -44,11 +44,18 @@
 	}
 
 	body {
+		min-width: 100vw;
+		min-height: 100vh;
 		font-family: 'Noto Sans', sans-serif;
 		font-weight: 400;
 		font-size: 16px;
 		color: $foreground;
 		background-color: $background;
+		background-image: radial-gradient(
+			circle at 40% -60%,
+			oklch(from get($accent, 'sep') l c h / 0.1) 0%,
+			/* oklch(96.258% 0.02046 298.061 / 0.1) 40%, */ transparent 54%
+		);
 	}
 
 	button,
