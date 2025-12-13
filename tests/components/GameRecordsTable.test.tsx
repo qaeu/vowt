@@ -244,7 +244,7 @@ describe('GameRecordsTable', () => {
 		fireEvent.click(deleteButtons[0]);
 
 		await waitFor(() => {
-			screen.getByText('Delete Game Record');
+			screen.getByText('Delete Record');
 		});
 
 		const confirmButton = screen.getByText('Confirm');
@@ -260,7 +260,7 @@ describe('GameRecordsTable', () => {
 		fireEvent.click(deleteButtons[0]);
 
 		await waitFor(() => {
-			screen.getByText('Delete Game Record');
+			screen.getByText('Delete Record');
 		});
 
 		const closeButtons = screen.getAllByText('✕');
@@ -284,7 +284,7 @@ describe('GameRecordsTable', () => {
 		fireEvent.click(deleteButtons[0]);
 
 		await waitFor(() => {
-			screen.getByText('Delete Game Record');
+			screen.getByText('Delete Record');
 		});
 
 		const confirmButton = screen.getByText('Confirm');
