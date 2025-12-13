@@ -1,0 +1,134 @@
+@use '../theme' as *;
+
+@layer ui {
+	[data-scope='dialog'] {
+		--layer-index: 2;
+
+		&[data-part='backdrop'] {
+			background-color: oklch(from $black l c h / 0.05);
+			backdrop-filter: blur(2px);
+			position: fixed;
+			inset: 0;
+			z-index: calc(var(--layer-index) * 1000);
+
+			&[data-state='open'] {
+				animation: fadeIn 0.25s ease-out;
+			}
+
+			&[data-state='closed'] {
+				animation: fadeOut 0.2s ease-in;
+			}
+		}
+
+		&[data-part='positioner'] {
+			height: 100vh;
+			width: 100vw;
+			position: fixed;
+			inset: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: calc(var(--layer-index) * 1000 + 1);
+		}
+
+		&[data-part='title'] {
+			margin-top: 0;
+			font-size: 19px;
+		}
+
+		&[data-part='description'] {
+			margin: 20px 0;
+			color: get($neutrals, 'fg-light');
+			font-size: 15px;
+			line-height: 1.5;
+			min-height: 41px;
+		}
+
+		&[data-part='content'] {
+			@include shadow-tall();
+			@include background-light-glow();
+			background-color: oklch(from get($greys, 'bg') l c h / 0.66);
+			border: 1px solid get($neutrals, 'sep');
+			border-radius: 6px;
+			backdrop-filter: blur(8px);
+			width: 100%;
+			max-width: 500px;
+			max-height: 85vh;
+			padding: 24px;
+			position: relative;
+			z-index: calc(var(--layer-index) * 1000 + 2);
+
+			&:focus {
+				outline: none;
+			}
+
+			&[data-has-nested] {
+				transform: scale(calc(1 - var(--nested-layer-count) * 0.05));
+			}
+
+			&[data-state='open'] {
+				animation: scaleIn 0.25s ease-out;
+			}
+
+			&[data-state='closed'] {
+				animation: scaleOut 0.2s ease-in;
+			}
+		}
+
+		&[data-part='close-trigger'] {
+			@include button-small();
+			position: absolute;
+			top: 22px;
+			right: 23px;
+			border-radius: 4px;
+			font-size: 16px;
+		}
+
+		// Action buttons container
+		&[data-part='content'] .dialog-action {
+			@include button($successes);
+			font-size: 14px;
+		}
+
+		// Animations
+		@keyframes fadeIn {
+			from {
+				opacity: 0;
+			}
+			to {
+				opacity: 1;
+			}
+		}
+
+		@keyframes fadeOut {
+			from {
+				opacity: 1;
+			}
+			to {
+				opacity: 0;
+			}
+		}
+
+		@keyframes scaleIn {
+			from {
+				opacity: 0;
+				transform: scale(0.96) translateY(-8px);
+			}
+			to {
+				opacity: 1;
+				transform: scale(1) translateY(0);
+			}
+		}
+
+		@keyframes scaleOut {
+			from {
+				opacity: 1;
+				transform: scale(1) translateY(0);
+			}
+			to {
+				opacity: 0;
+				transform: scale(0.96) translateY(-8px);
+			}
+		}
+	}
+}

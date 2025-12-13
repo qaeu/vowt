@@ -1,166 +1,153 @@
-@use 'theme';
+@use 'theme' as *;
 
-.scoreboard-container {
-	@include theme.container;
+@layer screen {
+	#scoreboard-ocr-screen {
+		@include container;
 
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 20px;
+		.scoreboard-title {
+			color: $primary;
+		}
 
-		.header-buttons {
-			display: flex;
-			gap: 10px;
+		.upload-button {
+			@include button($successes);
+		}
 
-			.region-button {
-				@include theme.button(theme.$accent1);
-				padding: 8px 16px;
-				font-size: 14px;
+		.info-box {
+			@include info-box(get($primaries, 'bg-dark'), get($primaries, 'sep'));
+		}
+
+		.error-box {
+			@include info-box(get($errors, 'bg-dark'), get($errors, 'sep'));
+
+			color: get($errors, 'sep-dark');
+		}
+
+		.progress-container {
+			margin-bottom: 30px;
+
+			.progress-text {
+				font-weight: bold;
+				color: $primary;
 			}
 
-			.close-button {
-				@include theme.button(theme.$accent1);
-				padding: 8px 16px;
-				font-size: 14px;
+			.progress-bar-wrapper {
+				@include progress-bar-wrapper;
+			}
+
+			.progress-bar {
+				@include progress-bar-fill;
 			}
 		}
-	}
 
-	.scoreboard-title {
-		color: theme.$accent1;
-	}
-
-	.upload-button {
-		@include theme.button(theme.$accent2-success);
-	}
-
-	.info-box {
-		@include theme.info-box(theme.$accent1-lighter, theme.$accent1-border);
-	}
-
-	.error-box {
-		@include theme.info-box(theme.$accent2-error-light, theme.$accent2-error-border);
-
-		color: theme.$accent2-error-dark;
-	}
-
-	.progress-container {
-		margin-bottom: 30px;
-
-		.progress-text {
-			font-weight: bold;
-			color: theme.$accent1;
+		.image-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 30px;
 		}
 
-		.progress-bar-wrapper {
-			@include theme.progress-bar-wrapper;
+		.image-container {
+			@include card($background);
+
+			cursor: pointer;
+
+			&.expanded {
+				grid-column: 1 / -1;
+			}
+
+			&.hidden {
+				display: none;
+			}
+
+			h2 {
+				margin-top: 0;
+			}
+
+			img {
+				max-width: 100%;
+				border: 2px solid get($neutrals, 'sep');
+				border-radius: 4px;
+				display: block;
+			}
+
+			p {
+				font-size: 13px;
+				color: get($neutrals, 'fg-light');
+				margin-top: 10px;
+			}
 		}
 
-		.progress-bar {
-			@include theme.progress-bar-fill;
-		}
-	}
-
-	.image-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 30px;
-	}
-
-	.image-container {
-		@include theme.card(theme.$background);
-
-		h2 {
-			margin-top: 0;
-			color: theme.$foreground-dark;
+		.ocr-output-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 30px;
+			margin-top: 60px;
 		}
 
-		img {
-			max-width: 100%;
-			border: 2px solid theme.$border-light;
-			border-radius: 4px;
-			display: block;
+		.stats-box {
+			@include card(get($successes, 'bg-dark'));
+
+			h2 {
+				margin-top: 0;
+				margin-bottom: 15px;
+				color: get($successes, 'base');
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			span {
+				font-size: 20px;
+			}
+
+			.scrollable-content {
+				max-height: 400px;
+				overflow-y: auto;
+			}
+
+			pre {
+				@include code-block(get($greys, 'bg'), get($successes, 'sep'));
+
+				font-size: 14px;
+				padding: 15px;
+				margin: 0;
+			}
+
+			.stats-message {
+				font-size: 13px;
+				color: get($successes, 'base');
+				margin-top: 15px;
+				margin-bottom: 0;
+			}
 		}
 
-		p {
-			font-size: 13px;
-			color: theme.$foreground-light;
-			margin-top: 10px;
-		}
-	}
+		.ocr-output-box {
+			@include card($background);
 
-	.ocr-output-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 30px;
-		margin-top: 30px;
-	}
+			h2 {
+				margin-top: 0;
+				margin-bottom: 15px;
+				color: $foreground;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
 
-	.stats-box {
-		@include theme.card(theme.$accent2-success-light);
+			span {
+				font-size: 20px;
+			}
 
-		h2 {
-			margin-top: 0;
-			margin-bottom: 15px;
-			color: theme.$accent2-success;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-		}
+			.scrollable-content {
+				max-height: 400px;
+				overflow-y: auto;
+			}
 
-		span {
-			font-size: 20px;
-		}
+			pre {
+				@include code-block(get($neutrals, 'bg-light'), get($neutrals, 'sep'));
 
-		.scrollable-content {
-			max-height: 400px;
-			overflow-y: auto;
-		}
-
-		pre {
-			@include theme.code-block(theme.$background-light, theme.$accent2-success-border);
-
-			font-size: 14px;
-			padding: 15px;
-			margin: 0;
-		}
-
-		.stats-message {
-			font-size: 13px;
-			color: theme.$accent2-success;
-			margin-top: 15px;
-			margin-bottom: 0;
-		}
-	}
-
-	.ocr-output-box {
-		@include theme.card(theme.$background);
-
-		h2 {
-			margin-top: 0;
-			margin-bottom: 15px;
-			color: theme.$foreground-dark;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-		}
-
-		span {
-			font-size: 20px;
-		}
-
-		.scrollable-content {
-			max-height: 400px;
-			overflow-y: auto;
-		}
-
-		pre {
-			@include theme.code-block(theme.$background-light, theme.$border-light);
-
-			font-size: 14px;
-			padding: 15px;
-			margin: 0;
+				font-size: 14px;
+				padding: 15px;
+				margin: 0;
+			}
 		}
 	}
 }

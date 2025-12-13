@@ -1,3 +1,5 @@
+import type { Component } from 'solid-js';
+
 /**
  * Centralized type definitions for VOWT
  * This file contains all shared type definitions used across the application
@@ -19,6 +21,24 @@ interface ExportRecordBase {
 type ExportedRecord<T> = Merge<T, ExportRecordBase>;
 
 export type DateFieldName = 'createdAt' | 'updatedAt' | 'exportedAt';
+
+// UI Component Types
+
+export interface ScreenAction {
+	id: string;
+	text: string;
+	class?: string;
+	icon?: Component;
+	disabled?: () => boolean;
+	onClick?: () => void;
+}
+
+export interface AlertDialogOptions {
+	title: string;
+	description: string;
+	actionText?: string;
+	onConfirm?: () => void;
+}
 
 // Utility Types
 

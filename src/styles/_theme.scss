@@ -1,38 +1,114 @@
+@forward 'sass:map';
+@use 'sass:map' as *;
 @use 'sass:color';
 
+@use '@radix-ui/colors/mauve';
+@use '@radix-ui/colors/mauve-alpha';
+@use '@radix-ui/colors/ruby';
+@use '@radix-ui/colors/ruby-alpha';
+@use '@radix-ui/colors/teal';
+@use '@radix-ui/colors/teal-alpha';
+@use '@radix-ui/colors/amber';
+@use '@radix-ui/colors/amber-alpha';
+
+@use '@radix-ui/colors/mauve-dark';
+@use '@radix-ui/colors/mauve-dark-alpha';
+@use '@radix-ui/colors/ruby-dark';
+@use '@radix-ui/colors/ruby-dark-alpha';
+@use '@radix-ui/colors/teal-dark';
+@use '@radix-ui/colors/teal-dark-alpha';
+@use '@radix-ui/colors/amber-dark';
+@use '@radix-ui/colors/amber-dark-alpha';
+
+@use '@radix-ui/colors/white-alpha';
+@use '@radix-ui/colors/black-alpha';
+
+@use 'colours/vowt-red';
+@use 'colours/vowt-neutral';
+
+/* - THEME COLORS - */
+
+@function _colourset($color-name) {
+	@return (
+		'fg': var(--#{$color-name}-12),
+		'fg-light': var(--#{$color-name}-11),
+		'base-dark': var(--#{$color-name}-10),
+		'base': var(--#{$color-name}-9),
+		'sep-dark': var(--#{$color-name}-8),
+		'sep': var(--#{$color-name}-7),
+		'sep-light': var(--#{$color-name}-6),
+		'highlight': var(--#{$color-name}-4),
+		'bg-dark': var(--#{$color-name}-2),
+		'bg': var(--#{$color-name}-1),
+		'fade-less': var(--#{$color-name}-a3),
+		'fade': var(--#{$color-name}-a2),
+		'fade-light': var(--#{$color-name}-a1)
+	);
+}
+
+// Primary brand colour
+$primaries: _colourset('vred');
+$primary: get($primaries, 'base');
+
 // Foreground - Primary text and key UI elements
-$foreground: #4a5568;
-$foreground-dark: #2d3748;
-$foreground-light: #718096;
+$neutrals: _colourset('neutral');
+$foreground: get($neutrals, 'fg');
 
-// Background - Container and surface colors
-$background: #f7f7fc;
-$background-light: #fff;
-$background-alt: #edeff7;
+// Background - Container and surface colours
+$greys: _colourset('mauve');
+$background: get($greys, 'bg');
 
-// Accent1 - Primary brand color (softer blue)
-$accent1: #8b94ac;
-$accent1-light: color.scale($accent1, $lightness: 30%);
-$accent1-lighter: color.scale($accent1, $lightness: 80%);
-$accent1-border: color.scale($accent1, $lightness: -80%);
-
-// Accent2 - Secondary action colors (success, warning, error)
-$accent2-success: #68a36a;
-$accent2-success-light: #f0f7f0;
-$accent2-success-border: #9dc59f;
-
-$accent2-warning: #d69a55;
-
-$accent2-error: #d67373;
-$accent2-error-light: #fdf2f2;
-$accent2-error-dark: #b45555;
-$accent2-error-border: #d67373;
+// Semantic colours
+$successes: _colourset('teal');
+$warnings: _colourset('amber');
+$errors: _colourset('ruby');
 
 // Neutral colors
-$border-light: #e2e8f0;
-$border-default: #cbd5e0;
-$shadow: rgba(0, 0, 0, 0.06);
-$shadow-subtle: rgba(0, 0, 0, 0.12);
+$white: var(--white-a12);
+$black: var(--black-a12);
+
+// Shadows
+$shadow-base: $black;
+$shadow-light: var(--mauve-10);
+
+@function calc-shadow($light-colour: $background-light) {
+	$light-lch: oklch(from $light-colour l c h);
+	@return oklch(from color.complement($light-lch) 0.05 c h);
+}
+
+@mixin shadow-short($colour: $shadow-base) {
+	box-shadow:
+		0px 0px 1px oklch(from $colour l c h / 0.05),
+		1px 2px 3px oklch(from $colour l c h / 0.05);
+}
+
+@mixin shadow($colour: $shadow-base) {
+	box-shadow:
+		1px 2px 3px oklch(from $colour l c h / 0.05),
+		2px 4px 6px oklch(from $colour l c h / 0.05);
+}
+
+@mixin shadow-tall($colour: $shadow-base) {
+	box-shadow:
+		2px 4px 3px oklch(from $colour l c h / 0.015),
+		4px 8px 6px oklch(from $colour l c h / 0.03),
+		4px 8px 12px oklch(from $colour l c h / 0.03);
+}
+
+@mixin shadow-inset($colour: $shadow-base) {
+	box-shadow:
+		inset 1px 2px 3px oklch(from $colour l c h / 0.05),
+		inset 2px 4px 6px oklch(from $colour l c h / 0.05);
+}
+
+@mixin background-light-glow {
+	background: radial-gradient(
+		circle at calc(50% - 14px) calc(50% - 28px),
+		oklch(100% 0.00011 271.152 / 0.35) 0%,
+		oklch(96.258% 0.02046 298.061 / 0.1) 66%,
+		transparent 100%
+	);
+}
 
 // Container mixin for main content areas
 @mixin container {
@@ -42,19 +118,20 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
 }
 
 // Card/box styling with shadow and rounded corners
-@mixin card($bg-color: $background, $shadow-size: 0 2px 4px) {
+@mixin card($bg-colour: $background) {
+	@include shadow-short;
 	padding: 20px;
 	margin-bottom: 30px;
-	background-color: $bg-color;
+	background-color: $bg-colour;
 	border-radius: 8px;
-	box-shadow: $shadow-size $shadow;
+	contain: layout;
 }
 
 // Info box styling with left border accent
-@mixin info-box($bg-color, $border-color) {
+@mixin info-box($bg-colour, $border-colour) {
 	padding: 15px;
-	background-color: $bg-color;
-	border-left: 4px solid $border-color;
+	background-color: $bg-colour;
+	border-left: 4px solid $border-colour;
 	margin-bottom: 20px;
 	border-radius: 4px;
 
@@ -65,61 +142,98 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
 }
 
 // Button styling
-@mixin button($accent-color: theme.$accent1) {
+@mixin button($colourset: $primaries) {
+	@include shadow-short($shadow-light);
+	@include background-light-glow;
 	padding: 8px 12px;
-	border: 1px solid $border-light;
+	border: 1px solid get($greys, 'sep');
 	border-radius: 4px;
-	background-color: transparent;
-	color: $foreground;
+	color: get($greys, 'fg-light');
 	cursor: pointer;
 	font-size: 13px;
+	letter-spacing: 1px;
 	transition: all 0.2s ease;
+	filter: drop-shadow(1px 2px 1px oklch(from $shadow-base l c h / 0.03));
+	backdrop-filter: blur(4px);
 
-	&:hover {
-		background-color: rgba($accent-color, 0.1);
-		border-color: $accent-color;
-		color: $accent-color;
+	&:hover:not(:disabled, .active) {
+		border-color: get($colourset, 'sep-dark');
+		color: get($colourset, 'base-dark');
+	}
+
+	&.highlight:hover:not(:disabled, .active) {
+		background-color: get($colourset, 'fade');
+	}
+
+	&.active {
+		background-color: get($colourset, 'base');
+		border-color: transparent;
+		color: white;
+	}
+
+	&:disabled {
+		box-shadow: none;
+		background: none;
+		border-color: get($greys, 'fade-less');
+		color: get($greys, 'sep-dark');
+		filter: none;
+		cursor: default;
 	}
 }
 
 // Small button styling (for delete/action buttons)
-@mixin button-small($accent-color) {
-	padding: 6px 10px;
-	background-color: transparent;
+@mixin button-small($colourset: $primaries) {
+	box-shadow: none;
+	background: none;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	justify-self: center;
+	line-height: 1;
+	font-size: 12px;
 	border: 1px solid transparent;
 	border-radius: 3px;
-	color: $foreground;
+	color: get($neutrals, 'fg-light');
 	cursor: pointer;
-	font-size: 12px;
 	transition: all 0.2s ease;
 
 	&:hover {
-		background-color: rgba($accent-color, 0.1);
-		border-color: $accent-color;
-		color: $accent-color;
+		@include background-light-glow;
+		@include shadow-short($shadow-light);
+		background-color: get($colourset, 'fade');
+		border-color: get($colourset, 'sep-dark');
+		color: get($colourset, 'base-dark');
 	}
 }
 
 // Badge styling
-@mixin badge {
+@mixin badge($accent-color) {
+	@include shadow-inset();
 	display: inline-block;
+	position: relative;
+	overflow: hidden;
 	width: 60px;
+	height: 18px;
 	padding: 4px 8px;
 	border-radius: 4px;
-	color: white;
+	background-color: $accent-color;
+	color: $white;
 	font-size: 12px;
 	font-weight: 600;
 	text-align: center;
 }
 
 // Pre/code block styling
-@mixin code-block($bg: $background-light, $border-color: $border-light) {
+@mixin code-block($bg: $background, $border-color: get($greys, 'sep')) {
 	background-color: $bg;
 	padding: 15px;
 	border-radius: 4px;
 	white-space: pre-wrap;
 	word-wrap: break-word;
-	border: 1px solid $border-color;
+	border: 1px solid get($neutrals, 'sep');
 	font-family: monospace;
 	font-size: 12px;
 	line-height: 1.5;
@@ -127,17 +241,17 @@ $shadow-subtle: rgba(0, 0, 0, 0.12);
 
 // Progress bar styling
 @mixin progress-bar-wrapper {
+	@include shadow-inset();
 	width: 100%;
 	height: 24px;
-	background-color: $border-default;
+	background-color: get($neutrals, 'sep');
 	border-radius: 12px;
 	overflow: hidden;
-	box-shadow: inset 0 1px 3px $shadow-subtle;
 }
 
 @mixin progress-bar-fill {
 	height: 100%;
-	background: linear-gradient(90deg, $accent1, $accent1-light);
+	background: linear-gradient(90deg, $primary, get($primaries, 'sep'));
 	transition: width 0.3s ease;
 	box-shadow: 0 0 10px rgba(66, 165, 245, 0.5);
 }

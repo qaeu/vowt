@@ -1,180 +1,164 @@
-@use 'theme';
+@use 'sass:color';
+@use 'theme' as *;
 
-.records-container {
-	@include theme.container;
+@layer override {
+	button#delete-all-records {
+		@include button($errors);
+		font-size: 14px;
+	}
+}
 
-	.button-group {
-		display: flex;
-		gap: 10px;
-		flex-wrap: wrap;
-
-		margin-bottom: 20px;
-
-		button {
-			@include theme.button(theme.$accent1);
-			flex: 1;
-
-			&.primary {
-				@include theme.button(theme.$accent1-light);
-			}
-
-			&.success {
-				@include theme.button(theme.$accent2-success);
-			}
-
-			&.warning {
-				@include theme.button(theme.$accent2-warning);
-			}
-
-			&.danger {
-				@include theme.button(theme.$accent2-error);
-			}
+@layer screen {
+	@scope (#game-records-screen) to (.expanded-details) {
+		.records-table-wrapper thead tr {
+			@include shadow;
+			position: sticky;
+			z-index: 1;
+			top: 0;
 		}
 	}
 
-	.empty-state {
-		@include theme.card(theme.$background);
+	#game-records-screen {
+		@include container;
 
-		padding: 40px;
-		text-align: center;
-		color: theme.$foreground-light;
+		.empty-state {
+			@include card($background);
 
-		p {
-			font-size: 18px;
-			margin: 0;
-		}
-	}
+			padding: 40px;
+			text-align: center;
+			color: get($neutrals, 'fg-light');
 
-	.records-table-wrapper {
-		@include theme.card(theme.$background-light);
-
-		overflow: hidden;
-
-		table {
-			width: 100%;
-			border-collapse: collapse;
-		}
-
-		thead tr {
-			background-color: theme.$accent1;
-			color: white;
-
-			th {
-				padding: 12px;
-				text-align: left;
-				font-weight: bold;
-
-				&.center {
-					text-align: center;
-				}
+			p {
+				font-size: 18px;
+				margin: 0;
 			}
 		}
 
-		tbody tr {
-			border-bottom: 1px solid theme.$border-default;
-			cursor: pointer;
-			background-color: white;
-
-			&.expanded {
-				background-color: theme.$background;
-			}
-
-			td {
-				padding: 12px;
-
-				&.center {
-					text-align: center;
-				}
-
-				&.expanded-details {
-					cursor: default;
-				}
-			}
-
-			.delete-button {
-				@include theme.button-small(theme.$accent2-error);
-			}
-		}
-	}
-
-	.result-badge {
-		@include theme.badge;
-
-		&.victory {
-			background-color: theme.$accent2-success;
-		}
-
-		&.defeat {
-			background-color: theme.$accent2-error;
-		}
-	}
-
-	.expanded-details {
-		padding: 20px;
-		background-color: theme.$background-alt;
-		border-bottom: 1px solid theme.$border-default;
-
-		h3 {
-			color: theme.$foreground-dark;
-			margin-top: 0;
-		}
-
-		h4 {
-			color: theme.$foreground-dark;
-			margin-bottom: 10px;
-		}
-
-		h5 {
-			margin-bottom: 10px;
-
-			&.blue-team {
-				color: theme.$accent1;
-			}
-
-			&.red-team {
-				color: theme.$accent2-error;
-			}
-		}
-
-		.game-info {
-			margin-bottom: 15px;
-
-			strong {
-				font-weight: bold;
-			}
-		}
-
-		.teams-grid {
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: 20px;
+		.records-table-wrapper {
+			@include card(get($neutrals, 'bg-light'));
+			padding: 0;
+			contain: paint;
 
 			table {
 				width: 100%;
-				font-size: 14px;
+				border-collapse: collapse;
+			}
 
-				.right {
-					text-align: right;
+			thead tr {
+				background-color: get($greys, 'base');
+				color: $white;
+
+				th {
+					padding: 12px;
+					text-align: left;
+					font-weight: bold;
+
+					&.center {
+						text-align: center;
+					}
+				}
+			}
+
+			tbody tr {
+				border-bottom: 1px solid get($neutrals, 'sep');
+				cursor: pointer;
+
+				&:last-child {
+					border-bottom-color: transparent;
 				}
 
-				thead tr {
-					background-color: transparent;
+				&.expanded {
+					background-color: $background;
+					border-bottom-color: transparent;
+				}
 
-					th {
-						text-align: left;
-						padding: 4px;
-						font-weight: bold;
-						border-bottom: 1px solid theme.$border-light;
+				td {
+					padding: 12px;
+
+					&.center {
+						text-align: center;
+					}
+
+					&.expanded-details {
+						cursor: default;
 					}
 				}
 
-				tbody tr {
-					border-bottom: 1px solid theme.$border-default;
+				.delete-button {
+					@include button-small($errors);
+				}
+			}
+		}
 
-					td {
-						padding: 4px;
-						text-align: left;
-					}
+		.result-badge {
+			@include badge($background);
+
+			&:not(.empty)::after {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: radial-gradient(
+					circle at calc(50% - 14px) calc(50% - 28px),
+					hsla(240, 100%, 100%, 0.35) 0%,
+					hsla(257, 100%, 97%, 0.1) 66%,
+					transparent 100%
+				);
+				border-radius: 4px;
+				pointer-events: none;
+			}
+
+			&.victory {
+				@include badge(get($successes, 'base'));
+				text-shadow: 1px 2px 1px rgba(0, 8, 4, 0.05);
+				box-shadow:
+					inset 1px 2px 3px rgba(0, 8, 4, 0.05),
+					inset 2px 4px 6px rgba(0, 8, 4, 0.05);
+			}
+
+			&.defeat {
+				@include badge(get($errors, 'base'));
+				text-shadow: 1px 2px 1px rgba(10, 0, 0, 0.05);
+				box-shadow:
+					inset 1px 2px 3px rgba(10, 0, 0, 0.05),
+					inset 2px 4px 6px rgba(10, 0, 0, 0.05);
+			}
+		}
+
+		.expanded-details {
+			padding: 20px;
+			background-color: $background;
+			border-bottom: 1px solid get($neutrals, 'sep');
+
+			h3 {
+				color: $foreground;
+				margin-top: 0;
+			}
+
+			h4 {
+				color: $foreground;
+				margin-bottom: 10px;
+			}
+
+			h5 {
+				margin-bottom: 10px;
+
+				&.blue-team {
+					color: $primary;
+				}
+
+				&.red-team {
+					color: get($errors, 'base');
+				}
+			}
+
+			.game-info {
+				margin-bottom: 15px;
+
+				strong {
+					font-weight: bold;
 				}
 			}
 		}

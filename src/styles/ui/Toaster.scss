@@ -1,0 +1,113 @@
+@use '../theme' as *;
+
+@layer ui {
+	[data-scope='toast'] {
+		&[data-part='root'] {
+			@include shadow-tall();
+			@include background-light-glow();
+			background-color: oklch(from get($greys, 'bg') l c h / 0.66);
+			border: 1px solid get($neutrals, 'sep');
+			border-radius: 6px;
+			backdrop-filter: blur(8px);
+			color: $foreground;
+			padding: 16px 20px;
+			width: 360px;
+			overflow-wrap: anywhere;
+			translate: var(--x) var(--y);
+			scale: var(--scale);
+			z-index: var(--z-index);
+			height: var(--initial-height);
+			opacity: var(--opacity);
+			will-change: translate, opacity, scale;
+
+			/* Movement (ease-out) */
+			transition:
+				translate 400ms,
+				scale 400ms,
+				opacity 400ms;
+			transition-timing-function: cubic-bezier(0.2, 1, 0.75, 1);
+
+			&:not([data-paused]):first-child {
+				/* Pop-in (ease-out w/ bounce) */
+				transition:
+					translate 300ms,
+					scale 300ms,
+					opacity 300ms,
+					height 300ms;
+				transition-timing-function: cubic-bezier(0.1, 1, 0.45, 2);
+			}
+
+			&[data-state='closed'] {
+				/* Drop-out (ease-in) */
+				transition:
+					translate 400ms,
+					scale 400ms,
+					opacity 200ms;
+				transition-timing-function: cubic-bezier(0.33, 0, 1, 1);
+			}
+
+			&[data-type='error'] {
+				border-color: oklch(from get($errors, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($errors, 'bg-dark') l c h / 0.2);
+			}
+
+			&[data-type='info'] {
+				border-color: oklch(from get($neutrals, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($neutrals, 'bg-dark') l c h / 0.2);
+			}
+
+			&[data-type='warning'] {
+				border-color: oklch(from get($warnings, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($warnings, 'bg-dark') l c h / 0.2);
+			}
+
+			&[data-type='success'] {
+				border-color: oklch(from get($successes, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($successes, 'bg-dark') l c h / 0.2);
+			}
+		}
+
+		&[data-part='close-trigger'] {
+			@include button-small();
+			position: absolute;
+			right: 16px;
+			top: 14px;
+			border-radius: 4px;
+			font-size: 16px;
+
+			& svg {
+				width: 1em;
+				height: 1em;
+			}
+		}
+
+		&[data-part='title'] {
+			margin: 0 0 8px 0;
+			font-size: 16px;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding-right: 24px;
+		}
+
+		&[data-part='description'] {
+			margin: 0;
+			color: get($neutrals, 'fg-light');
+			font-size: 14px;
+			line-height: 1.5;
+			padding-right: 24px;
+		}
+	}
+}
+
+@media (max-width: 640px) {
+	[data-scope='toast'][data-part='group'] {
+		width: 100%;
+	}
+
+	[data-scope='toast'][data-part='root'] {
+		inset-inline: 0;
+		width: calc(100% - var(--gap) * 2);
+	}
+}

@@ -1,12 +1,7 @@
-import {
-	createSignal,
-	onMount,
-	onCleanup,
-	createEffect,
-	Show,
-	type Component,
-} from 'solid-js';
+import type { Component } from 'solid-js';
+import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
+import { X } from 'lucide-solid';
 
 import type {
 	PlayerStats,
@@ -16,7 +11,9 @@ import type {
 	ImageHashSet,
 	RecognitionResult,
 } from '#types';
-import EditableGameData from '#c/EditableGameData';
+import Screen from '#c/ui/Screen';
+import EditableGameData from '#c/ui/EditableGameData';
+import Toaster, { toast } from '#c/ui/Toaster';
 import {
 	preprocessImageForOCR,
 	preprocessRegionsForOCR,
@@ -32,7 +29,6 @@ import { extractGameStats, formatResults } from '#utils/postprocess';
 import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
 import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
-import '#styles/ScoreboardOCR';
 
 interface ScoreboardOCRProps {
 	uploadedImage?: string | null;
@@ -53,6 +49,24 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [error, setError] = createSignal<string>('');
 	const [progress, setProgress] = createSignal<number>(0);
 	const [currentScreenshot, setCurrentScreenshot] = createSignal<string>();
+	const [expandedImage, setExpandedImage] = createSignal<
+		'uploaded' | 'preprocessed' | null
+	>(null);
+
+	const navActions = [
+		{
+			id: 'show-region-profiles',
+			text: 'Region Profiles',
+			onClick: () => props.onOpenRegionManager(),
+		},
+		{
+			id: 'close-screen',
+			text: 'Close',
+			icon: X,
+			class: 'highlight',
+			onClick: () => props.onClose(),
+		},
+	];
 
 	let recordId: string;
 	let activeSchedulers: Tesseract.Scheduler[] = [];
@@ -436,6 +450,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			const stats = extractGameStats(ocrResults.regionResults);
 			setExtractedStats(stats);
 			recordId = saveGameRecord(stats.players, stats.matchInfo);
+
+			toast('Recognition Success', 'New game record saved.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Unknown error occurred');
 			console.error('Processing error:', err);
@@ -447,36 +463,18 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
 		try {
 			updateGameRecord(recordId, players, matchInfo);
+			toast('Save Success', 'Game record updated.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save game record');
 		}
 	};
 
 	return (
-		<div class="scoreboard-container">
-			<header>
-				<h1>Image Processing</h1>
-
-				<div class="header-buttons">
-					<button
-						onClick={() => {
-							props.onOpenRegionManager();
-						}}
-						class="region-button"
-					>
-						Region Profiles
-					</button>
-					<button
-						onClick={() => {
-							props.onClose();
-						}}
-						class="close-button"
-					>
-						✕ Close
-					</button>
-				</div>
-			</header>
-
+		<Screen
+			id="scoreboard-ocr-screen"
+			title="Image Processing"
+			navActions={() => navActions}
+		>
 			<Show when={error()}>
 				<div class="error-box">
 					<strong>Error:</strong> {error()}
@@ -494,14 +492,32 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			<div class="image-grid">
 				<Show when={currentScreenshot()}>
-					<div class="image-container">
+					<div
+						class="image-container"
+						classList={{
+							expanded: expandedImage() === 'uploaded',
+							hidden: expandedImage() === 'preprocessed',
+						}}
+						onClick={() =>
+							setExpandedImage(expandedImage() === 'uploaded' ? null : 'uploaded')
+						}
+					>
 						<h2>Uploaded Image</h2>
 						<img src={currentScreenshot()} alt="Uploaded Image" />
 					</div>
 				</Show>
 
 				<Show when={preprocessedImagePreview()}>
-					<div class="image-container">
+					<div
+						class="image-container"
+						classList={{
+							expanded: expandedImage() === 'preprocessed',
+							hidden: expandedImage() === 'uploaded',
+						}}
+						onClick={() =>
+							setExpandedImage(expandedImage() === 'preprocessed' ? null : 'preprocessed')
+						}
+					>
 						<h2>Pre-processed Image</h2>
 						<img
 							src={preprocessedImagePreview()}
@@ -555,7 +571,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 					</div>
 				</Show>
 			</div>
-		</div>
+
+			<Toaster />
+		</Screen>
 	);
 };
 

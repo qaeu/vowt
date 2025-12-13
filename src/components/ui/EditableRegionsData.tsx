@@ -1,3 +1,4 @@
+import type { Component, OnEffectFunction } from 'solid-js';
 import {
 	createSignal,
 	createEffect,
@@ -6,14 +7,12 @@ import {
 	batch,
 	For,
 	Show,
-	type Component,
-	type OnEffectFunction,
 	onCleanup,
 } from 'solid-js';
+import { X } from 'lucide-solid';
 
 import type { TextRegion, DrawnRegion } from '#types';
-import RecordFieldInput from '#c/RecordFieldInput';
-import '#styles/EditableRegionsData';
+import RecordFieldInput from '#c/ui/RecordFieldInput';
 
 interface EditableRegionsDataProps {
 	profileId: string;
@@ -214,7 +213,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 			<div class="editable-header">
 				<h3>Drawn Regions ({editableRegionIds().length})</h3>
 
-				<div class="action-buttons">
+				<div class="button-group">
 					<Show when={hasUnsavedChanges()}>
 						<button onClick={handleCancel} class="cancel-button">
 							Cancel Changes
@@ -367,7 +366,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 													class="delete-button"
 													title="Delete region"
 												>
-													✕
+													<X size={14} />
 												</button>
 											</td>
 										</tr>

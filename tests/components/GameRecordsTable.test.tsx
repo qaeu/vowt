@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, assert } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
 import type { PlayerStats, MatchInfo, GameRecord } from '#types';
@@ -13,6 +13,7 @@ vi.mock('#utils/gameStorage', () => ({
 	clearAllGameRecords: vi.fn(),
 	exportGameRecords: vi.fn(),
 	importGameRecords: vi.fn(),
+	PLAYER_STATS_NUMBER_FIELD_NAMES: ['e', 'a', 'd', 'dmg', 'h', 'mit'],
 }));
 
 interface EditableGameDataProps {
@@ -22,13 +23,15 @@ interface EditableGameDataProps {
 }
 
 // Mock EditableGameData component
-vi.mock('#c/EditableGameData', () => ({
+vi.mock('#c/ui/EditableGameData', () => ({
 	default: (props: EditableGameDataProps) => (
 		<div data-testid="editable-game-data">
-			<div data-testid="players-count">{props.initialPlayers.length} players</div>
-			<div data-testid="match-result">{props.initialMatchInfo.result}</div>
+			<div data-testid="players-count">{props.initialPlayers?.length || 0} players</div>
+			<div data-testid="match-result">{props.initialMatchInfo?.result || 'unknown'}</div>
 			<button
-				onClick={() => props.onSave(props.initialPlayers, props.initialMatchInfo)}
+				onClick={() =>
+					props.onSave?.(props.initialPlayers || [], props.initialMatchInfo || {})
+				}
 				data-testid="save-edits-button"
 			>
 				Save Edits
@@ -235,29 +238,42 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should delete record when delete button is clicked', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Delete Record');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
+
 		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
 	});
 
 	it('should not delete record when confirm is cancelled', async () => {
-		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Delete Record');
+		});
+
+		const dialogCloseButton = document.querySelector(
+			'[data-scope="dialog"][data-part="close-trigger"]'
+		);
+		assert(dialogCloseButton, 'Dialog close button not found');
+
+		fireEvent.click(dialogCloseButton);
+
 		expect(gameStorage.deleteGameRecord).not.toHaveBeenCalled();
 	});
 
 	it('should close expanded record when deleted', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const victoryCell = screen.getByText('VICTORY');
@@ -267,8 +283,15 @@ describe('GameRecordsTable', () => {
 			expect(screen.queryByTestId('editable-game-data')).not.toBeNull();
 		});
 
-		const deleteButtons = screen.getAllByRole('button', { name: '✕' });
+		const deleteButtons = document.querySelectorAll('.delete-button');
 		fireEvent.click(deleteButtons[0]);
+
+		await waitFor(() => {
+			screen.getByText('Delete Record');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
 
 		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
 	});
@@ -285,37 +308,51 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should call clearAllGameRecords when clear all button is clicked with confirmation', async () => {
-		window.confirm = vi.fn(() => true);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Clear All Records');
+		});
+
+		const confirmButton = screen.getByText('Confirm');
+		fireEvent.click(confirmButton);
+
 		expect(gameStorage.clearAllGameRecords).toHaveBeenCalled();
 	});
 
 	it('should not clear records when confirm is cancelled', async () => {
-		window.confirm = vi.fn(() => false);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);
 		fireEvent.click(clearButton);
 
-		expect(window.confirm).toHaveBeenCalled();
+		await waitFor(() => {
+			screen.getByText('Clear All Records');
+		});
+
+		const dialogCloseButton = document.querySelector(
+			'[data-scope="dialog"][data-part="close-trigger"]'
+		);
+		assert(dialogCloseButton, 'Dialog close button not found');
+
+		fireEvent.click(dialogCloseButton);
+
 		expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
 	});
 
-	it('should disable export button when records undefined', () => {
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+	it('should disable export button when no records exist', () => {
+		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue([]);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const exportButton = screen.getByText(/Export/);
 		expect((exportButton as HTMLButtonElement).disabled).toBe(true);
 	});
 
-	it('should disable clear all button when records undefined', () => {
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+	it('should disable clear all button when no records exist', () => {
+		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue([]);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);

@@ -1,0 +1,105 @@
+@use '../theme' as *;
+
+@layer ui {
+	.editable-regions-container {
+		margin-top: 20px;
+
+		.editable-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15px;
+			flex-wrap: wrap;
+			gap: 15px;
+
+			h3 {
+				margin: 0;
+			}
+
+			.action-buttons .cancel-button {
+				@include button($neutrals);
+			}
+		}
+
+		.empty-state {
+			padding: 20px;
+			text-align: center;
+			color: get($neutrals, 'fg-light');
+			background-color: get($neutrals, 'bg');
+			border-radius: 4px;
+
+			p {
+				margin: 0;
+			}
+		}
+
+		.table-wrapper {
+			max-height: 400px;
+			overflow-x: auto;
+			overflow-y: auto;
+			border: 1px solid get($neutrals, 'sep');
+			border-radius: 4px;
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 13px;
+			}
+
+			thead tr th {
+				@include shadow-short($shadow-light);
+				padding: 12px 8px;
+				text-align: left;
+				font-weight: bold;
+				color: $foreground;
+				position: sticky;
+				top: 0;
+				background-color: get($greys, 'bg-dark');
+				border-bottom: 2px solid get($greys, 'sep');
+				z-index: 1;
+
+				&.name-column {
+					min-width: 120px;
+				}
+
+				&.delete-column {
+					width: 60px;
+					text-align: center;
+				}
+			}
+
+			tbody tr {
+				&:focus-within {
+					background-color: get($neutrals, 'bg-dark');
+				}
+
+				td {
+					padding: 0;
+
+					&.name-column {
+						min-width: 120px;
+					}
+
+					&.delete-column {
+						text-align: center;
+						padding: 8px;
+					}
+
+					.italic-checkbox {
+						display: block;
+						margin: 0 auto;
+						cursor: pointer;
+						width: 16px;
+						height: 16px;
+					}
+
+					.delete-button {
+						@include button-small($errors);
+						width: 28px;
+						height: 28px;
+					}
+				}
+			}
+		}
+	}
+}
