@@ -1,3 +1,5 @@
+import type { Component } from 'solid-js';
+
 /**
  * Centralized type definitions for VOWT
  * This file contains all shared type definitions used across the application
@@ -26,6 +28,7 @@ export interface ScreenAction {
 	id: string;
 	text: string;
 	class?: string;
+	icon?: Component;
 	disabled?: () => boolean;
 	onClick?: () => void;
 }
