@@ -1,6 +1,7 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
+import { X } from 'lucide-solid';
 
 import type {
 	PlayerStats,
@@ -60,7 +61,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		},
 		{
 			id: 'close-screen',
-			text: '✕ Close',
+			text: 'Close',
+			icon: X,
 			class: 'highlight',
 			onClick: () => props.onClose(),
 		},

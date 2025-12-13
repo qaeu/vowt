@@ -24,6 +24,9 @@
 
 			button {
 				flex: 0 0 150px;
+				display: flex;
+				align-items: center;
+				gap: 4px;
 				padding: 11px 18px;
 				text-wrap: nowrap;
 				text-align: left;

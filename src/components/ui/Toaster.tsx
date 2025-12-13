@@ -1,5 +1,6 @@
 import type { Component } from 'solid-js';
 import { Toast, Toaster as ArkToaster, createToaster } from '@ark-ui/solid/toast';
+import { X } from 'lucide-solid';
 
 const toaster = createToaster({
 	placement: 'bottom-end',
@@ -30,7 +31,9 @@ const Toaster: Component<ToasterProps> = (props) => {
 						{toast().title}
 					</Toast.Title>
 					<Toast.Description>{toast().description}</Toast.Description>
-					<Toast.CloseTrigger>✕</Toast.CloseTrigger>
+					<Toast.CloseTrigger>
+						<X size={18} />
+					</Toast.CloseTrigger>
 				</Toast.Root>
 			)}
 		</ArkToaster>

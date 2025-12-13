@@ -1,3 +1,4 @@
+import type { Component, OnEffectFunction } from 'solid-js';
 import {
 	createSignal,
 	createEffect,
@@ -6,10 +7,9 @@ import {
 	batch,
 	For,
 	Show,
-	type Component,
-	type OnEffectFunction,
 	onCleanup,
 } from 'solid-js';
+import { X } from 'lucide-solid';
 
 import type { TextRegion, DrawnRegion } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
@@ -366,7 +366,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 													class="delete-button"
 													title="Delete region"
 												>
-													✕
+													<X size={14} />
 												</button>
 											</td>
 										</tr>

@@ -2,6 +2,7 @@ import type { Component } from 'solid-js';
 import { createSignal, onMount } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { Dialog } from '@ark-ui/solid/dialog';
+import { X } from 'lucide-solid';
 
 import type { AlertDialogOptions } from '#types';
 
@@ -52,7 +53,9 @@ const AlertDialog: Component<AlertDialogProps> = (props) => {
 							{options().title}
 						</Dialog.Title>
 						<Dialog.Description>{options().description}</Dialog.Description>
-						<Dialog.CloseTrigger>✕</Dialog.CloseTrigger>
+						<Dialog.CloseTrigger>
+							<X size={18} />
+						</Dialog.CloseTrigger>
 						<div class="button-group">
 							<button
 								type="button"

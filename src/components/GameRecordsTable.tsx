@@ -1,5 +1,6 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, For, Show } from 'solid-js';
+import { X } from 'lucide-solid';
 
 import type {
 	ScreenAction,
@@ -229,7 +230,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 													class="delete-button"
 													onClick={(e) => handleDeleteClick(e, record.id)}
 												>
-													✕
+													<X size={14} />
 												</button>
 											</td>
 										</tr>

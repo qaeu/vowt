@@ -1,5 +1,6 @@
 import type { Component } from 'solid-js';
 import { createSignal, batch, For, Show, onMount } from 'solid-js';
+import { X } from 'lucide-solid';
 
 import type { TextRegion, DrawnRegion, ScreenAction, AlertDialogOptions } from '#types';
 import Screen from '#c/ui/Screen';
@@ -36,8 +37,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const navActions: ScreenAction[] = [
 		{
 			id: 'close-button',
-			text: '✕ Close',
+			text: 'Close',
 			class: 'highlight',
+			icon: X,
 			onClick: () => props.onClose(),
 		},
 	];

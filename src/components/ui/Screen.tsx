@@ -1,5 +1,7 @@
 import type { Component, JSXElement } from 'solid-js';
+import type { LucideIcon } from 'lucide-solid';
 import { For } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import type { ScreenAction } from '#types';
 
@@ -25,7 +27,7 @@ const Screen: Component<ScreenProps> = (props) => {
 								disabled={action.disabled?.()}
 								onClick={action.onClick}
 							>
-								{action.text}
+								<Dynamic<LucideIcon> component={action.icon} size={18} /> {action.text}
 							</button>
 						)}
 					</For>
