@@ -28,7 +28,7 @@
 					padding: 11px 18px;
 
 					&.save-button {
-						@include button($success);
+						@include button($successes);
 					}
 				}
 			}
@@ -82,11 +82,11 @@
 					margin-bottom: 10px;
 
 					&.blue-team {
-						color: get($success, 'base-dark');
+						color: get($successes, 'base-dark');
 					}
 
 					&.red-team {
-						color: get($error, 'base-dark');
+						color: get($errors, 'base-dark');
 					}
 				}
 			}
@@ -98,7 +98,7 @@
 
 			thead tr {
 				background-color: $background;
-				border-bottom: 2px solid get($neutral, 'sep');
+				border-bottom: 2px solid get($neutrals, 'sep');
 
 				th.hero-column,
 				th.name-column {
@@ -109,12 +109,12 @@
 					text-align: right;
 					font-size: 14px;
 					font-weight: 600;
-					color: get($neutral, 'fg');
+					color: get($neutrals, 'fg');
 				}
 			}
 
 			tbody tr {
-				border-bottom: 1px solid get($neutral, 'sep');
+				border-bottom: 1px solid get($neutrals, 'sep');
 
 				td {
 					padding: 0;

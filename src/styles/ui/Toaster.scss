@@ -5,8 +5,8 @@
 		&[data-part='root'] {
 			@include shadow-tall();
 			@include background-light-glow();
-			background-color: oklch(from get($grey, 'bg') l c h / 0.66);
-			border: 1px solid get($neutral, 'sep');
+			background-color: oklch(from get($greys, 'bg') l c h / 0.66);
+			border: 1px solid get($neutrals, 'sep');
 			border-radius: 6px;
 			backdrop-filter: blur(8px);
 			color: $foreground;
@@ -40,23 +40,23 @@
 			}
 
 			&[data-type='error'] {
-				border-color: oklch(from get($error, 'bg-dark') l c h / 0.5);
-				background-color: oklch(from get($error, 'bg-dark') l c h / 0.2);
+				border-color: oklch(from get($errors, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($errors, 'bg-dark') l c h / 0.2);
 			}
 
 			&[data-type='info'] {
-				border-color: oklch(from get($neutral, 'bg-dark') l c h / 0.5);
-				background-color: oklch(from get($neutral, 'bg-dark') l c h / 0.2);
+				border-color: oklch(from get($neutrals, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($neutrals, 'bg-dark') l c h / 0.2);
 			}
 
 			&[data-type='warning'] {
-				border-color: oklch(from get($warning, 'bg-dark') l c h / 0.5);
-				background-color: oklch(from get($warning, 'bg-dark') l c h / 0.2);
+				border-color: oklch(from get($warnings, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($warnings, 'bg-dark') l c h / 0.2);
 			}
 
 			&[data-type='success'] {
-				border-color: oklch(from get($success, 'bg-dark') l c h / 0.5);
-				background-color: oklch(from get($success, 'bg-dark') l c h / 0.2);
+				border-color: oklch(from get($successes, 'bg-dark') l c h / 0.5);
+				background-color: oklch(from get($successes, 'bg-dark') l c h / 0.2);
 			}
 		}
 
@@ -86,7 +86,7 @@
 
 		&[data-part='description'] {
 			margin: 0;
-			color: get($neutral, 'fg-light');
+			color: get($neutrals, 'fg-light');
 			font-size: 14px;
 			line-height: 1.5;
 			padding-right: 24px;

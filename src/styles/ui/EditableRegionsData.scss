@@ -17,15 +17,15 @@
 			}
 
 			.action-buttons .cancel-button {
-				@include button($neutral);
+				@include button($neutrals);
 			}
 		}
 
 		.empty-state {
 			padding: 20px;
 			text-align: center;
-			color: get($neutral, 'fg-light');
-			background-color: get($neutral, 'bg');
+			color: get($neutrals, 'fg-light');
+			background-color: get($neutrals, 'bg');
 			border-radius: 4px;
 
 			p {
@@ -37,7 +37,7 @@
 			max-height: 400px;
 			overflow-x: auto;
 			overflow-y: auto;
-			border: 1px solid get($neutral, 'sep');
+			border: 1px solid get($neutrals, 'sep');
 			border-radius: 4px;
 
 			table {
@@ -54,8 +54,8 @@
 				color: $foreground;
 				position: sticky;
 				top: 0;
-				background-color: get($grey, 'bg-dark');
-				border-bottom: 2px solid get($grey, 'sep');
+				background-color: get($greys, 'bg-dark');
+				border-bottom: 2px solid get($greys, 'sep');
 				z-index: 1;
 
 				&.name-column {
@@ -70,7 +70,7 @@
 
 			tbody tr {
 				&:focus-within {
-					background-color: get($neutral, 'bg-dark');
+					background-color: get($neutrals, 'bg-dark');
 				}
 
 				td {
@@ -94,7 +94,7 @@
 					}
 
 					.delete-button {
-						@include button-small($error);
+						@include button-small($errors);
 						width: 28px;
 						height: 28px;
 					}

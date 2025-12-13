@@ -11,13 +11,13 @@
 
 		&:hover {
 			background-color: $background;
-			border-color: get($neutral, 'sep');
+			border-color: get($neutrals, 'sep');
 		}
 
 		&:focus {
 			outline: none;
-			background-color: get($grey, 'bg');
-			border-color: get($accent, 'sep');
+			background-color: get($greys, 'bg');
+			border-color: get($primaries, 'sep');
 			box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
 		}
 

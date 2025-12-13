@@ -9,7 +9,7 @@
 		}
 
 		.info-box {
-			@include info-box(get($accent, 'bg-dark'), get($accent, 'sep'));
+			@include info-box(get($primaries, 'bg-dark'), get($primaries, 'sep'));
 			margin-bottom: 30px;
 		}
 
@@ -22,7 +22,7 @@
 
 		.section {
 			@include card($background);
-			border: 1px solid get($neutral, 'sep');
+			border: 1px solid get($neutrals, 'sep');
 			padding: 20px;
 			border-radius: 8px;
 		}
@@ -32,26 +32,26 @@
 
 			button {
 				&.action-btn.activate {
-					@include button($success);
+					@include button($successes);
 				}
 
 				&.action-btn.delete {
-					@include button($error);
+					@include button($errors);
 				}
 
 				&.save-profile {
-					@include button($success);
+					@include button($successes);
 				}
 
 				&.clear-regions {
-					@include button($error);
+					@include button($errors);
 				}
 			}
 		}
 
 		.canvas-wrapper {
-			@include card(get($neutral, 'bg-dark'));
-			border: 1px solid get($neutral, 'sep');
+			@include card(get($neutrals, 'bg-dark'));
+			border: 1px solid get($neutrals, 'sep');
 			margin: 20px 0 10px;
 			padding: 10px;
 			border-radius: 4px;
@@ -82,18 +82,18 @@
 		}
 
 		.regions-display {
-			@include card(get($success, 'bg-dark'));
-			border: 1px solid get($success, 'sep');
+			@include card(get($successes, 'bg-dark'));
+			border: 1px solid get($successes, 'sep');
 			border-radius: 4px;
 			padding: 15px;
 			margin-top: 20px;
 
 			h3 {
-				color: get($success, 'base');
+				color: get($successes, 'base');
 			}
 
 			pre {
-				@include code-block(get($neutral, 'bg-light'), get($success, 'sep'));
+				@include code-block(get($neutrals, 'bg-light'), get($successes, 'sep'));
 				font-size: 11px;
 				line-height: 1.4;
 				max-height: 300px;
@@ -129,19 +129,19 @@
 
 			&:hover {
 				background-color: $background;
-				border-color: get($neutral, 'sep');
+				border-color: get($neutrals, 'sep');
 			}
 
 			&:focus {
 				outline: none;
-				border-color: get($accent, 'sep');
+				border-color: get($primaries, 'sep');
 				box-shadow: 0 0 0 1px rgba(90, 127, 163, 0.2);
 			}
 
 			&:disabled,
 			&.disabled {
 				background-color: $background;
-				color: get($accent, 'fg-light');
+				color: get($primaries, 'fg-light');
 				cursor: not-allowed;
 			}
 		}
@@ -159,7 +159,7 @@
 
 			&:hover {
 				background-color: $background;
-				border-color: get($neutral, 'sep');
+				border-color: get($neutrals, 'sep');
 			}
 
 			&:focus {
@@ -176,18 +176,18 @@
 		}
 
 		.profile-card {
-			@include card(get($grey, 'bg'));
+			@include card(get($greys, 'bg'));
 
 			margin-bottom: 0;
-			border: 1px solid get($neutral, 'sep');
+			border: 1px solid get($neutrals, 'sep');
 			border-width: 0 0 0 6px;
 			border-radius: 6px;
 			padding: 15px;
 			transition: all 0.2s ease;
 
 			&.active {
-				border-color: get($success, 'base');
-				background-color: rgba(get($success, 'base'), 0.05);
+				border-color: get($successes, 'base');
+				background-color: rgba(get($successes, 'base'), 0.05);
 			}
 
 			.profile-header {
@@ -203,14 +203,14 @@
 			.profile-description {
 				margin: 0 0 22px;
 				font-size: 13px;
-				color: get($accent, 'fg-light');
+				color: get($primaries, 'fg-light');
 				min-height: 18px;
 			}
 		}
 
 		.empty-state {
 			text-align: center;
-			color: get($accent, 'fg-light');
+			color: get($primaries, 'fg-light');
 			padding: 40px 20px;
 			font-style: italic;
 		}

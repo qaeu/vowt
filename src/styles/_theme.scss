@@ -28,7 +28,7 @@
 
 /* - THEME COLORS - */
 
-@function colorset($color-name) {
+@function _colourset($color-name) {
 	@return (
 		'fg': var(--#{$color-name}-12),
 		'fg-light': var(--#{$color-name}-11),
@@ -37,6 +37,7 @@
 		'sep-dark': var(--#{$color-name}-8),
 		'sep': var(--#{$color-name}-7),
 		'sep-light': var(--#{$color-name}-6),
+		'highlight': var(--#{$color-name}-4),
 		'bg-dark': var(--#{$color-name}-2),
 		'bg': var(--#{$color-name}-1),
 		'fade-less': var(--#{$color-name}-a3),
@@ -45,21 +46,22 @@
 	);
 }
 
-// Primary brand color
-$accent: colorset('vred');
-$primary: get($accent, 'base');
+// Primary brand colour
+$primaries: _colourset('vred');
+$primary: get($primaries, 'base');
 
 // Foreground - Primary text and key UI elements
-$neutral: colorset('neutral');
-$foreground: get($neutral, 'fg');
+$neutrals: _colourset('neutral');
+$foreground: get($neutrals, 'fg');
 
-// Background - Container and surface colors
-$grey: colorset('mauve');
-$background: get($grey, 'bg');
+// Background - Container and surface colours
+$greys: _colourset('mauve');
+$background: get($greys, 'bg');
 
-$success: colorset('teal');
-$warning: colorset('amber');
-$error: colorset('ruby');
+// Semantic colours
+$successes: _colourset('teal');
+$warnings: _colourset('amber');
+$errors: _colourset('ruby');
 
 // Neutral colors
 $white: var(--white-a12);
@@ -69,34 +71,34 @@ $black: var(--black-a12);
 $shadow-base: $black;
 $shadow-light: var(--mauve-10);
 
-@function calc-shadow($light-color: $background-light) {
-	$light-lch: oklch(from $light-color l c h);
+@function calc-shadow($light-colour: $background-light) {
+	$light-lch: oklch(from $light-colour l c h);
 	@return oklch(from color.complement($light-lch) 0.05 c h);
 }
 
-@mixin shadow-short($color: $shadow-base) {
+@mixin shadow-short($colour: $shadow-base) {
 	box-shadow:
-		0px 0px 1px oklch(from $color l c h / 0.05),
-		1px 2px 3px oklch(from $color l c h / 0.05);
+		0px 0px 1px oklch(from $colour l c h / 0.05),
+		1px 2px 3px oklch(from $colour l c h / 0.05);
 }
 
-@mixin shadow($color: $shadow-base) {
+@mixin shadow($colour: $shadow-base) {
 	box-shadow:
-		1px 2px 3px oklch(from $color l c h / 0.05),
-		2px 4px 6px oklch(from $color l c h / 0.05);
+		1px 2px 3px oklch(from $colour l c h / 0.05),
+		2px 4px 6px oklch(from $colour l c h / 0.05);
 }
 
-@mixin shadow-tall($color: $shadow-base) {
+@mixin shadow-tall($colour: $shadow-base) {
 	box-shadow:
-		2px 4px 3px oklch(from $color l c h / 0.015),
-		4px 8px 6px oklch(from $color l c h / 0.03),
-		4px 8px 12px oklch(from $color l c h / 0.03);
+		2px 4px 3px oklch(from $colour l c h / 0.015),
+		4px 8px 6px oklch(from $colour l c h / 0.03),
+		4px 8px 12px oklch(from $colour l c h / 0.03);
 }
 
-@mixin shadow-inset($color: $shadow-base) {
+@mixin shadow-inset($colour: $shadow-base) {
 	box-shadow:
-		inset 1px 2px 3px oklch(from $color l c h / 0.05),
-		inset 2px 4px 6px oklch(from $color l c h / 0.05);
+		inset 1px 2px 3px oklch(from $colour l c h / 0.05),
+		inset 2px 4px 6px oklch(from $colour l c h / 0.05);
 }
 
 @mixin background-light-glow {
@@ -116,20 +118,20 @@ $shadow-light: var(--mauve-10);
 }
 
 // Card/box styling with shadow and rounded corners
-@mixin card($bg-color: $background) {
+@mixin card($bg-colour: $background) {
 	@include shadow-short;
 	padding: 20px;
 	margin-bottom: 30px;
-	background-color: $bg-color;
+	background-color: $bg-colour;
 	border-radius: 8px;
 	contain: layout;
 }
 
 // Info box styling with left border accent
-@mixin info-box($bg-color, $border-color) {
+@mixin info-box($bg-colour, $border-colour) {
 	padding: 15px;
-	background-color: $bg-color;
-	border-left: 4px solid $border-color;
+	background-color: $bg-colour;
+	border-left: 4px solid $border-colour;
 	margin-bottom: 20px;
 	border-radius: 4px;
 
@@ -140,13 +142,13 @@ $shadow-light: var(--mauve-10);
 }
 
 // Button styling
-@mixin button($colorset: $accent) {
+@mixin button($colourset: $primaries) {
 	@include shadow-short($shadow-light);
 	@include background-light-glow;
 	padding: 8px 12px;
-	border: 1px solid get($grey, 'sep');
+	border: 1px solid get($greys, 'sep');
 	border-radius: 4px;
-	color: get($grey, 'fg-light');
+	color: get($greys, 'fg-light');
 	cursor: pointer;
 	font-size: 13px;
 	letter-spacing: 1px;
@@ -155,16 +157,16 @@ $shadow-light: var(--mauve-10);
 	backdrop-filter: blur(4px);
 
 	&:hover:not(:disabled, .active) {
-		border-color: get($colorset, 'sep-dark');
-		color: get($colorset, 'base-dark');
+		border-color: get($colourset, 'sep-dark');
+		color: get($colourset, 'base-dark');
 	}
 
 	&.highlight:hover:not(:disabled, .active) {
-		background-color: get($colorset, 'fade');
+		background-color: get($colourset, 'fade');
 	}
 
 	&.active {
-		background-color: get($colorset, 'base');
+		background-color: get($colourset, 'base');
 		border-color: transparent;
 		color: white;
 	}
@@ -172,15 +174,15 @@ $shadow-light: var(--mauve-10);
 	&:disabled {
 		box-shadow: none;
 		background: none;
-		border-color: get($grey, 'fade-less');
-		color: get($grey, 'sep-dark');
+		border-color: get($greys, 'fade-less');
+		color: get($greys, 'sep-dark');
 		filter: none;
 		cursor: default;
 	}
 }
 
 // Small button styling (for delete/action buttons)
-@mixin button-small($colorset: $accent) {
+@mixin button-small($colourset: $primaries) {
 	box-shadow: none;
 	background: none;
 	width: 32px;
@@ -194,16 +196,16 @@ $shadow-light: var(--mauve-10);
 	font-size: 12px;
 	border: 1px solid transparent;
 	border-radius: 3px;
-	color: get($neutral, 'fg-light');
+	color: get($neutrals, 'fg-light');
 	cursor: pointer;
 	transition: all 0.2s ease;
 
 	&:hover {
 		@include background-light-glow;
 		@include shadow-short($shadow-light);
-		background-color: get($colorset, 'fade');
-		border-color: get($colorset, 'sep-dark');
-		color: get($colorset, 'base-dark');
+		background-color: get($colourset, 'fade');
+		border-color: get($colourset, 'sep-dark');
+		color: get($colourset, 'base-dark');
 	}
 }
 
@@ -225,13 +227,13 @@ $shadow-light: var(--mauve-10);
 }
 
 // Pre/code block styling
-@mixin code-block($bg: $background, $border-color: get($grey, 'sep')) {
+@mixin code-block($bg: $background, $border-color: get($greys, 'sep')) {
 	background-color: $bg;
 	padding: 15px;
 	border-radius: 4px;
 	white-space: pre-wrap;
 	word-wrap: break-word;
-	border: 1px solid get($neutral, 'sep');
+	border: 1px solid get($neutrals, 'sep');
 	font-family: monospace;
 	font-size: 12px;
 	line-height: 1.5;
@@ -242,14 +244,14 @@ $shadow-light: var(--mauve-10);
 	@include shadow-inset();
 	width: 100%;
 	height: 24px;
-	background-color: get($neutral, 'sep');
+	background-color: get($neutrals, 'sep');
 	border-radius: 12px;
 	overflow: hidden;
 }
 
 @mixin progress-bar-fill {
 	height: 100%;
-	background: linear-gradient(90deg, $primary, get($accent, 'sep'));
+	background: linear-gradient(90deg, $primary, get($primaries, 'sep'));
 	transition: width 0.3s ease;
 	box-shadow: 0 0 10px rgba(66, 165, 245, 0.5);
 }

@@ -9,17 +9,17 @@
 		}
 
 		.upload-button {
-			@include button($success);
+			@include button($successes);
 		}
 
 		.info-box {
-			@include info-box(get($accent, 'bg-dark'), get($accent, 'sep'));
+			@include info-box(get($primaries, 'bg-dark'), get($primaries, 'sep'));
 		}
 
 		.error-box {
-			@include info-box(get($error, 'bg-dark'), get($error, 'sep'));
+			@include info-box(get($errors, 'bg-dark'), get($errors, 'sep'));
 
-			color: get($error, 'sep-dark');
+			color: get($errors, 'sep-dark');
 		}
 
 		.progress-container {
@@ -64,14 +64,14 @@
 
 			img {
 				max-width: 100%;
-				border: 2px solid get($neutral, 'sep');
+				border: 2px solid get($neutrals, 'sep');
 				border-radius: 4px;
 				display: block;
 			}
 
 			p {
 				font-size: 13px;
-				color: get($neutral, 'fg-light');
+				color: get($neutrals, 'fg-light');
 				margin-top: 10px;
 			}
 		}
@@ -84,12 +84,12 @@
 		}
 
 		.stats-box {
-			@include card(get($success, 'bg-dark'));
+			@include card(get($successes, 'bg-dark'));
 
 			h2 {
 				margin-top: 0;
 				margin-bottom: 15px;
-				color: get($success, 'base');
+				color: get($successes, 'base');
 				display: flex;
 				align-items: center;
 				justify-content: space-between;
@@ -105,7 +105,7 @@
 			}
 
 			pre {
-				@include code-block(get($grey, 'bg'), get($success, 'sep'));
+				@include code-block(get($greys, 'bg'), get($successes, 'sep'));
 
 				font-size: 14px;
 				padding: 15px;
@@ -114,7 +114,7 @@
 
 			.stats-message {
 				font-size: 13px;
-				color: get($success, 'base');
+				color: get($successes, 'base');
 				margin-top: 15px;
 				margin-bottom: 0;
 			}
@@ -142,7 +142,7 @@
 			}
 
 			pre {
-				@include code-block(get($neutral, 'bg-light'), get($neutral, 'sep'));
+				@include code-block(get($neutrals, 'bg-light'), get($neutrals, 'sep'));
 
 				font-size: 14px;
 				padding: 15px;

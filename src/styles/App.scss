@@ -19,7 +19,7 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background-color: get($accent, 'fade');
+		background-color: get($primaries, 'fade');
 		z-index: 9999;
 		display: flex;
 		align-items: center;
@@ -30,7 +30,7 @@
 
 	.drag-overlay-content {
 		@include shadow;
-		background-color: get($neutral, 'bg');
+		background-color: get($neutrals, 'bg');
 		padding: 40px 60px;
 		border-radius: 12px;
 		text-align: center;

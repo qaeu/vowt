@@ -38,7 +38,7 @@
 
 		&[data-part='description'] {
 			margin: 20px 0;
-			color: get($neutral, 'fg-light');
+			color: get($neutrals, 'fg-light');
 			font-size: 15px;
 			line-height: 1.5;
 			min-height: 41px;
@@ -47,8 +47,8 @@
 		&[data-part='content'] {
 			@include shadow-tall();
 			@include background-light-glow();
-			background-color: oklch(from get($grey, 'bg') l c h / 0.66);
-			border: 1px solid get($neutral, 'sep');
+			background-color: oklch(from get($greys, 'bg') l c h / 0.66);
+			border: 1px solid get($neutrals, 'sep');
 			border-radius: 6px;
 			backdrop-filter: blur(8px);
 			width: 100%;
@@ -86,7 +86,7 @@
 
 		// Action buttons container
 		&[data-part='content'] .dialog-action {
-			@include button($success);
+			@include button($successes);
 			font-size: 14px;
 		}
 

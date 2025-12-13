@@ -54,7 +54,7 @@
 		background-color: $background;
 		background-image: radial-gradient(
 			circle at 40% -60%,
-			oklch(from get($accent, 'sep') l c h / 0.1) 0%,
+			oklch(from get($primaries, 'sep') l c h / 0.1) 0%,
 			/* oklch(96.258% 0.02046 298.061 / 0.1) 40%, */ transparent 54%
 		);
 	}
@@ -70,7 +70,7 @@
 		font-style: italic;
 		font-weight: 300;
 		font-size: 32px;
-		color: get($accent, 'fg-light');
+		color: get($primaries, 'fg-light');
 		margin: 20px 0;
 	}
 
@@ -79,7 +79,7 @@
 		font-weight: 400;
 		font-size: 24px;
 		letter-spacing: 1px;
-		color: get($accent, 'fg-light');
+		color: get($primaries, 'fg-light');
 		margin: 16px 0;
 	}
 
@@ -87,7 +87,7 @@
 		font-weight: 400;
 		font-size: 18px;
 		letter-spacing: 1px;
-		color: get($accent, 'fg-light');
+		color: get($primaries, 'fg-light');
 		margin: 12px 0;
 	}
 
