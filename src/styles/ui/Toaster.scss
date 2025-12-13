@@ -19,19 +19,26 @@
 			height: var(--initial-height);
 			opacity: var(--opacity);
 			will-change: translate, opacity, scale;
+
+			/* Movement (ease-out) */
 			transition:
 				translate 400ms,
 				scale 400ms,
-				opacity 400ms,
-				height 400ms;
-			transition-timing-function: cubic-bezier(0.1, 1, 0.45, 2);
+				opacity 400ms;
+			transition-timing-function: cubic-bezier(0.2, 1, 0.75, 1);
 
-			&[data-paused],
-			&:not(:first-child) {
-				transition-timing-function: cubic-bezier(0.21, 1.02, 0.73, 1);
+			&:not([data-paused]):first-child {
+				/* Pop-in (ease-out w/ bounce) */
+				transition:
+					translate 300ms,
+					scale 300ms,
+					opacity 300ms,
+					height 300ms;
+				transition-timing-function: cubic-bezier(0.1, 1, 0.45, 2);
 			}
 
 			&[data-state='closed'] {
+				/* Drop-out (ease-in) */
 				transition:
 					translate 400ms,
 					scale 400ms,
