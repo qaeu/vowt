@@ -11,6 +11,7 @@ import type {
 import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
 import AlertDialog from '#c/ui/AlertDialog';
+import Toaster, { toast } from '#c/ui/Toaster';
 import {
 	loadGameRecords,
 	deleteGameRecord,
@@ -82,7 +83,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 	const openDeleteDialog = (id: string) => {
 		openDialog?.({
-			title: 'Delete Game Record',
+			title: 'Delete Record',
 			description: `Are you sure you want to delete this game record?`,
 			onConfirm: () => handleDelete(id),
 		});
@@ -96,10 +97,12 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const handleDelete = (id: string) => {
 		deleteGameRecord(id);
 		loadRecords();
+		toast('Delete Success', '1 game record deleted.');
 	};
 	const handleClearAll = () => {
 		clearAllGameRecords();
 		loadRecords();
+		toast('Delete Success', 'All game records deleted.');
 	};
 
 	const handleExport = () => {
@@ -125,11 +128,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 					try {
 						const data = event.target?.result as string;
 						const count = importGameRecords(data);
-						openDialog?.({
-							title: 'Import Success',
-							description: `Successfully imported ${count} new game record(s)`,
-							actionText: 'OK',
-						});
+						toast('Import Success', `${count} new game record(s) created.`);
 						loadRecords();
 					} catch (error) {
 						openDialog?.({
@@ -258,6 +257,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 				</div>
 			</Show>
 
+			<Toaster />
 			<AlertDialog openDialog={(fn) => (openDialog = fn)} />
 		</Screen>
 	);

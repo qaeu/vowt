@@ -12,6 +12,7 @@ import type {
 } from '#types';
 import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
+import Toaster, { toast } from '#c/ui/Toaster';
 import {
 	preprocessImageForOCR,
 	preprocessRegionsForOCR,
@@ -447,6 +448,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			const stats = extractGameStats(ocrResults.regionResults);
 			setExtractedStats(stats);
 			recordId = saveGameRecord(stats.players, stats.matchInfo);
+
+			toast('Recognition Success', 'New game record saved.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Unknown error occurred');
 			console.error('Processing error:', err);
@@ -458,6 +461,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const handleSaveData = (players: PlayerStats[], matchInfo: MatchInfo) => {
 		try {
 			updateGameRecord(recordId, players, matchInfo);
+			toast('Save Success', 'Game record updated.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save game record');
 		}
@@ -565,6 +569,8 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 					</div>
 				</Show>
 			</div>
+
+			<Toaster />
 		</Screen>
 	);
 };

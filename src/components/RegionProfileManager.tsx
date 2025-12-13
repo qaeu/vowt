@@ -4,6 +4,7 @@ import { createSignal, batch, For, Show, onMount } from 'solid-js';
 import type { TextRegion, DrawnRegion, ScreenAction, AlertDialogOptions } from '#types';
 import Screen from '#c/ui/Screen';
 import AlertDialog from '#c/ui/AlertDialog';
+import Toaster, { toast } from '#c/ui/Toaster';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/ui/EditableRegionsData';
@@ -168,11 +169,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 							});
 							return;
 						}
-						openDialog?.({
-							title: 'Import Success',
-							description: 'Profile imported successfully!',
-							actionText: 'OK',
-						});
+						toast('Import Success', 'Region profile imported');
 						setProfileList(Profiles.listProfiles());
 					} catch (error) {
 						openDialog?.({
@@ -216,15 +213,15 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		// Refresh profile list
 		setProfileList(Profiles.listProfiles());
 
-		openDialog?.({
-			title: 'Save Success',
-			description: 'Profile saved successfully!',
-			actionText: 'OK',
-		});
+		toast('Save Success', `Profile '${editingProfileId()}' saved.`);
 	};
 
 	const handleActivateProfile = (profileId: string) => {
 		activateProfile(profileId);
+		toast(
+			'Activate Success',
+			`Profile '${profileId}' is now active for screenshot recognition.`
+		);
 	};
 
 	const handleEditProfile = (profileId: string) => {
@@ -245,7 +242,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		if (!profileRegions) {
 			openDialog?.({
 				title: 'Edit Error',
-				description: 'Could not load profile',
+				description: `Error loading region data for profile '${profileId}'`,
 				actionText: 'OK',
 			});
 			return;
@@ -264,6 +261,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 
 		redrawRegions();
+		toast('Edit Profile', `Now editing profile '${profileId}'.`);
 	};
 
 	const handleDeleteProfile = (profileId: string) => {
@@ -292,6 +290,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 				// Refresh profile list
 				setProfileList(Profiles.listProfiles());
+				toast('Delete Success', `Profile '${profileId}' deleted.`);
 			},
 		});
 	};
@@ -416,6 +415,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				</div>
 			</div>
 
+			<Toaster />
 			<AlertDialog openDialog={(fn) => (openDialog = fn)} />
 		</Screen>
 	);
