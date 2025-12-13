@@ -163,6 +163,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 		try {
 			updateGameRecord(recordId, players, matchInfo);
+			toast('Save Success', 'Game record updated.');
 		} catch (err) {
 			openDialog?.({
 				title: 'Update Error',
