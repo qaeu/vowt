@@ -1,11 +1,7 @@
-import {
-	createSignal,
-	onMount,
-	onCleanup,
-	Switch,
-	Match,
-	type Component,
-} from 'solid-js';
+import { Dynamic } from 'solid-js/web';
+import type { Component } from 'solid-js';
+import { createSignal, onMount, onCleanup, Switch, Match } from 'solid-js';
+import { Sun, Moon } from 'lucide-solid';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
@@ -19,6 +15,7 @@ const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
 	const [uploadedImage, setUploadedImage] = createSignal<string | null>(null);
 	const [isDragging, setIsDragging] = createSignal(false);
+	const [isDarkMode, setIsDarkMode] = createSignal(false);
 
 	const handleDragOver = (e: DragEvent) => {
 		e.preventDefault();
@@ -76,6 +73,11 @@ const App: Component = () => {
 		setViewMode('records');
 	};
 
+	const handleDarkMode = () => {
+		setIsDarkMode(!isDarkMode());
+		document.querySelector('body')?.classList.toggle('dark-theme');
+	};
+
 	return (
 		<div>
 			{isDragging() && (
@@ -106,6 +108,10 @@ const App: Component = () => {
 					/>
 				</Match>
 			</Switch>
+
+			<button class="dark-mode-toggle" onClick={handleDarkMode}>
+				<Dynamic component={isDarkMode() ? Moon : Sun} size={18} />
+			</button>
 		</div>
 	);
 };
