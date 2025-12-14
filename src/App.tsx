@@ -1,12 +1,13 @@
-import { Dynamic } from 'solid-js/web';
 import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup, Switch, Match } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 import { Sun, Moon } from 'lucide-solid';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
 import { triggerUploadDialog, handleFileUpload } from '#utils/gameStorage';
+import { loadSettings, saveSettings } from '#utils/storage.js';
 import '#styles/App';
 
 type ViewMode = 'ocr' | 'records' | 'regions';
@@ -15,7 +16,9 @@ const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
 	const [uploadedImage, setUploadedImage] = createSignal<string | null>(null);
 	const [isDragging, setIsDragging] = createSignal(false);
-	const [isDarkMode, setIsDarkMode] = createSignal(false);
+
+	const settings = loadSettings();
+	const [isDarkMode, setIsDarkMode] = createSignal(settings.darkMode);
 
 	const handleDragOver = (e: DragEvent) => {
 		e.preventDefault();
@@ -54,6 +57,10 @@ const App: Component = () => {
 		document.addEventListener('dragover', handleDragOver);
 		document.addEventListener('dragleave', handleDragLeave);
 		document.addEventListener('drop', handleDrop);
+
+		if (isDarkMode()) {
+			document.querySelector('body')?.classList.add('dark-theme');
+		}
 	});
 
 	onCleanup(() => {
@@ -74,7 +81,9 @@ const App: Component = () => {
 	};
 
 	const handleDarkMode = () => {
-		setIsDarkMode(!isDarkMode());
+		const currentDarkMode = isDarkMode();
+		setIsDarkMode(!currentDarkMode);
+		saveSettings({ ...settings, darkMode: !currentDarkMode });
 		document.querySelector('body')?.classList.toggle('dark-theme');
 	};
 
