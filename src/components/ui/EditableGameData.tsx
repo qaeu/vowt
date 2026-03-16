@@ -236,7 +236,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		<div class="editable-data-container">
 			<Show when={props.showActions !== false}>
 				<div class="editable-header">
-					<h2>Match Information</h2>
+					<h2>Match Details</h2>
 
 					<div class="button-group">
 						<Show when={hasUnsavedChanges()}>
