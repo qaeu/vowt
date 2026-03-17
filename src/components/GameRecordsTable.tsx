@@ -155,7 +155,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 				setExpandedRecordId(null);
 				setCollapsingId(null);
 				setOpeningId(null);
-			}, 2400);
+			}, 240);
 		} else {
 			// Switching to a different record
 			if (currentExpanded) {
@@ -171,7 +171,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 					setPendingCollapseId(null);
 					setTimeout(() => {
 						setCollapsingId(null);
-					}, 2400);
+					}, 240);
 				}
 				setOpeningId(recordId);
 			});
@@ -213,91 +213,92 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 			<Show when={records()?.length > 0}>
 				<div class="records-table-wrapper">
-					<table>
-						<thead>
-							<tr>
-								<th>Date/Time</th>
-								<th>Result</th>
-								<th>Score</th>
-								<th>Mode</th>
-								<th>Map</th>
-								<th class="center" />
-							</tr>
-						</thead>
-						<tbody>
-							<For each={records()}>
-								{(record) => (
-									<>
-										<tr
-											class={expandedRecordId() === record.id ? 'expanded' : ''}
-											onClick={() => toggleExpanded(record)}
-										>
-											<td>{formatDate(record.createdAt)}</td>
-											<td>
-												<span
-													class={`result-badge ${getClassForResult(
-														record.matchInfo.result
-													)}`}
-												>
-													{record.matchInfo.result}
-												</span>
-											</td>
+					<div class="records-list" role="table">
+						<div class="records-header" role="row">
+							<div role="columnheader">Date/Time</div>
+							<div role="columnheader">Result</div>
+							<div role="columnheader">Score</div>
+							<div role="columnheader">Mode</div>
+							<div role="columnheader">Map</div>
+							<div class="center" role="columnheader" />
+						</div>
+						<For each={records()}>
+							{(record) => (
+								<div
+									class={`record-group${expandedRecordId() === record.id ? ' expanded' : ''}`}
+								>
+									<div
+										class="record-row"
+										role="row"
+										onClick={() => toggleExpanded(record)}
+									>
+										<div class="record-cell" role="cell">
+											{formatDate(record.createdAt)}
+										</div>
+										<div class="record-cell" role="cell">
+											<span
+												class={`result-badge ${getClassForResult(
+													record.matchInfo.result
+												)}`}
+											>
+												{record.matchInfo.result}
+											</span>
+										</div>
+										<div class="record-cell" role="cell">
+											{record.matchInfo.final_score.blue} -{' '}
+											{record.matchInfo.final_score.red}
+										</div>
+										<div class="record-cell" role="cell">
+											{record.matchInfo.game_mode}
+										</div>
+										<div class="record-cell" role="cell">
+											{record.matchInfo.map ?? '-'}
+										</div>
+										<div class="record-cell center" role="cell">
+											<button
+												type="button"
+												class="delete-button"
+												onClick={(e) => handleDeleteClick(e, record.id)}
+											>
+												<X size={14} />
+											</button>
+										</div>
+									</div>
 
-											<td>
-												{record.matchInfo.final_score.blue} -{' '}
-												{record.matchInfo.final_score.red}
-											</td>
-											<td>{record.matchInfo.game_mode}</td>
-											<td>{record.matchInfo.map ?? '-'}</td>
-											<td class="center">
-												<button
-													type="button"
-													class="delete-button"
-													onClick={(e) => handleDeleteClick(e, record.id)}
-												>
-													<X size={14} />
-												</button>
-											</td>
-										</tr>
-
-										<Show
-											when={
-												expandedRecordId() === record.id
-												|| collapsingId() === record.id
-												|| pendingCollapseId() === record.id
-											}
-										>
-											<tr class="expanded-row">
-												<td colspan="7" class="expanded-details-wrapper">
-													<div
-														class={
-															collapsingId() === record.id ? 'collapsing'
-															: (
-																openingId() === record.id
-																|| pendingCollapseId() === record.id
-															) ?
-																''
-															:	'opening'
-														}
-													>
-														<div class="expanded-details">
-															<div class="expanded-details-inner">
-																<EditableGameData
-																	initialPlayers={record.players}
-																	initialMatchInfo={record.matchInfo}
-																	onSave={handleSaveEdits}
-																/>
-															</div>
-														</div>
+									<Show
+										when={
+											expandedRecordId() === record.id
+											|| collapsingId() === record.id
+											|| pendingCollapseId() === record.id
+										}
+									>
+										<div class="record-expanded-row">
+											<div
+												class={
+													collapsingId() === record.id ? 'collapsing'
+													: (
+														openingId() === record.id || pendingCollapseId() === record.id
+													) ?
+														''
+													:	'opening'
+												}
+											>
+												<div class="expanded-details">
+													<div class="expanded-details-inner">
+														<EditableGameData
+															initialPlayers={record.players}
+															initialMatchInfo={record.matchInfo}
+															onSave={handleSaveEdits}
+														/>
 													</div>
-												</td>
-											</tr>
-										</Show>
-									</>
-								)}
-							</For>
-						</tbody>
-					</table>
+												</div>
+											</div>
+										</div>
+									</Show>
+								</div>
+							)}
+						</For>
+					</div>
 				</div>
 			</Show>
 
