@@ -72,6 +72,12 @@
 					border-bottom-color: transparent;
 				}
 
+				&.expanded-row {
+					border-bottom: none;
+					cursor: default;
+					height: 0;
+				}
+
 				td {
 					padding: 12px;
 
@@ -79,8 +85,8 @@
 						text-align: center;
 					}
 
-					&.expanded-details {
-						cursor: default;
+					&.expanded-details-wrapper {
+						padding: 0;
 					}
 				}
 
@@ -127,39 +133,69 @@
 			}
 		}
 
+		.expanded-details-wrapper {
+			padding: 0;
+			overflow: hidden;
+
+			> div {
+				display: grid;
+				grid-template-rows: 1fr;
+				transition: grid-template-rows 240ms cubic-bezier(0.2, 1, 0.75, 1);
+				width: 0;
+				min-width: 100%;
+			}
+
+			> div.opening,
+			> div.collapsing {
+				grid-template-rows: 0fr;
+			}
+		}
+
 		.expanded-details {
-			padding: 20px;
 			background-color: $background;
 			border-bottom: 1px solid get($neutrals, 'sep');
+			overflow: hidden;
+			opacity: 1;
+			transition: opacity 240ms cubic-bezier(0.2, 1, 0.75, 1);
+			min-height: 0;
+		}
 
-			h3 {
-				color: $foreground;
-				margin-top: 0;
+		.expanded-details-inner {
+			padding: 20px;
+		}
+
+		.opening .expanded-details,
+		.collapsing .expanded-details {
+			opacity: 0;
+		}
+
+		.expanded-details h3 {
+			color: $foreground;
+			margin-top: 0;
+		}
+
+		.expanded-details h4 {
+			color: $foreground;
+			margin-bottom: 10px;
+		}
+
+		.expanded-details h5 {
+			margin-bottom: 10px;
+
+			&.blue-team {
+				color: $primary;
 			}
 
-			h4 {
-				color: $foreground;
-				margin-bottom: 10px;
+			&.red-team {
+				color: get($errors, 'base');
 			}
+		}
 
-			h5 {
-				margin-bottom: 10px;
+		.expanded-details .game-info {
+			margin-bottom: 15px;
 
-				&.blue-team {
-					color: $primary;
-				}
-
-				&.red-team {
-					color: get($errors, 'base');
-				}
-			}
-
-			.game-info {
-				margin-bottom: 15px;
-
-				strong {
-					font-weight: bold;
-				}
+			strong {
+				font-weight: bold;
 			}
 		}
 	}

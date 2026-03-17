@@ -211,9 +211,12 @@ describe('GameRecordsTable', () => {
 
 		// Collapse
 		fireEvent.click(victoryCell);
-		await waitFor(() => {
-			expect(screen.queryByTestId('editable-game-data')).toBeNull();
-		});
+		await waitFor(
+			() => {
+				expect(screen.queryByTestId('editable-game-data')).toBeNull();
+			},
+			{ timeout: 500 }
+		);
 	});
 
 	it('should call updateGameRecord when save edits is clicked', async () => {

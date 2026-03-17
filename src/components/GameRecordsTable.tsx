@@ -31,6 +31,9 @@ const getClassForResult = (resultText: string): 'victory' | 'defeat' | 'empty' =
 const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [records, setRecords] = createSignal<GameRecord[]>([]);
 	const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(null);
+	const [collapsingId, setCollapsingId] = createSignal<string | null>(null);
+	const [pendingCollapseId, setPendingCollapseId] = createSignal<string | null>(null);
+	const [openingId, setOpeningId] = createSignal<string | null>(null);
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 
@@ -143,13 +146,35 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 	const toggleExpanded = (record: GameRecord) => {
 		const recordId = record.id;
-		// If this record is already being edited, close it
-		if (expandedRecordId() === recordId) {
-			setExpandedRecordId(null);
+		const currentExpanded = expandedRecordId();
+
+		// If this record is already being edited, close it with animation
+		if (currentExpanded === recordId) {
+			setCollapsingId(recordId);
+			setTimeout(() => {
+				setExpandedRecordId(null);
+				setCollapsingId(null);
+				setOpeningId(null);
+			}, 2400);
 		} else {
-			// Otherwise, open it for editing
-			loadRecords();
+			// Switching to a different record
+			if (currentExpanded) {
+				// Keep the old row in the DOM without starting its collapse yet
+				setPendingCollapseId(currentExpanded);
+			}
+			// Open the new one (don't reload records - it breaks animation)
 			setExpandedRecordId(recordId);
+			// Start both animations on the same frame so they stay in sync
+			requestAnimationFrame(() => {
+				if (currentExpanded) {
+					setCollapsingId(currentExpanded);
+					setPendingCollapseId(null);
+					setTimeout(() => {
+						setCollapsingId(null);
+					}, 2400);
+				}
+				setOpeningId(recordId);
+			});
 		}
 	};
 
@@ -235,14 +260,36 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 											</td>
 										</tr>
 
-										<Show when={expandedRecordId() === record.id}>
-											<tr>
-												<td colspan="7" class="expanded-details">
-													<EditableGameData
-														initialPlayers={record.players}
-														initialMatchInfo={record.matchInfo}
-														onSave={handleSaveEdits}
-													/>
+										<Show
+											when={
+												expandedRecordId() === record.id
+												|| collapsingId() === record.id
+												|| pendingCollapseId() === record.id
+											}
+										>
+											<tr class="expanded-row">
+												<td colspan="7" class="expanded-details-wrapper">
+													<div
+														class={
+															collapsingId() === record.id ? 'collapsing'
+															: (
+																openingId() === record.id
+																|| pendingCollapseId() === record.id
+															) ?
+																''
+															:	'opening'
+														}
+													>
+														<div class="expanded-details">
+															<div class="expanded-details-inner">
+																<EditableGameData
+																	initialPlayers={record.players}
+																	initialMatchInfo={record.matchInfo}
+																	onSave={handleSaveEdits}
+																/>
+															</div>
+														</div>
+													</div>
 												</td>
 											</tr>
 										</Show>
