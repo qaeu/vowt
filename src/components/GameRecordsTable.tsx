@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { createSignal, onMount, For, Show } from 'solid-js';
+import { createSignal, onMount, For, Show, batch } from 'solid-js';
 import { X } from 'lucide-solid';
 
 import type {
@@ -31,9 +31,7 @@ const getClassForResult = (resultText: string): 'victory' | 'defeat' | 'empty' =
 const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [records, setRecords] = createSignal<GameRecord[]>([]);
 	const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(null);
-	const [collapsingId, setCollapsingId] = createSignal<string | null>(null);
-	const [pendingCollapseId, setPendingCollapseId] = createSignal<string | null>(null);
-	const [openingId, setOpeningId] = createSignal<string | null>(null);
+	const [collapsingIds, setCollapsingIds] = createSignal<Set<string>>(new Set());
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 
@@ -144,36 +142,33 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		input.click();
 	};
 
+	const removeFromCollapsing = (id: string) => {
+		setCollapsingIds((prev) => {
+			const next = new Set(prev);
+			next.delete(id);
+			return next;
+		});
+	};
+
 	const toggleExpanded = (record: GameRecord) => {
 		const recordId = record.id;
 		const currentExpanded = expandedRecordId();
 
-		// If this record is already being edited, close it with animation
+		if (currentExpanded) {
+			setTimeout(() => removeFromCollapsing(recordId), 240);
+		}
+
 		if (currentExpanded === recordId) {
-			setCollapsingId(recordId);
-			setTimeout(() => {
+			batch(() => {
+				setCollapsingIds((prev) => new Set([...prev, recordId]));
 				setExpandedRecordId(null);
-				setCollapsingId(null);
-				setOpeningId(null);
-			}, 240);
+			});
 		} else {
-			// Switching to a different record
-			if (currentExpanded) {
-				// Keep the old row in the DOM without starting its collapse yet
-				setPendingCollapseId(currentExpanded);
-			}
-			// Open the new one (don't reload records - it breaks animation)
-			setExpandedRecordId(recordId);
-			// Start both animations on the same frame so they stay in sync
-			requestAnimationFrame(() => {
+			batch(() => {
 				if (currentExpanded) {
-					setCollapsingId(currentExpanded);
-					setPendingCollapseId(null);
-					setTimeout(() => {
-						setCollapsingId(null);
-					}, 240);
+					setCollapsingIds((prev) => new Set([...prev, currentExpanded]));
 				}
-				setOpeningId(recordId);
+				setExpandedRecordId(recordId);
 			});
 		}
 	};
@@ -265,36 +260,28 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 										</div>
 									</div>
 
-									<Show
-										when={
-											expandedRecordId() === record.id
-											|| collapsingId() === record.id
-											|| pendingCollapseId() === record.id
-										}
+									<div
+										class={`record-expanded-row${
+											expandedRecordId() === record.id ? ' expanded' : ''
+										}`}
 									>
-										<div class="record-expanded-row">
-											<div
-												class={
-													collapsingId() === record.id ? 'collapsing'
-													: (
-														openingId() === record.id || pendingCollapseId() === record.id
-													) ?
-														''
-													:	'opening'
+										<div class="expanded-details">
+											<Show
+												when={
+													expandedRecordId() === record.id
+													|| collapsingIds().has(record.id)
 												}
 											>
-												<div class="expanded-details">
-													<div class="expanded-details-inner">
-														<EditableGameData
-															initialPlayers={record.players}
-															initialMatchInfo={record.matchInfo}
-															onSave={handleSaveEdits}
-														/>
-													</div>
-												</div>
-											</div>
+												<EditableGameData
+													initialPlayers={record.players}
+													initialMatchInfo={record.matchInfo}
+													onSave={(players, matchInfo) =>
+														handleSaveEdits(players, matchInfo)
+													}
+												/>
+											</Show>
 										</div>
-									</Show>
+									</div>
 								</div>
 							)}
 						</For>
