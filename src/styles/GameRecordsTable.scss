@@ -41,7 +41,7 @@
 
 			.records-list {
 				display: grid;
-				grid-template-columns: auto auto auto auto 1fr auto;
+				grid-template-columns: 2fr 1fr 1fr 2fr 3fr auto;
 			}
 
 			.records-header {
@@ -81,6 +81,7 @@
 				display: grid;
 				grid-template-columns: subgrid;
 				cursor: pointer;
+				user-select: none;
 
 				.record-cell {
 					padding: 12px;
