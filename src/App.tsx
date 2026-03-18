@@ -118,7 +118,12 @@ const App: Component = () => {
 				</Match>
 			</Switch>
 
-			<button class="dark-mode-toggle" onClick={handleDarkMode}>
+			<button
+				title="Toggle dark mode"
+				aria-label="Toggle dark mode"
+				class="dark-mode-toggle"
+				onClick={handleDarkMode}
+			>
 				<Dynamic component={isDarkMode() ? Moon : Sun} size={18} />
 			</button>
 		</div>
