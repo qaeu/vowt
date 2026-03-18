@@ -212,25 +212,35 @@ describe('settings storage', () => {
 
 describe('handleFileUpload', () => {
 	it('should call callback with data URL for a valid image file', async () => {
+		const fakeDataUrl = 'data:image/png;base64,cGl4ZWw=';
+		const mockFileReader = {
+			readAsDataURL: vi.fn(function (this: typeof mockFileReader) {
+				this.onload?.({
+					target: { result: fakeDataUrl },
+				} as unknown as ProgressEvent<FileReader>);
+			}),
+			onload: null as ((event: ProgressEvent<FileReader>) => void) | null,
+		};
+		vi.spyOn(globalThis, 'FileReader').mockImplementation(
+			() => mockFileReader as unknown as FileReader
+		);
+
 		const callback = vi.fn();
 		const file = new File(['pixel'], 'test.png', { type: 'image/png' });
 
 		handleFileUpload(file, callback);
 
-		// Wait for the FileReader async onload to fire
-		await new Promise((resolve) => setTimeout(resolve, 0));
-
 		expect(callback).toHaveBeenCalledOnce();
-		expect(callback.mock.calls[0][0]).toMatch(/^data:image\/png/);
+		expect(callback).toHaveBeenCalledWith(fakeDataUrl);
+
+		vi.restoreAllMocks();
 	});
 
-	it('should not call callback for a non-image file', async () => {
+	it('should not call callback for a non-image file', () => {
 		const callback = vi.fn();
 		const file = new File(['text'], 'document.txt', { type: 'text/plain' });
 
 		handleFileUpload(file, callback);
-
-		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		expect(callback).not.toHaveBeenCalled();
 	});
