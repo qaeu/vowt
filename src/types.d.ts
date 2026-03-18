@@ -156,3 +156,69 @@ export interface RecognitionResult {
 	value: string;
 	confidence: number;
 }
+
+// OverFast API
+
+/** Hero data from OverFast API */
+export interface OverFastHero {
+	key: string;
+	name: string;
+	portrait: string;
+	role: 'tank' | 'damage' | 'support';
+	gamemodes: string[];
+}
+
+/** Map data from OverFast API */
+export interface OverFastMap {
+	key: string;
+	name: string;
+	screenshot: string;
+	gamemodes: string[];
+	location: string;
+	country_code: string | null;
+}
+
+/** Player search result from OverFast API */
+export interface OverFastPlayerResult {
+	player_id: string;
+	name: string;
+	avatar: string | null;
+	namecard: string | null;
+	title: string | null;
+	career_url: string;
+	blizzard_id: string;
+}
+
+/** Paginated player search response from OverFast API */
+export interface OverFastPlayerSearchResponse {
+	total: number;
+	results: OverFastPlayerResult[];
+}
+
+/** Stored hero data with pre-computed portrait hash */
+export interface StoredHero {
+	key: string;
+	name: string;
+	portrait: string;
+	portraitHash: string;
+	role: 'tank' | 'damage' | 'support';
+	gamemodes: string[];
+}
+
+/** Stored map data */
+export interface StoredMap {
+	key: string;
+	name: string;
+	screenshot: string;
+	gamemodes: string[];
+	location: string;
+	country_code: string | null;
+}
+
+/** Persistent OverFast API data store */
+export interface OverFastStore {
+	schemaVersion: number;
+	heroes: StoredHero[];
+	maps: StoredMap[];
+	updatedAt: Date;
+}
