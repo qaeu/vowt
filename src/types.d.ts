@@ -142,6 +142,53 @@ export interface ExportedImageHashSet extends ExportFileBase {
 	hashSet: ExportedRecord<ImageHashSet>;
 }
 
+// OverFast API types
+
+/** Hero entry from OverFast API /heroes endpoint */
+export interface OverFastHero {
+	key: string;
+	name: string;
+	portrait: string;
+	role: 'damage' | 'support' | 'tank';
+}
+
+/** Map entry from OverFast API /maps endpoint */
+export interface OverFastMap {
+	key: string;
+	name: string;
+	screenshot: string;
+	gamemodes: string[];
+	location: string;
+	country_code: string | null;
+}
+
+/** Stored hero with optional portrait hash */
+export interface StoredHero {
+	key: string;
+	name: string;
+	portrait: string;
+	role: 'damage' | 'support' | 'tank';
+	portraitHash: string | null;
+}
+
+/** Stored map data */
+export interface StoredMap {
+	key: string;
+	name: string;
+	screenshot: string;
+	gamemodes: string[];
+	location: string;
+	country_code: string | null;
+}
+
+/** localStorage schema for OverFast API data */
+export interface OverFastStore {
+	schemaVersion: number;
+	heroes: StoredHero[];
+	maps: StoredMap[];
+	updatedAt: Date;
+}
+
 // Recognition processing
 
 /** Partitioned region group for processing */
