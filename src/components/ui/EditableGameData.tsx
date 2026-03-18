@@ -2,7 +2,7 @@ import { createSignal, Index, onCleanup, Show, type Component } from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
-import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
+import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
 
 interface TeamDataTableProps {
 	players: () => PlayerStats[];

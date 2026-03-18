@@ -13,7 +13,7 @@ import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
 import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
-import * as Store from '#utils/gameStorage';
+import * as Store from '#utils/storage';
 
 interface GameRecordsTableProps {
 	onUploadClick: () => void;

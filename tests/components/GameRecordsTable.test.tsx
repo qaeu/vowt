@@ -3,10 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
 import type { PlayerStats, MatchInfo, GameRecord } from '#types';
 import GameRecordsTable from '#c/GameRecordsTable';
-import * as gameStorage from '#utils/gameStorage';
+import * as gameStorage from '#utils/storage';
 
-// Mock gameStorage module
-vi.mock('#utils/gameStorage', () => ({
+// Mock storage module
+vi.mock('#utils/storage', () => ({
 	loadGameRecords: vi.fn(),
 	deleteGameRecord: vi.fn(),
 	updateGameRecord: vi.fn(),
