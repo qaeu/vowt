@@ -8,7 +8,7 @@ import type {
 	GameRecord,
 	RecognitionResult,
 } from '#types';
-import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
+import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
 
 /** Formatted OCR results */
 interface FormattedResults {

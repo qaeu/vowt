@@ -74,7 +74,7 @@ describe('EditableGameData', () => {
 			/>
 		));
 
-		expect(screen.getByText('Match Information')).toBeTruthy();
+		expect(screen.getByText('Match Details')).toBeTruthy();
 		expect(screen.getByText('Result:')).toBeTruthy();
 		expect(screen.getByText('Score (Blue):')).toBeTruthy();
 		expect(screen.getByText('Score (Red):')).toBeTruthy();
@@ -92,7 +92,7 @@ describe('EditableGameData', () => {
 			/>
 		));
 
-		expect(screen.getByText('Match Information')).toBeTruthy();
+		expect(screen.getByText('Match Details')).toBeTruthy();
 		expect(screen.getByText('Blue Team')).toBeTruthy();
 		expect(screen.getByText('Red Team')).toBeTruthy();
 	});
@@ -114,7 +114,7 @@ describe('EditableGameData', () => {
 		const resultInput = inputs[0] as HTMLInputElement;
 		fireEvent.input(resultInput, { target: { value: 'DEFEAT' } });
 
-		expect(screen.getByText('Match Information')).toBeTruthy();
+		expect(screen.getByText('Match Details')).toBeTruthy();
 		expect(screen.getByText(/Save to Records/)).toBeTruthy();
 		expect(screen.getByText(/Reset Changes/)).toBeTruthy();
 	});

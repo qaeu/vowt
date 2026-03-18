@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { createSignal, onMount, For, Show } from 'solid-js';
+import { createSignal, onMount, For, Show, batch } from 'solid-js';
 import { X } from 'lucide-solid';
 
 import type {
@@ -13,11 +13,13 @@ import Screen from '#c/ui/Screen';
 import EditableGameData from '#c/ui/EditableGameData';
 import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
-import * as Store from '#utils/gameStorage';
+import * as Store from '#utils/storage';
 
 interface GameRecordsTableProps {
 	onUploadClick: () => void;
 }
+
+const RECORD_TOGGLE_ANIM_DUR_MS = 240;
 
 /** Returns a css class for the result */
 const getClassForResult = (resultText: string): 'victory' | 'defeat' | 'empty' => {
@@ -31,6 +33,7 @@ const getClassForResult = (resultText: string): 'victory' | 'defeat' | 'empty' =
 const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [records, setRecords] = createSignal<GameRecord[]>([]);
 	const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(null);
+	const [collapsingIds, setCollapsingIds] = createSignal<Set<string>>(new Set());
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 
@@ -141,16 +144,28 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		input.click();
 	};
 
+	const removeFromCollapsing = (id: string) => {
+		setCollapsingIds((prev) => {
+			const next = new Set(prev);
+			next.delete(id);
+			return next;
+		});
+	};
+
 	const toggleExpanded = (record: GameRecord) => {
 		const recordId = record.id;
-		// If this record is already being edited, close it
-		if (expandedRecordId() === recordId) {
-			setExpandedRecordId(null);
-		} else {
-			// Otherwise, open it for editing
-			loadRecords();
-			setExpandedRecordId(recordId);
-		}
+		const currentExpanded = expandedRecordId();
+
+		batch(() => {
+			if (currentExpanded) {
+				setTimeout(
+					() => removeFromCollapsing(currentExpanded),
+					RECORD_TOGGLE_ANIM_DUR_MS
+				);
+				setCollapsingIds((prev) => new Set([...prev, currentExpanded]));
+			}
+			setExpandedRecordId(currentExpanded === recordId ? null : recordId);
+		});
 	};
 
 	const handleSaveEdits = (players: PlayerStats[], matchInfo: MatchInfo) => {
@@ -188,69 +203,84 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 			<Show when={records()?.length > 0}>
 				<div class="records-table-wrapper">
-					<table>
-						<thead>
-							<tr>
-								<th>Date/Time</th>
-								<th>Result</th>
-								<th>Score</th>
-								<th>Mode</th>
-								<th>Map</th>
-								<th class="center" />
-							</tr>
-						</thead>
-						<tbody>
-							<For each={records()}>
-								{(record) => (
-									<>
-										<tr
-											class={expandedRecordId() === record.id ? 'expanded' : ''}
-											onClick={() => toggleExpanded(record)}
-										>
-											<td>{formatDate(record.createdAt)}</td>
-											<td>
-												<span
-													class={`result-badge ${getClassForResult(
-														record.matchInfo.result
-													)}`}
-												>
-													{record.matchInfo.result}
-												</span>
-											</td>
+					<div class="records-list" role="table">
+						<div class="records-header" role="row">
+							<div role="columnheader">Date/Time</div>
+							<div role="columnheader">Result</div>
+							<div role="columnheader">Score</div>
+							<div role="columnheader">Mode</div>
+							<div role="columnheader">Map</div>
+							<div class="center" role="columnheader" />
+						</div>
+						<For each={records()}>
+							{(record) => (
+								<div
+									class={`record-group${expandedRecordId() === record.id ? ' expanded' : ''}`}
+								>
+									<div
+										class="record-row"
+										role="row"
+										onClick={() => toggleExpanded(record)}
+									>
+										<div class="record-cell" role="cell">
+											{formatDate(record.createdAt)}
+										</div>
+										<div class="record-cell" role="cell">
+											<span
+												class={`result-badge ${getClassForResult(
+													record.matchInfo.result
+												)}`}
+											>
+												{record.matchInfo.result}
+											</span>
+										</div>
+										<div class="record-cell" role="cell">
+											{record.matchInfo.final_score.blue} -{' '}
+											{record.matchInfo.final_score.red}
+										</div>
+										<div class="record-cell" role="cell">
+											{record.matchInfo.game_mode}
+										</div>
+										<div class="record-cell" role="cell">
+											{record.matchInfo.map ?? '-'}
+										</div>
+										<div class="record-cell center" role="cell">
+											<button
+												type="button"
+												class="delete-button"
+												onClick={(e) => handleDeleteClick(e, record.id)}
+											>
+												<X size={14} />
+											</button>
+										</div>
+									</div>
 
-											<td>
-												{record.matchInfo.final_score.blue} -{' '}
-												{record.matchInfo.final_score.red}
-											</td>
-											<td>{record.matchInfo.game_mode}</td>
-											<td>{record.matchInfo.map ?? '-'}</td>
-											<td class="center">
-												<button
-													type="button"
-													class="delete-button"
-													onClick={(e) => handleDeleteClick(e, record.id)}
-												>
-													<X size={14} />
-												</button>
-											</td>
-										</tr>
-
-										<Show when={expandedRecordId() === record.id}>
-											<tr>
-												<td colspan="7" class="expanded-details">
-													<EditableGameData
-														initialPlayers={record.players}
-														initialMatchInfo={record.matchInfo}
-														onSave={handleSaveEdits}
-													/>
-												</td>
-											</tr>
-										</Show>
-									</>
-								)}
-							</For>
-						</tbody>
-					</table>
+									<div
+										class={`record-expanded-row${
+											expandedRecordId() === record.id ? ' expanded' : ''
+										}`}
+									>
+										<div class="expanded-details">
+											<Show
+												when={
+													expandedRecordId() === record.id
+													|| collapsingIds().has(record.id)
+												}
+											>
+												<EditableGameData
+													initialPlayers={record.players}
+													initialMatchInfo={record.matchInfo}
+													onSave={(players, matchInfo) =>
+														handleSaveEdits(players, matchInfo)
+													}
+												/>
+											</Show>
+										</div>
+									</div>
+								</div>
+							)}
+						</For>
+					</div>
 				</div>
 			</Show>
 

@@ -2,7 +2,7 @@ import { createSignal, Index, onCleanup, Show, type Component } from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
-import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/gameStorage';
+import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
 
 interface TeamDataTableProps {
 	players: () => PlayerStats[];
@@ -236,7 +236,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		<div class="editable-data-container">
 			<Show when={props.showActions !== false}>
 				<div class="editable-header">
-					<h2>Match Information</h2>
+					<h2>Match Details</h2>
 
 					<div class="button-group">
 						<Show when={hasUnsavedChanges()}>

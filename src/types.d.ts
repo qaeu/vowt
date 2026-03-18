@@ -22,6 +22,10 @@ type ExportedRecord<T> = Merge<T, ExportRecordBase>;
 
 export type DateFieldName = 'createdAt' | 'updatedAt' | 'exportedAt';
 
+export interface Settings {
+	darkMode: boolean;
+}
+
 // UI Component Types
 
 export interface ScreenAction {

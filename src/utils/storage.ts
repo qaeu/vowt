@@ -1,8 +1,9 @@
 /**
- * Storage utilities for managing game data in localStorage
+ * Storage utilities for managing app data in localStorage
  */
 
 import type {
+	Settings,
 	Merge,
 	PlayerStats,
 	MatchInfo,
@@ -22,9 +23,14 @@ type ImportedGameRecords = Merge<
 	}
 >;
 
-const STORAGE_KEY = 'vowt_game_records';
+const GAME_RECORDS_STORAGE_KEY = 'vowt_game_records';
 const SCHEMA_VERSION = 2;
 const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
+
+const SETTINGS_STORAGE_KEY = 'vowt_settings';
+const DEFAULT_SETTINGS: Settings = {
+	darkMode: false,
+};
 
 export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
 	'e',
@@ -34,6 +40,8 @@ export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
 	'h',
 	'mit',
 ] as const;
+
+// Game Records
 
 function _reviver(key: string, value: unknown) {
 	if (DATE_FIELD_NAMES.includes(key)) {
@@ -51,7 +59,7 @@ function _generateGameId(): string {
 
 function _loadStorage(): GameStore {
 	try {
-		const data = localStorage.getItem(STORAGE_KEY);
+		const data = localStorage.getItem(GAME_RECORDS_STORAGE_KEY);
 		if (!data) {
 			return { schemaVersion: SCHEMA_VERSION, records: [] };
 		}
@@ -109,7 +117,7 @@ function _saveGameRecords(storage: GameStore): void {
 		schemaVersion: SCHEMA_VERSION,
 		records: storage.records,
 	};
-	localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
+	localStorage.setItem(GAME_RECORDS_STORAGE_KEY, JSON.stringify(storageData));
 }
 
 /**
@@ -194,7 +202,7 @@ export function deleteGameRecord(recordId: string): void {
  */
 export function clearAllGameRecords(): void {
 	try {
-		localStorage.removeItem(STORAGE_KEY);
+		localStorage.removeItem(GAME_RECORDS_STORAGE_KEY);
 	} catch (error) {
 		console.error('Error clearing game records:', error);
 		throw error;
@@ -247,4 +255,19 @@ export function importGameRecords(jsonData: string): number {
 		console.error('Error importing game records:', error);
 		throw error;
 	}
+}
+
+// Settings
+
+export function loadSettings(): Settings {
+	const settings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+
+	if (!settings) {
+		return DEFAULT_SETTINGS;
+	}
+	return JSON.parse(settings);
+}
+
+export function saveSettings(settings: Settings): void {
+	localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 }

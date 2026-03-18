@@ -26,7 +26,7 @@ import {
 } from '#utils/preprocess';
 import { recogniseImage } from '#utils/imageRecognition';
 import { extractGameStats, formatResults } from '#utils/postprocess';
-import { saveGameRecord, updateGameRecord } from '#utils/gameStorage';
+import { saveGameRecord, updateGameRecord } from '#utils/storage';
 import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
 
