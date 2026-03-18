@@ -7,7 +7,7 @@ import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
 import { triggerUploadDialog, handleFileUpload } from '#utils/gameStorage';
-import { loadSettings, saveSettings } from '#utils/storage.js';
+import { loadSettings, saveSettings } from '#utils/storage';
 import '#styles/App';
 
 type ViewMode = 'ocr' | 'records' | 'regions';
