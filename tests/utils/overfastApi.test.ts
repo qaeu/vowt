@@ -41,18 +41,21 @@ const mockHeroesResponse: OverFastHero[] = [
 		name: 'Ana',
 		portrait: 'https://example.com/ana.png',
 		role: 'support',
+		gamemodes: ['quickplay', 'stadium'],
 	},
 	{
 		key: 'tracer',
 		name: 'Tracer',
 		portrait: 'https://example.com/tracer.png',
 		role: 'damage',
+		gamemodes: ['quickplay', 'stadium'],
 	},
 	{
 		key: 'reinhardt',
 		name: 'Reinhardt',
 		portrait: 'https://example.com/reinhardt.png',
 		role: 'tank',
+		gamemodes: ['quickplay'],
 	},
 ];
 
@@ -351,6 +354,7 @@ describe('overfastApi', () => {
 					name: 'Mercy',
 					portrait: 'https://example.com/mercy.png',
 					role: 'support',
+					gamemodes: ['quickplay', 'stadium'],
 					portraitHash: 'abcdef0123456789',
 				},
 			];

@@ -150,6 +150,7 @@ export interface OverFastHero {
 	name: string;
 	portrait: string;
 	role: 'damage' | 'support' | 'tank';
+	gamemodes: string[];
 }
 
 /** Map entry from OverFast API /maps endpoint */
@@ -168,6 +169,7 @@ export interface StoredHero {
 	name: string;
 	portrait: string;
 	role: 'damage' | 'support' | 'tank';
+	gamemodes: string[];
 	portraitHash: string | null;
 }
 

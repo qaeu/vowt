@@ -220,6 +220,7 @@ export async function fetchAndStoreHeroes(hashPortraits: boolean = true): Promis
 			name: hero.name,
 			portrait: hero.portrait,
 			role: hero.role,
+			gamemodes: hero.gamemodes,
 			portraitHash,
 		});
 	}
