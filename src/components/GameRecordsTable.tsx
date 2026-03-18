@@ -154,23 +154,13 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		const recordId = record.id;
 		const currentExpanded = expandedRecordId();
 
-		if (currentExpanded) {
-			setTimeout(() => removeFromCollapsing(recordId), 240);
-		}
-
-		if (currentExpanded === recordId) {
-			batch(() => {
-				setCollapsingIds((prev) => new Set([...prev, recordId]));
-				setExpandedRecordId(null);
-			});
-		} else {
-			batch(() => {
-				if (currentExpanded) {
-					setCollapsingIds((prev) => new Set([...prev, currentExpanded]));
-				}
-				setExpandedRecordId(recordId);
-			});
-		}
+		batch(() => {
+			if (currentExpanded) {
+				setTimeout(() => removeFromCollapsing(currentExpanded), 240);
+				setCollapsingIds((prev) => new Set([...prev, currentExpanded]));
+			}
+			setExpandedRecordId(currentExpanded === recordId ? null : recordId);
+		});
 	};
 
 	const handleSaveEdits = (players: PlayerStats[], matchInfo: MatchInfo) => {
