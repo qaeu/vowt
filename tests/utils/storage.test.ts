@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import {
@@ -9,6 +9,9 @@ import {
 	clearAllGameRecords,
 	exportGameRecords,
 	importGameRecords,
+	loadSettings,
+	saveSettings,
+	handleFileUpload,
 } from '#utils/storage';
 
 describe('storage', () => {
@@ -180,5 +183,55 @@ describe('storage', () => {
 		// Should return empty array without throwing
 		const records = loadGameRecords();
 		expect(records).toEqual([]);
+	});
+});
+
+describe('settings storage', () => {
+	beforeEach(() => {
+		localStorage.removeItem('vowt_settings');
+	});
+
+	it('should return default settings when none are stored', () => {
+		const settings = loadSettings();
+		expect(settings).toEqual({ darkMode: false });
+	});
+
+	it('should save and load settings', () => {
+		saveSettings({ darkMode: true });
+		const settings = loadSettings();
+		expect(settings.darkMode).toBe(true);
+	});
+
+	it('should overwrite previously saved settings', () => {
+		saveSettings({ darkMode: true });
+		saveSettings({ darkMode: false });
+		const settings = loadSettings();
+		expect(settings.darkMode).toBe(false);
+	});
+});
+
+describe('handleFileUpload', () => {
+	it('should call callback with data URL for a valid image file', async () => {
+		const callback = vi.fn();
+		const file = new File(['pixel'], 'test.png', { type: 'image/png' });
+
+		handleFileUpload(file, callback);
+
+		// Wait for the FileReader async onload to fire
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(callback).toHaveBeenCalledOnce();
+		expect(callback.mock.calls[0][0]).toMatch(/^data:image\/png/);
+	});
+
+	it('should not call callback for a non-image file', async () => {
+		const callback = vi.fn();
+		const file = new File(['text'], 'document.txt', { type: 'text/plain' });
+
+		handleFileUpload(file, callback);
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(callback).not.toHaveBeenCalled();
 	});
 });
