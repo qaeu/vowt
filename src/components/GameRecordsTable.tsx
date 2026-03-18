@@ -19,6 +19,8 @@ interface GameRecordsTableProps {
 	onUploadClick: () => void;
 }
 
+const RECORD_TOGGLE_ANIM_DUR_MS = 240;
+
 /** Returns a css class for the result */
 const getClassForResult = (resultText: string): 'victory' | 'defeat' | 'empty' => {
 	return (
@@ -156,7 +158,10 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 		batch(() => {
 			if (currentExpanded) {
-				setTimeout(() => removeFromCollapsing(currentExpanded), 240);
+				setTimeout(
+					() => removeFromCollapsing(currentExpanded),
+					RECORD_TOGGLE_ANIM_DUR_MS
+				);
 				setCollapsingIds((prev) => new Set([...prev, currentExpanded]));
 			}
 			setExpandedRecordId(currentExpanded === recordId ? null : recordId);

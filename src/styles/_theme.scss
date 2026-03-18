@@ -67,6 +67,9 @@ $errors: _colourset('ruby');
 $white: var(--white-a12);
 $black: var(--black-a12);
 
+// Animation
+$toggle-animation-dur: 240ms;
+
 // Shadows
 $shadow-base: $black;
 $shadow-light: var(--mauve-10);
