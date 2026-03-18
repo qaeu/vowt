@@ -93,6 +93,7 @@ export async function hashPortraitFromUrl(url: string): Promise<string> {
 	const ctx = canvas.getContext('2d');
 
 	if (!ctx) {
+		// Hash is HASH_SIZE^2 bits, each hex char represents 4 bits
 		return '0'.repeat(HASH_SIZE ** 2 / 4);
 	}
 
