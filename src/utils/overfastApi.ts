@@ -8,10 +8,7 @@ import type {
 	OverFastPlayerSearchOptions,
 	OverFastPlayerSearchResponse,
 	OverFastStore,
-	StoredHero,
 } from '#types';
-
-import { dhash } from '#utils/imageRecognition';
 
 // Constants
 
@@ -84,65 +81,21 @@ export async function searchPlayers(
 }
 
 /**
- * Load an image from a URL and compute its dHash for perceptual comparison
- * Requires the image host to send CORS headers, otherwise loading or pixel access fails
- * @param url - Image URL to hash
- * @returns 16-character hex hash string
- * @throws If the image cannot be loaded, drawn, or read
- */
-export async function hashPortraitFromUrl(url: string): Promise<string> {
-	const img = new Image();
-	img.crossOrigin = 'anonymous';
-
-	await new Promise<void>((resolve, reject) => {
-		img.onload = () => resolve();
-		img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-		img.src = url;
-	});
-
-	const canvas = document.createElement('canvas');
-	const ctx = canvas.getContext('2d');
-
-	if (!ctx) {
-		throw new Error('Canvas 2D context unavailable');
-	}
-
-	canvas.width = img.naturalWidth;
-	canvas.height = img.naturalHeight;
-	ctx.drawImage(img, 0, 0);
-
-	return dhash(ctx.getImageData(0, 0, canvas.width, canvas.height));
-}
-
-/**
- * Fetch heroes and maps from the OverFast API, compute portrait hashes, and persist to localStorage
- * Heroes whose portrait cannot be hashed are stored with a null portraitHash
+ * Fetch heroes and maps from the OverFast API and persist to localStorage
  * @returns The stored OverFast data
  */
 export async function updateOverFastData(): Promise<OverFastStore> {
 	try {
 		const [heroes, maps] = await Promise.all([fetchHeroes(), fetchMaps()]);
 
-		const hashResults = await Promise.allSettled(
-			heroes.map((hero) => hashPortraitFromUrl(hero.portrait))
-		);
-
-		const storedHeroes: StoredHero[] = heroes.map((hero, i) => {
-			const result = hashResults[i];
-			if (result.status === 'rejected') {
-				console.warn(`Failed to hash portrait for ${hero.key}:`, result.reason);
-			}
-
-			return {
-				key: hero.key,
-				name: hero.name,
-				portrait: hero.portrait,
-				portraitHash: result.status === 'fulfilled' ? result.value : null,
-				role: hero.role,
-				subrole: hero.subrole,
-				gamemodes: hero.gamemodes,
-			};
-		});
+		const storedHeroes: OverFastHero[] = heroes.map((hero) => ({
+			key: hero.key,
+			name: hero.name,
+			portrait: hero.portrait,
+			role: hero.role,
+			subrole: hero.subrole,
+			gamemodes: hero.gamemodes,
+		}));
 
 		const storedMaps: OverFastMap[] = maps.map((map) => ({
 			key: map.key,

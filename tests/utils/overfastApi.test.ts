@@ -3,7 +3,6 @@ import {
 	fetchHeroes,
 	fetchMaps,
 	searchPlayers,
-	hashPortraitFromUrl,
 	updateOverFastData,
 	loadOverFastData,
 	clearOverFastData,
@@ -70,98 +69,9 @@ const mockPlayerSearchResponse: OverFastPlayerSearchResponse = {
 	],
 };
 
-// Mock canvas context
-const mockCanvasContext = {
-	drawImage: vi.fn(),
-	getImageData: vi.fn(() => ({
-		data: new Uint8ClampedArray(9 * 8 * 4),
-		width: 9,
-		height: 8,
-	})),
-	putImageData: vi.fn(),
-};
-
-// Mock canvas element
-const mockCanvas = {
-	width: 0,
-	height: 0,
-	getContext: vi.fn(() => mockCanvasContext),
-};
-
-// Store original createElement
-const originalCreateElement = document.createElement.bind(document);
-
-/** Minimal Image stub that fires onload/onerror asynchronously when src is set */
-class MockImage {
-	crossOrigin = '';
-	naturalWidth = 64;
-	naturalHeight = 64;
-	onload: (() => void) | null = null;
-	onerror: (() => void) | null = null;
-	private _src = '';
-
-	constructor(private failUrls: string[]) {}
-
-	get src() {
-		return this._src;
-	}
-
-	set src(value: string) {
-		this._src = value;
-		setTimeout(() => {
-			if (this.failUrls.includes(value)) {
-				this.onerror?.();
-			} else {
-				this.onload?.();
-			}
-		}, 0);
-	}
-}
-
-/**
- * Replace the global Image constructor with MockImage
- * @param failUrls - URLs that should trigger onerror instead of onload
- * @returns Array collecting every created image instance
- */
-function mockImageLoad(failUrls: string[] = []): MockImage[] {
-	const images: MockImage[] = [];
-	vi.spyOn(globalThis, 'Image').mockImplementation(() => {
-		const img = new MockImage(failUrls);
-		images.push(img);
-		return img as unknown as HTMLImageElement;
-	});
-	return images;
-}
-
-/**
- * Build a 9x8 RGBA buffer that gets darker left to right, so every dHash bit is 1
- */
-function createGradientImageData(): ImageData {
-	const data = new Uint8ClampedArray(9 * 8 * 4);
-	for (let y = 0; y < 8; y++) {
-		for (let x = 0; x < 9; x++) {
-			const i = (y * 9 + x) * 4;
-			const value = 255 - x * 25;
-			data[i] = data[i + 1] = data[i + 2] = value;
-			data[i + 3] = 255;
-		}
-	}
-	return { data, width: 9, height: 8, colorSpace: 'srgb' } as ImageData;
-}
-
 describe('overfastApi', () => {
 	beforeEach(() => {
-		// Reset (not just clear) so queued once-values and overrides don't leak between tests
-		vi.resetAllMocks();
 		localStorage.clear();
-
-		// Mock document.createElement for canvas
-		vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-			if (tagName === 'canvas') {
-				return mockCanvas as unknown as HTMLCanvasElement;
-			}
-			return originalCreateElement(tagName);
-		});
 	});
 
 	afterEach(() => {
@@ -295,65 +205,11 @@ describe('overfastApi', () => {
 		});
 	});
 
-	describe('hashPortraitFromUrl', () => {
-		it('should return a valid 16-character hex string', async () => {
-			mockImageLoad();
-
-			const hash = await hashPortraitFromUrl('https://example.com/portrait.png');
-
-			expect(hash).toMatch(/^[0-9a-f]{16}$/);
-		});
-
-		it('should compute the dHash of the loaded image pixels', async () => {
-			mockImageLoad();
-			const gradient = createGradientImageData();
-			mockCanvasContext.getImageData.mockReturnValue(gradient);
-
-			const hash = await hashPortraitFromUrl('https://example.com/portrait.png');
-
-			expect(hash).toBe('ffffffffffffffff');
-		});
-
-		it('should draw the image at its natural size before hashing', async () => {
-			const images = mockImageLoad();
-
-			await hashPortraitFromUrl('https://example.com/portrait.png');
-
-			expect(mockCanvasContext.drawImage).toHaveBeenCalledWith(images[0], 0, 0);
-			expect(mockCanvasContext.getImageData).toHaveBeenCalledWith(0, 0, 64, 64);
-		});
-
-		it('should throw when canvas context is unavailable', async () => {
-			mockImageLoad();
-			mockCanvas.getContext.mockReturnValueOnce(null as never);
-
-			await expect(
-				hashPortraitFromUrl('https://example.com/portrait.png')
-			).rejects.toThrow('Canvas 2D context unavailable');
-		});
-
-		it('should reject when image fails to load', async () => {
-			mockImageLoad(['https://example.com/broken.png']);
-
-			await expect(hashPortraitFromUrl('https://example.com/broken.png')).rejects.toThrow(
-				'Failed to load image: https://example.com/broken.png'
-			);
-		});
-
-		it('should set crossOrigin to anonymous', async () => {
-			const images = mockImageLoad();
-
-			await hashPortraitFromUrl('https://example.com/portrait.png');
-
-			expect(images[0].crossOrigin).toBe('anonymous');
-		});
-	});
-
 	describe('updateOverFastData', () => {
 		/**
 		 * Helper to set up mocks for a successful updateOverFastData call
 		 */
-		function setupUpdateMocks(failUrls: string[] = []) {
+		function setupUpdateMocks() {
 			// Mock fetch for heroes and maps
 			vi.spyOn(globalThis, 'fetch')
 				.mockResolvedValueOnce({
@@ -364,9 +220,6 @@ describe('overfastApi', () => {
 					ok: true,
 					json: () => Promise.resolve(mockMaps),
 				} as Response);
-
-			// Mock Image for portrait hashing
-			mockImageLoad(failUrls);
 		}
 
 		it('should fetch heroes and maps and save to localStorage', async () => {
@@ -381,32 +234,6 @@ describe('overfastApi', () => {
 
 			// Verify localStorage holds the same data
 			expect(loadOverFastData()).toEqual(store);
-		});
-
-		it('should compute portrait hashes for each hero', async () => {
-			setupUpdateMocks();
-
-			const store = await updateOverFastData();
-
-			expect(store.heroes).toHaveLength(mockHeroes.length);
-			for (const hero of store.heroes) {
-				expect(hero.portraitHash).toMatch(/^[0-9a-f]{16}$/);
-			}
-		});
-
-		it('should store a null hash when a portrait fails, without failing the update', async () => {
-			setupUpdateMocks([mockHeroes[0].portrait]);
-			const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-			const store = await updateOverFastData();
-
-			expect(store.heroes).toHaveLength(2);
-			expect(store.heroes[0].portraitHash).toBeNull();
-			expect(store.heroes[1].portraitHash).toMatch(/^[0-9a-f]{16}$/);
-			expect(warnSpy).toHaveBeenCalledWith(
-				'Failed to hash portrait for ana:',
-				expect.any(Error)
-			);
 		});
 
 		it('should map hero fields correctly', async () => {
@@ -482,7 +309,6 @@ describe('overfastApi', () => {
 						key: 'ana',
 						name: 'Ana',
 						portrait: 'https://example.com/ana.png',
-						portraitHash: 'abcdef0123456789',
 						role: 'support',
 						subrole: 'tactician',
 						gamemodes: ['quickplay'],

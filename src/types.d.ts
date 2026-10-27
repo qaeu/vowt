@@ -209,15 +209,10 @@ export interface OverFastPlayerSearchOptions {
 	order_by?: string;
 }
 
-/** Stored hero data with pre-computed portrait hash (null if hashing failed) */
-export interface StoredHero extends OverFastHero {
-	portraitHash: string | null;
-}
-
 /** Persistent OverFast API data store */
 export interface OverFastStore {
 	schemaVersion: number;
-	heroes: StoredHero[];
+	heroes: OverFastHero[];
 	maps: OverFastMap[];
 	updatedAt: Date;
 }
