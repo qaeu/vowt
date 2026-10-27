@@ -159,12 +159,16 @@ export interface RecognitionResult {
 
 // OverFast API
 
+/** Hero role from OverFast API */
+export type OverFastHeroRole = 'tank' | 'damage' | 'support';
+
 /** Hero data from OverFast API */
 export interface OverFastHero {
 	key: string;
 	name: string;
 	portrait: string;
-	role: 'tank' | 'damage' | 'support';
+	role: OverFastHeroRole;
+	subrole: string;
 	gamemodes: string[];
 }
 
@@ -174,6 +178,7 @@ export interface OverFastMap {
 	name: string;
 	screenshot: string;
 	gamemodes: string[];
+	uses: string[];
 	location: string;
 	country_code: string | null;
 }
@@ -182,11 +187,13 @@ export interface OverFastMap {
 export interface OverFastPlayerResult {
 	player_id: string;
 	name: string;
-	avatar: string | null;
-	namecard: string | null;
+	avatar?: string | null;
+	namecard?: string | null;
 	title: string | null;
 	career_url: string;
 	blizzard_id: string;
+	last_updated_at?: number | null;
+	is_public?: boolean;
 }
 
 /** Paginated player search response from OverFast API */
@@ -195,30 +202,22 @@ export interface OverFastPlayerSearchResponse {
 	results: OverFastPlayerResult[];
 }
 
-/** Stored hero data with pre-computed portrait hash */
-export interface StoredHero {
-	key: string;
-	name: string;
-	portrait: string;
-	portraitHash: string;
-	role: 'tank' | 'damage' | 'support';
-	gamemodes: string[];
+/** Player search pagination and ordering options */
+export interface OverFastPlayerSearchOptions {
+	offset?: number;
+	limit?: number;
+	order_by?: string;
 }
 
-/** Stored map data */
-export interface StoredMap {
-	key: string;
-	name: string;
-	screenshot: string;
-	gamemodes: string[];
-	location: string;
-	country_code: string | null;
+/** Stored hero data with pre-computed portrait hash (null if hashing failed) */
+export interface StoredHero extends OverFastHero {
+	portraitHash: string | null;
 }
 
 /** Persistent OverFast API data store */
 export interface OverFastStore {
 	schemaVersion: number;
 	heroes: StoredHero[];
-	maps: StoredMap[];
+	maps: OverFastMap[];
 	updatedAt: Date;
 }

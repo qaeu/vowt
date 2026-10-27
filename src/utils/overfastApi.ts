@@ -5,11 +5,13 @@
 import type {
 	OverFastHero,
 	OverFastMap,
+	OverFastPlayerSearchOptions,
 	OverFastPlayerSearchResponse,
 	OverFastStore,
 	StoredHero,
-	StoredMap,
 } from '#types';
+
+import { dhash } from '#utils/imageRecognition';
 
 // Constants
 
@@ -17,7 +19,6 @@ export const BASE_URL = 'https://overfast-api.tekrop.fr';
 export const STORAGE_KEY = 'vowt_overfast_data';
 export const SCHEMA_VERSION = 1;
 
-const HASH_SIZE = 8;
 const DATE_FIELD_NAMES = ['updatedAt'];
 
 // Local functions
@@ -29,6 +30,18 @@ function _reviver(key: string, value: unknown) {
 	return value;
 }
 
+async function _fetchJson<T>(path: string, description: string): Promise<T> {
+	const response = await fetch(`${BASE_URL}${path}`);
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to ${description}: ${response.status} ${response.statusText}`
+		);
+	}
+
+	return response.json() as Promise<T>;
+}
+
 // Exported functions
 
 /**
@@ -36,13 +49,7 @@ function _reviver(key: string, value: unknown) {
  * @returns Array of hero data
  */
 export async function fetchHeroes(): Promise<OverFastHero[]> {
-	const response = await fetch(`${BASE_URL}/heroes`);
-
-	if (!response.ok) {
-		throw new Error(`Failed to fetch heroes: ${response.status} ${response.statusText}`);
-	}
-
-	return response.json() as Promise<OverFastHero[]>;
+	return _fetchJson<OverFastHero[]>('/heroes', 'fetch heroes');
 }
 
 /**
@@ -50,34 +57,38 @@ export async function fetchHeroes(): Promise<OverFastHero[]> {
  * @returns Array of map data
  */
 export async function fetchMaps(): Promise<OverFastMap[]> {
-	const response = await fetch(`${BASE_URL}/maps`);
-
-	if (!response.ok) {
-		throw new Error(`Failed to fetch maps: ${response.status} ${response.statusText}`);
-	}
-
-	return response.json() as Promise<OverFastMap[]>;
+	return _fetchJson<OverFastMap[]>('/maps', 'fetch maps');
 }
 
 /**
  * Search for players by name via the OverFast API
- * @param name - Player name to search for
+ * @param name - Player name or BattleTag to search for
+ * @param options - Optional pagination and ordering parameters
  * @returns Paginated search results
  */
-export async function searchPlayers(name: string): Promise<OverFastPlayerSearchResponse> {
-	const response = await fetch(`${BASE_URL}/players?name=${encodeURIComponent(name)}`);
-
-	if (!response.ok) {
-		throw new Error(`Failed to search players: ${response.status} ${response.statusText}`);
+export async function searchPlayers(
+	name: string,
+	options: OverFastPlayerSearchOptions = {}
+): Promise<OverFastPlayerSearchResponse> {
+	const params = new URLSearchParams({ name });
+	for (const [key, value] of Object.entries(options)) {
+		if (value !== undefined) {
+			params.set(key, String(value));
+		}
 	}
 
-	return response.json() as Promise<OverFastPlayerSearchResponse>;
+	return _fetchJson<OverFastPlayerSearchResponse>(
+		`/players?${params.toString()}`,
+		'search players'
+	);
 }
 
 /**
  * Load an image from a URL and compute its dHash for perceptual comparison
+ * Requires the image host to send CORS headers, otherwise loading or pixel access fails
  * @param url - Image URL to hash
  * @returns 16-character hex hash string
+ * @throws If the image cannot be loaded, drawn, or read
  */
 export async function hashPortraitFromUrl(url: string): Promise<string> {
 	const img = new Image();
@@ -93,75 +104,52 @@ export async function hashPortraitFromUrl(url: string): Promise<string> {
 	const ctx = canvas.getContext('2d');
 
 	if (!ctx) {
-		// Hash is HASH_SIZE^2 bits, each hex char represents 4 bits
-		return '0'.repeat(HASH_SIZE ** 2 / 4);
+		throw new Error('Canvas 2D context unavailable');
 	}
 
-	const hashWidth = HASH_SIZE + 1;
-	const hashHeight = HASH_SIZE;
+	canvas.width = img.naturalWidth;
+	canvas.height = img.naturalHeight;
+	ctx.drawImage(img, 0, 0);
 
-	canvas.width = hashWidth;
-	canvas.height = hashHeight;
-
-	ctx.drawImage(img, 0, 0, hashWidth, hashHeight);
-
-	const resizedData = ctx.getImageData(0, 0, hashWidth, hashHeight);
-	const pixels = resizedData.data;
-
-	// Convert to grayscale values using luminance formula
-	const grayscale: number[] = [];
-	for (let i = 0; i < pixels.length; i += 4) {
-		const gray = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
-		grayscale.push(gray);
-	}
-
-	// Compute difference hash (compare left pixel to right pixel)
-	let hash = '';
-	for (let y = 0; y < hashHeight; y++) {
-		for (let x = 0; x < HASH_SIZE; x++) {
-			const index = y * hashWidth + x;
-			const left = grayscale[index];
-			const right = grayscale[index + 1];
-			hash += left > right ? '1' : '0';
-		}
-	}
-
-	// Convert binary string to hex string in 4-bit chunks
-	let hexHash = '';
-	for (let i = 0; i < hash.length; i += 4) {
-		hexHash += parseInt(hash.slice(i, i + 4), 2).toString(16);
-	}
-
-	return hexHash;
+	return dhash(ctx.getImageData(0, 0, canvas.width, canvas.height));
 }
 
 /**
  * Fetch heroes and maps from the OverFast API, compute portrait hashes, and persist to localStorage
+ * Heroes whose portrait cannot be hashed are stored with a null portraitHash
  * @returns The stored OverFast data
  */
 export async function updateOverFastData(): Promise<OverFastStore> {
 	try {
 		const [heroes, maps] = await Promise.all([fetchHeroes(), fetchMaps()]);
 
-		const storedHeroes: StoredHero[] = await Promise.all(
-			heroes.map(async (hero) => {
-				const portraitHash = await hashPortraitFromUrl(hero.portrait);
-				return {
-					key: hero.key,
-					name: hero.name,
-					portrait: hero.portrait,
-					portraitHash,
-					role: hero.role,
-					gamemodes: hero.gamemodes,
-				};
-			})
+		const hashResults = await Promise.allSettled(
+			heroes.map((hero) => hashPortraitFromUrl(hero.portrait))
 		);
 
-		const storedMaps: StoredMap[] = maps.map((map) => ({
+		const storedHeroes: StoredHero[] = heroes.map((hero, i) => {
+			const result = hashResults[i];
+			if (result.status === 'rejected') {
+				console.warn(`Failed to hash portrait for ${hero.key}:`, result.reason);
+			}
+
+			return {
+				key: hero.key,
+				name: hero.name,
+				portrait: hero.portrait,
+				portraitHash: result.status === 'fulfilled' ? result.value : null,
+				role: hero.role,
+				subrole: hero.subrole,
+				gamemodes: hero.gamemodes,
+			};
+		});
+
+		const storedMaps: OverFastMap[] = maps.map((map) => ({
 			key: map.key,
 			name: map.name,
 			screenshot: map.screenshot,
 			gamemodes: map.gamemodes,
+			uses: map.uses,
 			location: map.location,
 			country_code: map.country_code,
 		}));
@@ -183,7 +171,7 @@ export async function updateOverFastData(): Promise<OverFastStore> {
 
 /**
  * Load persisted OverFast API data from localStorage
- * @returns The stored data, or null if not found or on error
+ * @returns The stored data, or null if not found, outdated, or on error
  */
 export function loadOverFastData(): OverFastStore | null {
 	try {
@@ -192,7 +180,17 @@ export function loadOverFastData(): OverFastStore | null {
 			return null;
 		}
 
-		return JSON.parse(data, _reviver) as OverFastStore;
+		const stored: OverFastStore = JSON.parse(data, _reviver);
+
+		// Handle schema version for future migrations
+		if (stored.schemaVersion !== SCHEMA_VERSION) {
+			console.error(
+				`Stored OverFast data uses schema version ${stored.schemaVersion}, expected ${SCHEMA_VERSION}`
+			);
+			return null;
+		}
+
+		return stored;
 	} catch (error) {
 		console.error('Error loading OverFast data:', error);
 		return null;
@@ -203,5 +201,9 @@ export function loadOverFastData(): OverFastStore | null {
  * Remove persisted OverFast API data from localStorage
  */
 export function clearOverFastData(): void {
-	localStorage.removeItem(STORAGE_KEY);
+	try {
+		localStorage.removeItem(STORAGE_KEY);
+	} catch (error) {
+		console.error('Error clearing OverFast data:', error);
+	}
 }

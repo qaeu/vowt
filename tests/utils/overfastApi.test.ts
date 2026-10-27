@@ -21,6 +21,7 @@ const mockHeroes: OverFastHero[] = [
 		name: 'Ana',
 		portrait: 'https://d15f34w2p8l1cc.cloudfront.net/overwatch/ana.png',
 		role: 'support',
+		subrole: 'tactician',
 		gamemodes: ['quickplay', 'stadium'],
 	},
 	{
@@ -28,7 +29,8 @@ const mockHeroes: OverFastHero[] = [
 		name: 'Tracer',
 		portrait: 'https://d15f34w2p8l1cc.cloudfront.net/overwatch/tracer.png',
 		role: 'damage',
-		gamemodes: ['quickplay', 'competitive'],
+		subrole: 'flanker',
+		gamemodes: ['quickplay', 'stadium'],
 	},
 ];
 
@@ -38,6 +40,7 @@ const mockMaps: OverFastMap[] = [
 		name: 'Aatlis',
 		screenshot: 'https://overfast-api.tekrop.fr/static/maps/aatlis.jpg',
 		gamemodes: ['flashpoint'],
+		uses: ['standard'],
 		location: 'Morocco',
 		country_code: 'MA',
 	},
@@ -46,6 +49,7 @@ const mockMaps: OverFastMap[] = [
 		name: 'Havana',
 		screenshot: 'https://overfast-api.tekrop.fr/static/maps/havana.jpg',
 		gamemodes: ['escort'],
+		uses: ['standard'],
 		location: 'Havana, Cuba',
 		country_code: null,
 	},
@@ -74,6 +78,7 @@ const mockCanvasContext = {
 		width: 9,
 		height: 8,
 	})),
+	putImageData: vi.fn(),
 };
 
 // Mock canvas element
@@ -86,9 +91,68 @@ const mockCanvas = {
 // Store original createElement
 const originalCreateElement = document.createElement.bind(document);
 
+/** Minimal Image stub that fires onload/onerror asynchronously when src is set */
+class MockImage {
+	crossOrigin = '';
+	naturalWidth = 64;
+	naturalHeight = 64;
+	onload: (() => void) | null = null;
+	onerror: (() => void) | null = null;
+	private _src = '';
+
+	constructor(private failUrls: string[]) {}
+
+	get src() {
+		return this._src;
+	}
+
+	set src(value: string) {
+		this._src = value;
+		setTimeout(() => {
+			if (this.failUrls.includes(value)) {
+				this.onerror?.();
+			} else {
+				this.onload?.();
+			}
+		}, 0);
+	}
+}
+
+/**
+ * Replace the global Image constructor with MockImage
+ * @param failUrls - URLs that should trigger onerror instead of onload
+ * @returns Array collecting every created image instance
+ */
+function mockImageLoad(failUrls: string[] = []): MockImage[] {
+	const images: MockImage[] = [];
+	vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+		const img = new MockImage(failUrls);
+		images.push(img);
+		return img as unknown as HTMLImageElement;
+	});
+	return images;
+}
+
+/**
+ * Build a 9x8 RGBA buffer that gets darker left to right, so every dHash bit is 1
+ */
+function createGradientImageData(): ImageData {
+	const data = new Uint8ClampedArray(9 * 8 * 4);
+	for (let y = 0; y < 8; y++) {
+		for (let x = 0; x < 9; x++) {
+			const i = (y * 9 + x) * 4;
+			const value = 255 - x * 25;
+			data[i] = data[i + 1] = data[i + 2] = value;
+			data[i + 3] = 255;
+		}
+	}
+	return { data, width: 9, height: 8, colorSpace: 'srgb' } as ImageData;
+}
+
 describe('overfastApi', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
+		// Reset (not just clear) so queued once-values and overrides don't leak between tests
+		vi.resetAllMocks();
 		localStorage.clear();
 
 		// Mock document.createElement for canvas
@@ -115,9 +179,6 @@ describe('overfastApi', () => {
 
 			expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/heroes`);
 			expect(heroes).toEqual(mockHeroes);
-			expect(heroes).toHaveLength(2);
-			expect(heroes[0].key).toBe('ana');
-			expect(heroes[0].role).toBe('support');
 		});
 
 		it('should throw an error on non-OK response', async () => {
@@ -150,9 +211,6 @@ describe('overfastApi', () => {
 
 			expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/maps`);
 			expect(maps).toEqual(mockMaps);
-			expect(maps).toHaveLength(2);
-			expect(maps[0].key).toBe('aatlis');
-			expect(maps[1].country_code).toBeNull();
 		});
 
 		it('should throw an error on non-OK response', async () => {
@@ -196,7 +254,25 @@ describe('overfastApi', () => {
 			await searchPlayers('Player #1234');
 
 			expect(globalThis.fetch).toHaveBeenCalledWith(
-				`${BASE_URL}/players?name=Player%20%231234`
+				`${BASE_URL}/players?name=Player+%231234`
+			);
+		});
+
+		it('should pass pagination and ordering options as query params', async () => {
+			vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ total: 0, results: [] }),
+			} as Response);
+
+			await searchPlayers('Player', {
+				offset: 20,
+				limit: undefined,
+				order_by: 'last_updated_at:desc',
+			});
+
+			// Undefined options are omitted
+			expect(globalThis.fetch).toHaveBeenCalledWith(
+				`${BASE_URL}/players?name=Player&offset=20&order_by=last_updated_at%3Adesc`
 			);
 		});
 
@@ -221,117 +297,55 @@ describe('overfastApi', () => {
 
 	describe('hashPortraitFromUrl', () => {
 		it('should return a valid 16-character hex string', async () => {
-			// Mock Image constructor to trigger onload
-			const mockImage = {
-				crossOrigin: '',
-				onload: null as (() => void) | null,
-				onerror: null as (() => void) | null,
-				src: '',
-			};
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
-				// Trigger onload asynchronously when src is set
-				const proxy = new Proxy(mockImage, {
-					set(target, prop, value) {
-						if (prop === 'src') {
-							target.src = value as string;
-							// Trigger onload on next tick
-							setTimeout(() => target.onload?.(), 0);
-							return true;
-						}
-						return Reflect.set(target, prop, value);
-					},
-				});
-				return proxy as unknown as HTMLImageElement;
-			});
+			mockImageLoad();
 
 			const hash = await hashPortraitFromUrl('https://example.com/portrait.png');
 
-			expect(hash).toHaveLength(16);
 			expect(hash).toMatch(/^[0-9a-f]{16}$/);
 		});
 
-		it('should return fallback hash when canvas context is unavailable', async () => {
-			const mockImage = {
-				crossOrigin: '',
-				onload: null as (() => void) | null,
-				onerror: null as (() => void) | null,
-				src: '',
-			};
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
-				const proxy = new Proxy(mockImage, {
-					set(target, prop, value) {
-						if (prop === 'src') {
-							target.src = value as string;
-							setTimeout(() => target.onload?.(), 0);
-							return true;
-						}
-						return Reflect.set(target, prop, value);
-					},
-				});
-				return proxy as unknown as HTMLImageElement;
-			});
-
-			mockCanvas.getContext.mockReturnValueOnce(null as never);
+		it('should compute the dHash of the loaded image pixels', async () => {
+			mockImageLoad();
+			const gradient = createGradientImageData();
+			mockCanvasContext.getImageData.mockReturnValue(gradient);
 
 			const hash = await hashPortraitFromUrl('https://example.com/portrait.png');
 
-			expect(hash).toBe('0000000000000000');
+			expect(hash).toBe('ffffffffffffffff');
 		});
 
-		it('should reject when image fails to load', async () => {
-			const mockImage = {
-				crossOrigin: '',
-				onload: null as (() => void) | null,
-				onerror: null as (() => void) | null,
-				src: '',
-			};
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
-				const proxy = new Proxy(mockImage, {
-					set(target, prop, value) {
-						if (prop === 'src') {
-							target.src = value as string;
-							setTimeout(() => target.onerror?.(), 0);
-							return true;
-						}
-						return Reflect.set(target, prop, value);
-					},
-				});
-				return proxy as unknown as HTMLImageElement;
-			});
-
-			await expect(
-				hashPortraitFromUrl('https://example.com/broken.png')
-			).rejects.toThrow('Failed to load image: https://example.com/broken.png');
-		});
-
-		it('should set crossOrigin to anonymous', async () => {
-			let capturedCrossOrigin = '';
-			const mockImage = {
-				crossOrigin: '',
-				onload: null as (() => void) | null,
-				onerror: null as (() => void) | null,
-				src: '',
-			};
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
-				const proxy = new Proxy(mockImage, {
-					set(target, prop, value) {
-						if (prop === 'crossOrigin') {
-							capturedCrossOrigin = value as string;
-						}
-						if (prop === 'src') {
-							target.src = value as string;
-							setTimeout(() => target.onload?.(), 0);
-							return true;
-						}
-						return Reflect.set(target, prop, value);
-					},
-				});
-				return proxy as unknown as HTMLImageElement;
-			});
+		it('should draw the image at its natural size before hashing', async () => {
+			const images = mockImageLoad();
 
 			await hashPortraitFromUrl('https://example.com/portrait.png');
 
-			expect(capturedCrossOrigin).toBe('anonymous');
+			expect(mockCanvasContext.drawImage).toHaveBeenCalledWith(images[0], 0, 0);
+			expect(mockCanvasContext.getImageData).toHaveBeenCalledWith(0, 0, 64, 64);
+		});
+
+		it('should throw when canvas context is unavailable', async () => {
+			mockImageLoad();
+			mockCanvas.getContext.mockReturnValueOnce(null as never);
+
+			await expect(
+				hashPortraitFromUrl('https://example.com/portrait.png')
+			).rejects.toThrow('Canvas 2D context unavailable');
+		});
+
+		it('should reject when image fails to load', async () => {
+			mockImageLoad(['https://example.com/broken.png']);
+
+			await expect(hashPortraitFromUrl('https://example.com/broken.png')).rejects.toThrow(
+				'Failed to load image: https://example.com/broken.png'
+			);
+		});
+
+		it('should set crossOrigin to anonymous', async () => {
+			const images = mockImageLoad();
+
+			await hashPortraitFromUrl('https://example.com/portrait.png');
+
+			expect(images[0].crossOrigin).toBe('anonymous');
 		});
 	});
 
@@ -339,7 +353,7 @@ describe('overfastApi', () => {
 		/**
 		 * Helper to set up mocks for a successful updateOverFastData call
 		 */
-		function setupUpdateMocks() {
+		function setupUpdateMocks(failUrls: string[] = []) {
 			// Mock fetch for heroes and maps
 			vi.spyOn(globalThis, 'fetch')
 				.mockResolvedValueOnce({
@@ -352,25 +366,7 @@ describe('overfastApi', () => {
 				} as Response);
 
 			// Mock Image for portrait hashing
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
-				const mockImage = {
-					crossOrigin: '',
-					onload: null as (() => void) | null,
-					onerror: null as (() => void) | null,
-					src: '',
-				};
-				const proxy = new Proxy(mockImage, {
-					set(target, prop, value) {
-						if (prop === 'src') {
-							target.src = value as string;
-							setTimeout(() => target.onload?.(), 0);
-							return true;
-						}
-						return Reflect.set(target, prop, value);
-					},
-				});
-				return proxy as unknown as HTMLImageElement;
-			});
+			mockImageLoad(failUrls);
 		}
 
 		it('should fetch heroes and maps and save to localStorage', async () => {
@@ -383,9 +379,8 @@ describe('overfastApi', () => {
 			expect(store.schemaVersion).toBe(SCHEMA_VERSION);
 			expect(store.updatedAt).toBeInstanceOf(Date);
 
-			// Verify localStorage was populated
-			const stored = localStorage.getItem(STORAGE_KEY);
-			expect(stored).not.toBeNull();
+			// Verify localStorage holds the same data
+			expect(loadOverFastData()).toEqual(store);
 		});
 
 		it('should compute portrait hashes for each hero', async () => {
@@ -393,11 +388,25 @@ describe('overfastApi', () => {
 
 			const store = await updateOverFastData();
 
+			expect(store.heroes).toHaveLength(mockHeroes.length);
 			for (const hero of store.heroes) {
-				expect(hero.portraitHash).toBeDefined();
-				expect(hero.portraitHash).toHaveLength(16);
 				expect(hero.portraitHash).toMatch(/^[0-9a-f]{16}$/);
 			}
+		});
+
+		it('should store a null hash when a portrait fails, without failing the update', async () => {
+			setupUpdateMocks([mockHeroes[0].portrait]);
+			const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+			const store = await updateOverFastData();
+
+			expect(store.heroes).toHaveLength(2);
+			expect(store.heroes[0].portraitHash).toBeNull();
+			expect(store.heroes[1].portraitHash).toMatch(/^[0-9a-f]{16}$/);
+			expect(warnSpy).toHaveBeenCalledWith(
+				'Failed to hash portrait for ana:',
+				expect.any(Error)
+			);
 		});
 
 		it('should map hero fields correctly', async () => {
@@ -409,6 +418,7 @@ describe('overfastApi', () => {
 			expect(ana).toBeDefined();
 			expect(ana?.name).toBe('Ana');
 			expect(ana?.role).toBe('support');
+			expect(ana?.subrole).toBe('tactician');
 			expect(ana?.portrait).toBe(
 				'https://d15f34w2p8l1cc.cloudfront.net/overwatch/ana.png'
 			);
@@ -425,6 +435,7 @@ describe('overfastApi', () => {
 			expect(aatlis?.name).toBe('Aatlis');
 			expect(aatlis?.location).toBe('Morocco');
 			expect(aatlis?.country_code).toBe('MA');
+			expect(aatlis?.uses).toEqual(['standard']);
 
 			const havana = store.maps.find((m) => m.key === 'havana');
 			expect(havana?.country_code).toBeNull();
@@ -449,6 +460,17 @@ describe('overfastApi', () => {
 				expect.any(Error)
 			);
 		});
+
+		it('should throw and log error when saving to localStorage fails', async () => {
+			setupUpdateMocks();
+			vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+				throw new Error('QuotaExceededError');
+			});
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			await expect(updateOverFastData()).rejects.toThrow('QuotaExceededError');
+			expect(consoleSpy).toHaveBeenCalled();
+		});
 	});
 
 	describe('loadOverFastData', () => {
@@ -462,6 +484,7 @@ describe('overfastApi', () => {
 						portrait: 'https://example.com/ana.png',
 						portraitHash: 'abcdef0123456789',
 						role: 'support',
+						subrole: 'tactician',
 						gamemodes: ['quickplay'],
 					},
 				],
@@ -498,6 +521,24 @@ describe('overfastApi', () => {
 			);
 		});
 
+		it('should return null when the stored schema version does not match', () => {
+			localStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify({
+					schemaVersion: SCHEMA_VERSION + 1,
+					heroes: [],
+					maps: [],
+					updatedAt: new Date(),
+				})
+			);
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			const loaded = loadOverFastData();
+
+			expect(loaded).toBeNull();
+			expect(consoleSpy).toHaveBeenCalled();
+		});
+
 		it('should revive updatedAt as a Date object', () => {
 			const dateStr = '2025-01-15T12:00:00.000Z';
 			localStorage.setItem(
@@ -529,6 +570,19 @@ describe('overfastApi', () => {
 
 		it('should not throw when no data exists', () => {
 			expect(() => clearOverFastData()).not.toThrow();
+		});
+
+		it('should log and not throw when localStorage is unavailable', () => {
+			vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+				throw new Error('SecurityError');
+			});
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			expect(() => clearOverFastData()).not.toThrow();
+			expect(consoleSpy).toHaveBeenCalledWith(
+				'Error clearing OverFast data:',
+				expect.any(Error)
+			);
 		});
 	});
 });
