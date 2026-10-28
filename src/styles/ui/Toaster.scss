@@ -16,7 +16,9 @@
 			translate: var(--x) var(--y);
 			scale: var(--scale);
 			z-index: var(--z-index);
-			height: var(--initial-height);
+			/* Collapsed siblings take the front toast's height so they stack in order */
+			height: var(--height);
+			overflow: hidden;
 			opacity: var(--opacity);
 			will-change: translate, opacity, scale;
 
@@ -24,7 +26,8 @@
 			transition:
 				translate 400ms,
 				scale 400ms,
-				opacity 400ms;
+				opacity 400ms,
+				height 400ms;
 			transition-timing-function: cubic-bezier(0.2, 1, 0.75, 1);
 
 			&:not([data-paused]):first-child {
