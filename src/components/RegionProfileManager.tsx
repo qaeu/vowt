@@ -1,11 +1,9 @@
 import type { Component } from 'solid-js';
 import { createSignal, createMemo, batch, For, Show, onMount } from 'solid-js';
-import { X } from 'lucide-solid';
 
 import type {
 	TextRegion,
 	DrawnRegion,
-	ScreenAction,
 	AlertDialogOptions,
 	AlignmentGroup,
 	AlignmentDrawTarget,
@@ -40,7 +38,6 @@ const ROWS_COUNT_DEFAULT = 5;
 
 interface RegionProfileManagerProps {
 	previewImage: string | null;
-	onClose: () => void;
 }
 
 const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
@@ -76,16 +73,6 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		}
 		return counts;
 	});
-
-	const navActions: ScreenAction[] = [
-		{
-			id: 'close-button',
-			text: 'Close',
-			class: 'highlight',
-			icon: X,
-			onClick: () => props.onClose(),
-		},
-	];
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 	let canvasRef: HTMLCanvasElement | undefined;
@@ -548,11 +535,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	};
 
 	return (
-		<Screen
-			id="region-profile-manager-screen"
-			title="Image Region Profiles"
-			navActions={() => navActions}
-		>
+		<Screen id="region-profile-manager-screen" title="Image Region Profiles">
 			<div class="info-box">
 				<p>
 					Create and manage region profiles for different scoreboard types. Profiles are

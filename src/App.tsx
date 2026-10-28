@@ -1,12 +1,13 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup, Switch, Match } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
-import { Sun, Moon } from 'lucide-solid';
+import { Upload } from 'lucide-solid';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
 import Insights from '#c/Insights';
+import AppHeader from '#c/ui/AppHeader';
+import type { ViewMode, NavView } from '#c/ui/AppHeader';
 import type { UploadBatch } from '#c/ScoreboardOCR';
 import {
 	triggerUploadDialog,
@@ -15,8 +16,6 @@ import {
 	saveSettings,
 } from '#utils/storage';
 import '#styles/App';
-
-type ViewMode = 'ocr' | 'records' | 'regions' | 'insights';
 
 const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
@@ -86,8 +85,9 @@ const App: Component = () => {
 		setViewMode('records');
 	};
 
-	const handleCloseOCR = () => {
-		setViewMode('records');
+	const handleNavigate = (view: NavView) => {
+		if (view === 'records') setOpenRecordId(null);
+		setViewMode(view);
 	};
 
 	const handleDarkMode = () => {
@@ -99,56 +99,40 @@ const App: Component = () => {
 
 	return (
 		<div>
+			<AppHeader
+				viewMode={viewMode()}
+				onNavigate={handleNavigate}
+				onUploadClick={handleUploadClick}
+				isDarkMode={isDarkMode()}
+				onToggleDarkMode={handleDarkMode}
+			/>
 			{isDragging() && (
 				<div class="drag-overlay">
 					<div class="drag-overlay-content">
-						<div class="drag-overlay-icon">📤</div>
+						<div class="drag-overlay-icon">
+							<Upload size={48} />
+						</div>
 						<div class="drag-overlay-text">Drop images here to analyze</div>
 					</div>
 				</div>
 			)}
 			<Switch>
 				<Match when={viewMode() === 'ocr'}>
-					{viewMode() === 'ocr' && (
-						<ScoreboardOCR
-							uploadBatch={uploadBatch()}
-							onClose={handleCloseOCR}
-							onOpenRegionManager={() => setViewMode('regions')}
-						/>
-					)}{' '}
+					{viewMode() === 'ocr' && <ScoreboardOCR uploadBatch={uploadBatch()} />}{' '}
 				</Match>
 				<Match when={viewMode() === 'records'}>
 					<GameRecordsTable
 						onUploadClick={handleUploadClick}
-						onInsightsClick={() => setViewMode('insights')}
 						initialExpandedId={openRecordId()}
 					/>
 				</Match>
 				<Match when={viewMode() === 'insights'}>
-					<Insights
-						onRecordsClick={() => {
-							setOpenRecordId(null);
-							setViewMode('records');
-						}}
-						onOpenRecord={handleOpenRecord}
-					/>
+					<Insights onOpenRecord={handleOpenRecord} />
 				</Match>
 				<Match when={viewMode() === 'regions'}>
-					<RegionProfileManager
-						previewImage={uploadBatch()?.images[0] ?? null}
-						onClose={() => setViewMode('ocr')}
-					/>
+					<RegionProfileManager previewImage={uploadBatch()?.images[0] ?? null} />
 				</Match>
 			</Switch>
-
-			<button
-				title="Toggle dark mode"
-				aria-label="Toggle dark mode"
-				class="dark-mode-toggle"
-				onClick={handleDarkMode}
-			>
-				<Dynamic component={isDarkMode() ? Moon : Sun} size={18} />
-			</button>
 		</div>
 	);
 };

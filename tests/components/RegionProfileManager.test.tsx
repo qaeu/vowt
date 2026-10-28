@@ -50,8 +50,6 @@ describe('RegionProfileManager', () => {
 		{ id: 'profile2', description: 'Test Profile 2' },
 	];
 
-	const mockOnClose = vi.fn();
-
 	beforeEach(() => {
 		localStorage.clear();
 		vi.clearAllMocks();
@@ -71,18 +69,12 @@ describe('RegionProfileManager', () => {
 
 	describe('Rendering', () => {
 		it('should render the component with title', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('Image Region Profiles')).toBeDefined();
 		});
 
-		it('should render the close button', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
-			const closeButton = screen.getByRole('button', { name: /close/i });
-			expect(closeButton).toBeDefined();
-		});
-
 		it('should render instructions text', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText(/Create and manage region profiles/i)).toBeDefined();
 		});
 	});
@@ -90,14 +82,14 @@ describe('RegionProfileManager', () => {
 	describe('Learned Image Hashes', () => {
 		it('should show the learned hash count for the editing profile', () => {
 			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(3);
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			expect(screen.getByText(/3 learned hashes/)).toBeDefined();
 			expect(regionProfiles.countProfileHashes).toHaveBeenCalledWith(mockProfiles[1].id);
 		});
 
 		it('should disable Clear Learned Hashes when there are none', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const button = screen.getByRole('button', {
 				name: /Clear Learned Hashes/i,
 			}) as HTMLButtonElement;
@@ -107,7 +99,7 @@ describe('RegionProfileManager', () => {
 
 		it('should clear learned hashes after confirming', async () => {
 			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(2);
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			fireEvent.click(screen.getByRole('button', { name: /Clear Learned Hashes/i }));
 			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
@@ -120,7 +112,7 @@ describe('RegionProfileManager', () => {
 
 	describe('Region Editor', () => {
 		it('should have Clear All button', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const button = screen.getByRole('button', {
 				name: /Clear All/i,
 			});
@@ -128,7 +120,7 @@ describe('RegionProfileManager', () => {
 		});
 
 		it('should have Clear All button disabled when no regions', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const clearButton = screen.getByRole('button', {
 				name: /Clear All/i,
 			}) as HTMLButtonElement;
@@ -136,7 +128,7 @@ describe('RegionProfileManager', () => {
 		});
 
 		it('should have Export button', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const button = screen.getByRole('button', {
 				name: /Export/i,
 			});
@@ -144,7 +136,7 @@ describe('RegionProfileManager', () => {
 		});
 
 		it('should have Import button', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const button = screen.getByRole('button', {
 				name: /Import/i,
 			});
@@ -156,7 +148,7 @@ describe('RegionProfileManager', () => {
 			window.URL.revokeObjectURL = vi.fn();
 			vi.mocked(regionProfiles.exportProfile).mockReturnValue('{"test": "data"}');
 
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			const button = screen.getByRole('button', {
 				name: /Export/i,
@@ -169,7 +161,7 @@ describe('RegionProfileManager', () => {
 		it('should show alert if exportProfile returns null', async () => {
 			vi.mocked(regionProfiles.exportProfile).mockReturnValue(null);
 
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			const button = screen.getByRole('button', {
 				name: /Export/i,
@@ -187,19 +179,19 @@ describe('RegionProfileManager', () => {
 
 	describe('Profile Management', () => {
 		it('should display list of saved profiles', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('profile1')).toBeDefined();
 			expect(screen.getByText('profile2')).toBeDefined();
 		});
 
 		it('should show "No profiles yet" when list is empty', () => {
 			vi.mocked(regionProfiles.listProfiles).mockReturnValue([]);
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('No profiles yet')).toBeDefined();
 		});
 
 		it('should render Select button for each profile', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const selectButtons = screen.getAllByRole('button', {
 				name: /Set Active/i,
 			});
@@ -207,7 +199,7 @@ describe('RegionProfileManager', () => {
 		});
 
 		it('should render Edit button for each profile', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const editButtons = screen.getAllByRole('button', {
 				name: /Edit/i,
 			});
@@ -215,7 +207,7 @@ describe('RegionProfileManager', () => {
 		});
 
 		it('should render Delete button for each profile', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const deleteButtons = screen.getAllByRole('button', {
 				name: /Delete/i,
 			});
@@ -223,7 +215,7 @@ describe('RegionProfileManager', () => {
 		});
 
 		it('should call setActiveProfile when selecting a profile', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			const selectButtons = screen.getAllByRole('button', {
 				name: /Set Active/i,
@@ -235,12 +227,12 @@ describe('RegionProfileManager', () => {
 
 		it('should mark active profile with checkmark', () => {
 			vi.mocked(regionProfiles.getActiveProfileId).mockReturnValue('profile1');
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('✓ Active')).toBeDefined();
 		});
 
 		it('should call deleteProfile when deleting a profile', async () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			const deleteButtons = screen.getAllByRole('button', {
 				name: /Delete/i,
@@ -257,7 +249,7 @@ describe('RegionProfileManager', () => {
 			expect(vi.mocked(regionProfiles.deleteProfile)).toHaveBeenCalledWith('profile1');
 		});
 		it('should not delete profile if user cancels confirmation', async () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			const deleteButtons = screen.getAllByRole('button', {
 				name: /Delete/i,
@@ -278,18 +270,18 @@ describe('RegionProfileManager', () => {
 
 	describe('Profile Details Section', () => {
 		it('should display Profile Details section', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('Profile Details')).toBeDefined();
 		});
 
 		it('should have Profile ID input field', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const idInputs = document.querySelectorAll('input');
 			expect(idInputs.length).toBeGreaterThan(0);
 		});
 
 		it('should have Description input field', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const inputs = document.querySelectorAll('input');
 			expect(inputs.length).toBeGreaterThan(0);
 		});
@@ -297,13 +289,13 @@ describe('RegionProfileManager', () => {
 
 	describe('Canvas Rendering', () => {
 		it('should render canvas element', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const canvas = document.querySelector('canvas');
 			expect(canvas).toBeDefined();
 		});
 
 		it('should render canvas wrapper', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			const wrapper = document.querySelector('.canvas-wrapper');
 			expect(wrapper).toBeDefined();
 		});
@@ -311,53 +303,31 @@ describe('RegionProfileManager', () => {
 
 	describe('UI Sections', () => {
 		it('should render Region Editor section', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('Region Editor')).toBeDefined();
 		});
 
 		it('should render Profile Details section', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('Profile Details')).toBeDefined();
 		});
 
 		it('should render Saved Profiles section', () => {
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 			expect(screen.getByText('Saved Profiles')).toBeDefined();
 		});
 	});
 
 	describe('Component Props', () => {
-		it('should accept onClose callback', () => {
-			const onClose = vi.fn();
-			render(() => <RegionProfileManager previewImage={null} onClose={onClose} />);
-			expect(screen.getByText('Image Region Profiles')).toBeDefined();
-		});
-
-		it('should call onClose prop when close button clicked', () => {
-			const onClose = vi.fn();
-			render(() => <RegionProfileManager previewImage={null} onClose={onClose} />);
-
-			const closeButton = screen.getByRole('button', {
-				name: /close/i,
-			}) as HTMLButtonElement;
-			closeButton.click();
-
-			expect(onClose).toHaveBeenCalled();
-		});
-
 		it('should accept previewImage prop', () => {
 			const previewImage = 'data:image/png;base64,test';
-			render(() => (
-				<RegionProfileManager previewImage={previewImage} onClose={mockOnClose} />
-			));
+			render(() => <RegionProfileManager previewImage={previewImage} />);
 			expect(screen.getByText('Image Region Profiles')).toBeDefined();
 		});
 
 		it('should use previewImage when available', () => {
 			const previewImage = 'data:image/png;base64,test';
-			render(() => (
-				<RegionProfileManager previewImage={previewImage} onClose={mockOnClose} />
-			));
+			render(() => <RegionProfileManager previewImage={previewImage} />);
 			const canvas = document.querySelector('canvas');
 			expect(canvas).toBeDefined();
 		});
@@ -384,9 +354,7 @@ describe('RegionProfileManager', () => {
 			});
 
 			const previewImage = 'data:image/png;base64,test';
-			render(() => (
-				<RegionProfileManager previewImage={previewImage} onClose={mockOnClose} />
-			));
+			render(() => <RegionProfileManager previewImage={previewImage} />);
 
 			// Wait for the image to "load" and onMount to complete
 			await vi.waitFor(() => {
@@ -419,9 +387,7 @@ describe('RegionProfileManager', () => {
 			vi.mocked(regionProfiles.getProfile).mockReturnValue([]);
 
 			const previewImage = 'data:image/png;base64,test';
-			render(() => (
-				<RegionProfileManager previewImage={previewImage} onClose={mockOnClose} />
-			));
+			render(() => <RegionProfileManager previewImage={previewImage} />);
 
 			// Wait for initial mount to complete
 			await vi.waitFor(() => {
@@ -472,12 +438,7 @@ describe('RegionProfileManager', () => {
 				}
 			);
 
-			render(() => (
-				<RegionProfileManager
-					previewImage="data:image/png;base64,test"
-					onClose={mockOnClose}
-				/>
-			));
+			render(() => <RegionProfileManager previewImage="data:image/png;base64,test" />);
 
 			await vi.waitFor(() => expect(onRegionComplete).toBeDefined());
 			return (rect: Pick<DrawnRegion, 'x' | 'y' | 'width' | 'height'>) =>
@@ -510,7 +471,7 @@ describe('RegionProfileManager', () => {
 				{ name: 'blue' },
 			]);
 
-			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			render(() => <RegionProfileManager previewImage={null} />);
 
 			expect(screen.getByText('Alignment Groups (1)')).toBeDefined();
 			expect(screen.getByText('blue')).toBeDefined();
@@ -645,7 +606,7 @@ describe('RegionProfileManager', () => {
 				vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
 					{ name: 'blue' },
 				]);
-				render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+				render(() => <RegionProfileManager previewImage={null} />);
 
 				fireEvent.click(screen.getByTitle('Delete group blue'));
 

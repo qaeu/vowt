@@ -134,12 +134,8 @@ const statValue = (container: HTMLElement, key: string) =>
 
 describe('Insights', () => {
 	const onOpenRecord = vi.fn();
-	const onRecordsClick = vi.fn();
 
-	const renderInsights = () =>
-		render(() => (
-			<Insights onOpenRecord={onOpenRecord} onRecordsClick={onRecordsClick} />
-		));
+	const renderInsights = () => render(() => <Insights onOpenRecord={onOpenRecord} />);
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -167,14 +163,6 @@ describe('Insights', () => {
 
 			expect(screen.getByText('No game records to analyse yet')).toBeDefined();
 			expect(screen.queryByText('Hero pool')).toBeNull();
-		});
-
-		it('should still offer the way back to records', () => {
-			vi.mocked(Store.loadGameRecords).mockReturnValue([]);
-			renderInsights();
-
-			fireEvent.click(screen.getByRole('button', { name: /Records/ }));
-			expect(onRecordsClick).toHaveBeenCalledTimes(1);
 		});
 
 		it('should say when no games match the filters', () => {

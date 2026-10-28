@@ -6,7 +6,7 @@ import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import type { LucideIcon } from 'lucide-solid';
-import { ArrowLeft, Download, Skull, Star, TriangleAlert } from 'lucide-solid';
+import { Download, Skull, Star, TriangleAlert } from 'lucide-solid';
 
 import type {
 	GameRecord,
@@ -17,7 +17,6 @@ import type {
 	LobbyComparisonRow,
 	PersonalBest,
 	PersonalBests,
-	ScreenAction,
 	TrendMetric,
 } from '#types';
 import Screen from '#c/ui/Screen';
@@ -32,8 +31,6 @@ import { normaliseName } from '#utils/playerNames';
 interface InsightsProps {
 	/** Called with a record id when a personal best is clicked */
 	onOpenRecord: (recordId: string) => void;
-	/** Called to go back to the records screen */
-	onRecordsClick: () => void;
 }
 
 interface ChipGroupProps {
@@ -352,18 +349,8 @@ const Insights: Component<InsightsProps> = (props) => {
 		+ `team average ${_formatNumber(row.team, 1)}, `
 		+ `enemy average ${_formatNumber(row.enemy, 1)}`;
 
-	const navActions: ScreenAction[] = [
-		{
-			id: 'records-button',
-			text: 'Records',
-			class: 'highlight',
-			icon: ArrowLeft,
-			onClick: () => props.onRecordsClick(),
-		},
-	];
-
 	return (
-		<Screen id="insights-screen" title="Your progress" navActions={() => navActions}>
+		<Screen id="insights-screen" title="Your progress">
 			<Show
 				when={records.length > 0 && names.length > 0}
 				fallback={

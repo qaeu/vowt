@@ -165,26 +165,6 @@ describe('GameRecordsTable', () => {
 	});
 
 	describe('insights', () => {
-		it('should call onInsightsClick from the Insights nav action', () => {
-			const onInsightsClick = vi.fn();
-			render(() => (
-				<GameRecordsTable
-					onUploadClick={mockOnUploadClick}
-					onInsightsClick={onInsightsClick}
-				/>
-			));
-
-			fireEvent.click(screen.getByRole('button', { name: /Insights/ }));
-
-			expect(onInsightsClick).toHaveBeenCalledTimes(1);
-		});
-
-		it('should not show the Insights nav action without a handler', () => {
-			render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-			expect(screen.queryByRole('button', { name: /Insights/ })).toBeNull();
-		});
-
 		it('should expand the record given by initialExpandedId', async () => {
 			render(() => (
 				<GameRecordsTable onUploadClick={mockOnUploadClick} initialExpandedId="game_2" />

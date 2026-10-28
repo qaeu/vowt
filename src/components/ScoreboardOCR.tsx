@@ -10,7 +10,6 @@ import {
 	Show,
 } from 'solid-js';
 import Tesseract from 'tesseract.js';
-import { X } from 'lucide-solid';
 
 import type {
 	PlayerStats,
@@ -68,8 +67,6 @@ export interface UploadBatch {
 
 interface ScoreboardOCRProps {
 	uploadBatch?: UploadBatch | null;
-	onClose: () => void;
-	onOpenRegionManager: () => void;
 }
 
 /** Hash computed for an image region, kept so user corrections can be learned */
@@ -147,21 +144,6 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [expandedImage, setExpandedImage] = createSignal<
 		'uploaded' | 'preprocessed' | null
 	>(null);
-
-	const navActions = [
-		{
-			id: 'show-region-profiles',
-			text: 'Region Profiles',
-			onClick: () => props.onOpenRegionManager(),
-		},
-		{
-			id: 'close-screen',
-			text: 'Close',
-			icon: X,
-			class: 'highlight',
-			onClick: () => props.onClose(),
-		},
-	];
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 	let nextJobId = 0;
@@ -874,11 +856,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	return (
-		<Screen
-			id="scoreboard-ocr-screen"
-			title="Image Processing"
-			navActions={() => navActions}
-		>
+		<Screen id="scoreboard-ocr-screen" title="Image Processing">
 			<Show when={errorMessage()}>
 				<div class="error-box">
 					<strong>Error:</strong> {errorMessage()}

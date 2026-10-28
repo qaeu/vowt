@@ -1,0 +1,49 @@
+@use '../theme' as *;
+
+@layer ui {
+	.app-header {
+		@include toolbar(16px);
+		position: sticky;
+		top: 0;
+		z-index: 20;
+		padding: 10px 20px;
+		background-color: $background;
+		border-bottom: 1px solid get($neutrals, 'sep');
+
+		button {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			text-wrap: nowrap;
+		}
+
+		&__wordmark {
+			font-weight: 700;
+			font-size: 20px;
+			letter-spacing: 3px;
+			color: $primary;
+		}
+
+		&__nav {
+			@include toolbar(6px);
+			flex: 1;
+		}
+
+		&__nav-item {
+			border-color: transparent;
+			box-shadow: none;
+
+			&[aria-current='page'] {
+				@include shadow-inset;
+				background-color: get($neutrals, 'highlight');
+				border-color: get($neutrals, 'base');
+				color: $foreground;
+				font-weight: 600;
+			}
+		}
+
+		&__actions {
+			@include toolbar(10px);
+		}
+	}
+}

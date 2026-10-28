@@ -37,7 +37,9 @@
 	}
 
 	.drag-overlay-icon {
-		font-size: 48px;
+		display: flex;
+		justify-content: center;
+		color: $primary;
 		margin-bottom: 16px;
 	}
 
@@ -45,12 +47,5 @@
 		font-size: 24px;
 		font-weight: bold;
 		color: $primary;
-	}
-
-	.dark-mode-toggle {
-		@include button($neutrals);
-		position: fixed;
-		top: 15px;
-		right: 15px;
 	}
 }

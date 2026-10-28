@@ -254,48 +254,21 @@ vi.mock('#utils/storage', async (importOriginal) => {
 
 describe('ScoreboardOCR', () => {
 	it('should render the component', () => {
-		const { getByText } = render(() => (
-			<ScoreboardOCR onClose={() => {}} onOpenRegionManager={() => {}} />
-		));
+		const { getByText } = render(() => <ScoreboardOCR />);
 		expect(getByText('Image Processing')).toBeDefined();
 	});
 
 	it('should not render original image section', () => {
-		const { queryByText, queryByAltText } = render(() => (
-			<ScoreboardOCR onClose={() => {}} onOpenRegionManager={() => {}} />
-		));
+		const { queryByText, queryByAltText } = render(() => <ScoreboardOCR />);
 		expect.soft(queryByText('Original Image')).toBeNull();
 		expect.soft(queryByAltText('Original scoreboard')).toBeNull();
-	});
-
-	it('should render Region Profiles button in header', () => {
-		const { getByText } = render(() => (
-			<ScoreboardOCR onClose={() => {}} onOpenRegionManager={() => {}} />
-		));
-		expect(getByText('Region Profiles')).toBeDefined();
-	});
-
-	it('should call onOpenRegionManager when Region Profiles button is clicked', async () => {
-		const mockOnOpenRegionManager = vi.fn();
-		const { getByText } = render(() => (
-			<ScoreboardOCR onClose={() => {}} onOpenRegionManager={mockOnOpenRegionManager} />
-		));
-
-		const regionButton = getByText('Region Profiles');
-		regionButton.click();
-
-		expect(mockOnOpenRegionManager).toHaveBeenCalledTimes(1);
 	});
 
 	describe('when an upload batch is provided', () => {
 		it('should render original image section', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { getByText, getByAltText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			expect(getByText('Uploaded Image')).not.toBeNull();
@@ -305,11 +278,7 @@ describe('ScoreboardOCR', () => {
 		it('should show processing indicator when an upload batch is provided', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			// Check for processing text (may be brief)
@@ -320,11 +289,7 @@ describe('ScoreboardOCR', () => {
 		it('should display preprocessed image after processing uploaded image', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { getByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -338,11 +303,7 @@ describe('ScoreboardOCR', () => {
 		it('should display raw OCR text output with uploaded image', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { getByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -356,11 +317,7 @@ describe('ScoreboardOCR', () => {
 		it('should display extracted game stats JSON with uploaded image', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { getByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -374,11 +331,7 @@ describe('ScoreboardOCR', () => {
 		it('should have collapsible JSON stats section', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -393,11 +346,7 @@ describe('ScoreboardOCR', () => {
 		it('should have collapsible raw text section', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -411,11 +360,7 @@ describe('ScoreboardOCR', () => {
 		it('should render EditableGameData when stats are extracted', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByTestId } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -429,11 +374,7 @@ describe('ScoreboardOCR', () => {
 		it('should pass extracted players to EditableGameData', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByTestId } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -449,11 +390,7 @@ describe('ScoreboardOCR', () => {
 		it('should pass extracted match info to EditableGameData', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByTestId } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -468,11 +405,7 @@ describe('ScoreboardOCR', () => {
 		it('should call onSave handler when EditableGameData save is triggered', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByTestId } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -488,11 +421,7 @@ describe('ScoreboardOCR', () => {
 			it('should add expanded class to uploaded image container when clicked', async () => {
 				const testImageData = 'data:image/png;base64,testdata';
 				const { container, getByText } = render(() => (
-					<ScoreboardOCR
-						onClose={() => {}}
-						onOpenRegionManager={() => {}}
-						uploadBatch={{ images: [testImageData] }}
-					/>
+					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 				));
 
 				await waitFor(
@@ -517,11 +446,7 @@ describe('ScoreboardOCR', () => {
 			it('should remove expanded class when clicking expanded image again', async () => {
 				const testImageData = 'data:image/png;base64,testdata';
 				const { container, getByText } = render(() => (
-					<ScoreboardOCR
-						onClose={() => {}}
-						onOpenRegionManager={() => {}}
-						uploadBatch={{ images: [testImageData] }}
-					/>
+					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 				));
 
 				await waitFor(
@@ -551,11 +476,7 @@ describe('ScoreboardOCR', () => {
 			it('should hide other image container when one is expanded', async () => {
 				const testImageData = 'data:image/png;base64,testdata';
 				const { container, getByText } = render(() => (
-					<ScoreboardOCR
-						onClose={() => {}}
-						onOpenRegionManager={() => {}}
-						uploadBatch={{ images: [testImageData] }}
-					/>
+					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 				));
 
 				await waitFor(
@@ -581,11 +502,7 @@ describe('ScoreboardOCR', () => {
 			it('should show both images when collapsing from expanded state', async () => {
 				const testImageData = 'data:image/png;base64,testdata';
 				const { container, getByText } = render(() => (
-					<ScoreboardOCR
-						onClose={() => {}}
-						onOpenRegionManager={() => {}}
-						uploadBatch={{ images: [testImageData] }}
-					/>
+					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 				));
 
 				await waitFor(
@@ -620,11 +537,7 @@ describe('ScoreboardOCR', () => {
 			it('should expand preprocessed image when clicked', async () => {
 				const testImageData = 'data:image/png;base64,testdata';
 				const { container, getByText } = render(() => (
-					<ScoreboardOCR
-						onClose={() => {}}
-						onOpenRegionManager={() => {}}
-						uploadBatch={{ images: [testImageData] }}
-					/>
+					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 				));
 
 				await waitFor(
@@ -666,13 +579,7 @@ describe('ScoreboardOCR', () => {
 			vi.mocked(alignRegionsToImage).mockResolvedValueOnce(alignedRegions);
 
 			const testImageData = 'data:image/png;base64,testdata';
-			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
-			));
+			render(() => <ScoreboardOCR uploadBatch={{ images: [testImageData] }} />);
 
 			await waitFor(() => {
 				expect(alignRegionsToImage).toHaveBeenCalledWith(
@@ -707,11 +614,7 @@ describe('ScoreboardOCR', () => {
 
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -742,11 +645,7 @@ describe('ScoreboardOCR', () => {
 
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			// Should still complete processing without errors
@@ -780,11 +679,7 @@ describe('ScoreboardOCR', () => {
 
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -827,11 +722,7 @@ describe('ScoreboardOCR', () => {
 
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -865,13 +756,7 @@ describe('ScoreboardOCR', () => {
 			]);
 
 			const testImageData = 'data:image/png;base64,testdata';
-			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
-			));
+			render(() => <ScoreboardOCR uploadBatch={{ images: [testImageData] }} />);
 
 			await waitFor(
 				() => {
@@ -900,13 +785,7 @@ describe('ScoreboardOCR', () => {
 			]);
 
 			const testImageData = 'data:image/png;base64,testdata';
-			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
-			));
+			render(() => <ScoreboardOCR uploadBatch={{ images: [testImageData] }} />);
 
 			await waitFor(
 				() => {
@@ -935,13 +814,7 @@ describe('ScoreboardOCR', () => {
 			]);
 
 			const testImageData = 'data:image/png;base64,testdata';
-			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
-			));
+			render(() => <ScoreboardOCR uploadBatch={{ images: [testImageData] }} />);
 
 			await waitFor(
 				() => {
@@ -974,13 +847,7 @@ describe('ScoreboardOCR', () => {
 			]);
 
 			const testImageData = 'data:image/png;base64,testdata';
-			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
-			));
+			render(() => <ScoreboardOCR uploadBatch={{ images: [testImageData] }} />);
 
 			await waitFor(
 				() => {
@@ -1015,11 +882,7 @@ describe('ScoreboardOCR', () => {
 
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -1046,11 +909,7 @@ describe('ScoreboardOCR', () => {
 
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -1099,11 +958,7 @@ describe('ScoreboardOCR', () => {
 
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: [testImageData] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
 			await waitFor(
@@ -1155,11 +1010,7 @@ describe('ScoreboardOCR', () => {
 
 		const renderAndSave = async () => {
 			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: ['data:image/png;base64,testdata'] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: ['data:image/png;base64,testdata'] }} />
 			));
 			const saveButton = await screen.findByTestId('save-button', undefined, {
 				timeout: 1500,
@@ -1260,11 +1111,7 @@ describe('ScoreboardOCR', () => {
 	describe('name recognition accuracy', () => {
 		const renderWithImage = () =>
 			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={{ images: ['data:image/png;base64,testdata'] }}
-				/>
+				<ScoreboardOCR uploadBatch={{ images: ['data:image/png;base64,testdata'] }} />
 			));
 
 		it('should create workers with dictionaries turned off', async () => {
@@ -1382,13 +1229,7 @@ describe('ScoreboardOCR', () => {
 		});
 
 		const renderBatch = (batch: { images: string[] } | null = { images }) =>
-			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={batch}
-				/>
-			));
+			render(() => <ScoreboardOCR uploadBatch={batch} />);
 
 		it('should not show the queue for a single screenshot', async () => {
 			renderBatch({ images: [images[0]] });
@@ -1464,13 +1305,7 @@ describe('ScoreboardOCR', () => {
 		it('should queue a new batch after the current one', async () => {
 			const { saveGameRecord } = await import('#utils/storage');
 			const [batch, setBatch] = createSignal<{ images: string[] } | null>({ images });
-			render(() => (
-				<ScoreboardOCR
-					onClose={() => {}}
-					onOpenRegionManager={() => {}}
-					uploadBatch={batch()}
-				/>
-			));
+			render(() => <ScoreboardOCR uploadBatch={batch()} />);
 
 			setBatch({ images: ['data:image/png;base64,three'] });
 

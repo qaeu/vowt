@@ -9,10 +9,6 @@ vi.mock(import('#c/ScoreboardOCR'), () => ({
 		<div>
 			Mocked ScoreboardOCR
 			<span data-testid="ocr-batch">{props.uploadBatch?.images.join(',')}</span>
-			{props.onOpenRegionManager && (
-				<button onClick={props.onOpenRegionManager}>Region Profiles</button>
-			)}
-			{props.onClose && <button onClick={props.onClose}>✕ Close</button>}
 		</div>
 	),
 }));
@@ -25,9 +21,6 @@ vi.mock(import('#c/GameRecordsTable'), () => ({
 			{props.onUploadClick && (
 				<button onClick={props.onUploadClick}>📤 Upload Image</button>
 			)}
-			{props.onInsightsClick && (
-				<button onClick={props.onInsightsClick}>Open Insights</button>
-			)}
 			<span data-testid="initial-expanded">{props.initialExpandedId ?? ''}</span>
 		</div>
 	),
@@ -39,7 +32,6 @@ vi.mock(import('#c/RegionProfileManager'), () => ({
 		<div>
 			Mocked RegionProfileManager
 			<span data-testid="region-preview">{props.previewImage}</span>
-			{props.onClose && <button onClick={props.onClose}>✕ Close</button>}
 		</div>
 	),
 }));
@@ -49,7 +41,6 @@ vi.mock(import('#c/Insights'), () => ({
 	default: (props) => (
 		<div>
 			Mocked Insights
-			<button onClick={() => props.onRecordsClick()}>Back to Records</button>
 			<button onClick={() => props.onOpenRecord('rec_7')}>Open Record</button>
 		</div>
 	),
@@ -71,11 +62,34 @@ describe('App', () => {
 		expect(screen.getByText('Mocked GameRecordsTable')).toBeDefined();
 	});
 
-	it('should not show navigation buttons on records view', () => {
-		render(() => <App />);
+	describe('header navigation', () => {
+		const navButton = (name: RegExp) => screen.getByRole('button', { name });
 
-		// Initially on Records view, should not show navigation buttons
-		expect(screen.queryByText('Records')).toBeNull();
+		it('should mark History as the current page by default', () => {
+			render(() => <App />);
+
+			expect(navButton(/History/).getAttribute('aria-current')).toBe('page');
+			expect(navButton(/Insights/).getAttribute('aria-current')).toBeNull();
+		});
+
+		it('should open Region profiles from the header and mark it current', () => {
+			render(() => <App />);
+
+			fireEvent.click(navButton(/Region profiles/));
+
+			expect(screen.getByText('Mocked RegionProfileManager')).toBeDefined();
+			expect(navButton(/Region profiles/).getAttribute('aria-current')).toBe('page');
+			expect(navButton(/History/).getAttribute('aria-current')).toBeNull();
+		});
+
+		it('should keep the header visible on every screen', () => {
+			render(() => <App />);
+
+			fireEvent.click(navButton(/Insights/));
+
+			expect(screen.getByRole('navigation', { name: 'Main' })).toBeDefined();
+			expect(navButton(/Insights/).getAttribute('aria-current')).toBe('page');
+		});
 	});
 
 	it('should have drag and drop event listeners attached', () => {
@@ -91,18 +105,18 @@ describe('App', () => {
 		it('should open Insights from records and go back', async () => {
 			render(() => <App />);
 
-			fireEvent.click(screen.getByText('Open Insights'));
+			fireEvent.click(screen.getByRole('button', { name: /Insights/ }));
 			expect(await screen.findByText('Mocked Insights')).toBeDefined();
 			expect(screen.queryByText('Mocked GameRecordsTable')).toBeNull();
 
-			fireEvent.click(screen.getByText('Back to Records'));
+			fireEvent.click(screen.getByRole('button', { name: /History/ }));
 			expect(await screen.findByText('Mocked GameRecordsTable')).toBeDefined();
 			expect(screen.getByTestId('initial-expanded').textContent).toBe('');
 		});
 
 		it('should show the chosen record expanded in the records view', async () => {
 			render(() => <App />);
-			fireEvent.click(screen.getByText('Open Insights'));
+			fireEvent.click(screen.getByRole('button', { name: /Insights/ }));
 
 			fireEvent.click(await screen.findByText('Open Record'));
 
@@ -167,7 +181,8 @@ describe('App', () => {
 		it('should stay in the regions view and preview the first image', async () => {
 			render(() => <App />);
 			drop([png('a.png')]);
-			fireEvent.click(await screen.findByText('Region Profiles'));
+			await screen.findByTestId('ocr-batch');
+			fireEvent.click(screen.getByRole('button', { name: /Region profiles/ }));
 
 			drop([png('b.png'), png('c.png')]);
 
