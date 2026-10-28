@@ -548,7 +548,8 @@ export function importProfile(jsonData: string): number | null {
 			description: importedProfile.description,
 			alignment: importedProfile.alignment,
 			hashSets:
-				parsed.schemaVersion < FIRST_TEMPLATE_SCHEMA_VERSION ?
+				// Exports without a schema version predate templates
+				(parsed.schemaVersion ?? 1) < FIRST_TEMPLATE_SCHEMA_VERSION ?
 					[]
 				:	(importedProfile.hashSets ?? []),
 		});

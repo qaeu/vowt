@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import {
@@ -208,6 +208,70 @@ describe('settings storage', () => {
 		saveSettings({ darkMode: false });
 		const settings = loadSettings();
 		expect(settings.darkMode).toBe(false);
+	});
+
+	it('should store a schema version with the settings', () => {
+		saveSettings({ darkMode: true });
+		const stored = JSON.parse(localStorage.getItem('vowt_settings')!);
+		expect(stored).toEqual({ schemaVersion: 1, darkMode: true });
+	});
+
+	it('should return a fresh copy of the defaults', () => {
+		const settings = loadSettings();
+		settings.darkMode = true;
+		expect(loadSettings().darkMode).toBe(false);
+	});
+
+	describe('invalid stored settings', () => {
+		beforeEach(() => {
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('should return defaults for corrupt JSON', () => {
+			localStorage.setItem('vowt_settings', '{not json');
+			expect(loadSettings()).toEqual({ darkMode: false });
+			expect(console.error).toHaveBeenCalled();
+		});
+
+		it('should return defaults for a non-object value', () => {
+			localStorage.setItem('vowt_settings', 'null');
+			expect(loadSettings()).toEqual({ darkMode: false });
+		});
+
+		it('should use defaults for fields with the wrong type', () => {
+			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":"yes"}');
+			expect(loadSettings()).toEqual({ darkMode: false });
+		});
+
+		it('should ignore unknown fields', () => {
+			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":true,"x":1}');
+			expect(loadSettings()).toEqual({ darkMode: true });
+		});
+
+		it('should load unversioned settings', () => {
+			localStorage.setItem('vowt_settings', '{"darkMode":true}');
+			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(console.warn).not.toHaveBeenCalled();
+		});
+
+		it('should warn about an unexpected schema version', () => {
+			localStorage.setItem('vowt_settings', '{"schemaVersion":99,"darkMode":true}');
+			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(console.warn).toHaveBeenCalled();
+		});
+
+		it('should not throw when settings cannot be saved', () => {
+			vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+				throw new Error('QuotaExceededError');
+			});
+			expect(() => saveSettings({ darkMode: true })).not.toThrow();
+			expect(console.error).toHaveBeenCalled();
+		});
 	});
 });
 

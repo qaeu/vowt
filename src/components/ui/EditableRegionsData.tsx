@@ -82,7 +82,7 @@ const EditableRegionsData: Component<EditableRegionsDataProps> = (props) => {
 		}
 	};
 
-	let justSavedTimeoutId: number;
+	let justSavedTimeoutId: ReturnType<typeof setTimeout>;
 	onCleanup(() => {
 		clearTimeout(justSavedTimeoutId);
 	});

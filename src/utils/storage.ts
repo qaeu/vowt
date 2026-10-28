@@ -11,6 +11,10 @@ import type {
 	ExportedGameRecords,
 } from '#types';
 
+interface SettingsStore extends Settings {
+	schemaVersion: number;
+}
+
 interface GameStore {
 	schemaVersion: number;
 	records: GameRecord[];
@@ -28,6 +32,7 @@ const SCHEMA_VERSION = 2;
 const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
 
 const SETTINGS_STORAGE_KEY = 'vowt_settings';
+const SETTINGS_SCHEMA_VERSION = 1;
 const DEFAULT_SETTINGS: Settings = {
 	darkMode: false,
 };
@@ -259,15 +264,57 @@ export function importGameRecords(jsonData: string): number {
 
 // Settings
 
-export function loadSettings(): Settings {
-	const settings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+/**
+ * Builds settings from stored values, using defaults for missing or invalid fields
+ */
+function _sanitiseSettings(stored: unknown): Settings {
+	const values =
+		typeof stored === 'object' && stored !== null ?
+			(stored as Partial<Record<keyof Settings, unknown>>)
+		:	{};
 
-	if (!settings) {
-		return DEFAULT_SETTINGS;
-	}
-	return JSON.parse(settings);
+	return {
+		darkMode:
+			typeof values.darkMode === 'boolean' ? values.darkMode : DEFAULT_SETTINGS.darkMode,
+	};
 }
 
+/**
+ * Loads app settings from localStorage
+ * @returns Stored settings, with defaults for anything missing, invalid or unreadable
+ */
+export function loadSettings(): Settings {
+	try {
+		const data = localStorage.getItem(SETTINGS_STORAGE_KEY);
+		if (!data) {
+			return { ...DEFAULT_SETTINGS };
+		}
+
+		const stored: unknown = JSON.parse(data);
+		const schemaVersion = (stored as Partial<SettingsStore> | null)?.schemaVersion;
+		// Settings saved before versioning have no schemaVersion and use the same fields
+		if (schemaVersion !== undefined && schemaVersion !== SETTINGS_SCHEMA_VERSION) {
+			console.warn(
+				`Settings storage uses schema version ${schemaVersion}, expected ${SETTINGS_SCHEMA_VERSION}`
+			);
+		}
+
+		return _sanitiseSettings(stored);
+	} catch (error) {
+		console.error('Error loading settings:', error);
+		return { ...DEFAULT_SETTINGS };
+	}
+}
+
+/**
+ * Saves app settings to localStorage; failures are logged, not thrown
+ * @param settings - Settings to save
+ */
 export function saveSettings(settings: Settings): void {
-	localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+	try {
+		const store: SettingsStore = { schemaVersion: SETTINGS_SCHEMA_VERSION, ...settings };
+		localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(store));
+	} catch (error) {
+		console.error('Error saving settings:', error);
+	}
 }

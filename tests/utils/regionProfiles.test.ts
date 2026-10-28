@@ -581,6 +581,21 @@ describe('Region Profiles', () => {
 			expect(getProfile(profileId)).toEqual(mockRegions);
 		});
 
+		it('should drop learned dHashes from an export without a schema version', () => {
+			const profileId = saveProfile(mockRegions, { description: 'With hashes' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+			const exported = JSON.parse(exportProfile(profileId)!);
+			delete exported.schemaVersion;
+
+			localStorage.clear();
+			importProfile(JSON.stringify(exported));
+
+			expect(getProfileHashSets(profileId)).toEqual([]);
+			expect(getProfile(profileId)).toEqual(mockRegions);
+		});
+
 		it('should preserve original createdAt when updating via import', () => {
 			const profileId = saveProfile(mockRegions, {
 				id: 'custom_profile_id',

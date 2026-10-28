@@ -156,7 +156,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		Map<string, { isModified: () => boolean; reset: () => void }>
 	>(new Map());
 
-	let justSavedTimeoutId: number;
+	let justSavedTimeoutId: ReturnType<typeof setTimeout>;
 	onCleanup(() => {
 		clearTimeout(justSavedTimeoutId);
 	});

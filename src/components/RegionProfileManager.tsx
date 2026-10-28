@@ -322,8 +322,29 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	};
 
 	const handleAlignmentChange = (groups: AlignmentGroup[]) => {
-		setAlignment(groups);
-		redrawRegions();
+		const applyChange = () => {
+			setAlignment(groups);
+			redrawRegions();
+		};
+
+		// Regions keep their group name, so warn before orphaning them
+		const counts = regionCounts();
+		const orphaned = alignment().filter(
+			(g) => !groups.some((kept) => kept.name === g.name) && counts[g.name]
+		);
+		if (orphaned.length === 0) {
+			applyChange();
+			return;
+		}
+
+		const count = orphaned.reduce((total, g) => total + counts[g.name], 0);
+		const names = orphaned.map((g) => `'${g.name}'`).join(', ');
+		openDialog?.({
+			title: 'Delete Alignment Group',
+			description: `${count} region${count === 1 ? ' uses' : 's use'} ${names}. They will keep their profile positions until assigned to another group. Delete anyway?`,
+			actionText: 'Delete',
+			onConfirm: applyChange,
+		});
 	};
 
 	const handleExportProfile = () => {

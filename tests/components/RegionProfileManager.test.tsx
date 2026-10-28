@@ -631,6 +631,60 @@ describe('RegionProfileManager', () => {
 			);
 		});
 
+		describe('deleting a group', () => {
+			const groupedRegion = {
+				name: 'blue_player1_name',
+				x: 0,
+				y: 0,
+				width: 10,
+				height: 10,
+				group: 'blue',
+			};
+
+			it('should delete a group without regions immediately', () => {
+				vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
+					{ name: 'blue' },
+				]);
+				render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+
+				fireEvent.click(screen.getByTitle('Delete group blue'));
+
+				expect(screen.getByText('Alignment Groups (0)')).toBeDefined();
+				expect(screen.queryByText('Delete Alignment Group')).toBeNull();
+			});
+
+			it('should ask before deleting a group that regions use', async () => {
+				vi.mocked(regionProfiles.getActiveProfile).mockReturnValue([groupedRegion]);
+				vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
+					{ name: 'blue' },
+				]);
+				await renderWithEditor();
+				await waitFor(() => expect(screen.getByText('1 regions')).toBeDefined());
+
+				fireEvent.click(screen.getByTitle('Delete group blue'));
+
+				expect(await screen.findByText('Delete Alignment Group')).toBeDefined();
+				expect(screen.getByText(/1 region uses 'blue'/)).toBeDefined();
+				expect(screen.getByText('Alignment Groups (1)')).toBeDefined();
+			});
+
+			it('should delete the group after confirming', async () => {
+				vi.mocked(regionProfiles.getActiveProfile).mockReturnValue([groupedRegion]);
+				vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
+					{ name: 'blue' },
+				]);
+				await renderWithEditor();
+				await waitFor(() => expect(screen.getByText('1 regions')).toBeDefined());
+
+				fireEvent.click(screen.getByTitle('Delete group blue'));
+				fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+
+				await waitFor(() => {
+					expect(screen.getByText('Alignment Groups (0)')).toBeDefined();
+				});
+			});
+		});
+
 		it('should load alignment groups when editing another profile', async () => {
 			vi.mocked(regionProfiles.getProfile).mockReturnValue([]);
 			vi.mocked(regionProfiles.getProfileAlignment).mockReturnValue([{ name: 'red' }]);
