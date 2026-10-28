@@ -329,10 +329,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				// An anchor must at least find itself; flat areas have nothing to match
 				if (!findAnchorOffset(downsample(gray, ALIGN_SCALE), anchor)) {
 					openDialog?.({
-						title: 'Anchor Error',
+						title: "Couldn't set anchor",
 						description:
 							'The selected area has too little detail to match. Draw the anchor around text, icons or edges.',
-						actionText: 'OK',
+						actionText: 'Close',
 					});
 					return;
 				}
@@ -341,9 +341,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			} catch (error) {
 				console.error('Anchor capture error:', error);
 				openDialog?.({
-					title: 'Anchor Error',
+					title: "Couldn't set anchor",
 					description: 'Could not read the image to capture the anchor.',
-					actionText: 'OK',
+					actionText: 'Close',
 				});
 				return;
 			}
@@ -363,7 +363,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 		setAlignment((prev) => prev.map((g) => (g.name === group.name ? updated : g)));
 		toast(
-			'Alignment Updated',
+			'Alignment updated',
 			`${target.kind === 'anchor' ? 'Anchor' : 'Rows'} set for group '${group.name}'.`
 		);
 	};
@@ -437,9 +437,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		const count = orphaned.reduce((total, g) => total + counts[g.name], 0);
 		const names = orphaned.map((g) => `'${g.name}'`).join(', ');
 		openDialog?.({
-			title: 'Delete Alignment Group',
+			title: 'Delete alignment group?',
 			description: `${count} region${count === 1 ? ' uses' : 's use'} ${names}. They will keep their profile positions until assigned to another group. Delete anyway?`,
-			actionText: 'Delete',
+			actionText: 'Delete Group',
+			tone: 'danger',
 			onConfirm: applyChange,
 		});
 	};
@@ -448,9 +449,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		const profileId = editingProfileId();
 		if (!profileId) {
 			openDialog?.({
-				title: 'Export Error',
+				title: "Couldn't export profile",
 				description: 'No profile selected to export',
-				actionText: 'OK',
+				actionText: 'Close',
 			});
 			return;
 		}
@@ -458,9 +459,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		const data = Profiles.exportProfile(profileId);
 		if (!data) {
 			openDialog?.({
-				title: 'Export Error',
+				title: "Couldn't export profile",
 				description: 'Could not export profile. Please save it first.',
-				actionText: 'OK',
+				actionText: 'Close',
 			});
 			return;
 		}
@@ -488,20 +489,20 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						const profileCount = Profiles.importProfile(data);
 						if (profileCount === null) {
 							openDialog?.({
-								title: 'Import Error',
+								title: "Couldn't import profile",
 								description: 'Error importing profile. Please check the file format.',
-								actionText: 'OK',
+								actionText: 'Close',
 							});
 							return;
 						}
-						toast('Import Success', 'Region profile imported');
+						toast('Profile imported', 'Region profile imported');
 						setProfileList(Profiles.listProfiles());
 						setHashesVersion((v) => v + 1);
 					} catch (error) {
 						openDialog?.({
-							title: 'Import Error',
+							title: "Couldn't import profile",
 							description: 'Error importing profile. Please check the file format.',
-							actionText: 'OK',
+							actionText: 'Close',
 						});
 						console.error('Import error:', error);
 					}
@@ -537,9 +538,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const handleSaveProfile = () => {
 		if (!editingProfileId()) {
 			openDialog?.({
-				title: 'Save Error',
+				title: "Couldn't save profile",
 				description: 'Profile ID is required',
-				actionText: 'OK',
+				actionText: 'Close',
 			});
 			return;
 		}
@@ -564,7 +565,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			setProfileList(Profiles.listProfiles());
 		});
 
-		toast('Save Success', `Profile '${editingProfileId()}' saved.`);
+		toast('Profile saved', `Profile '${editingProfileId()}' saved.`);
 	};
 
 	/** Puts the editing state back to the last saved version of the profile */
@@ -589,7 +590,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const handleActivateProfile = (profileId: string) => {
 		activateProfile(profileId);
 		toast(
-			'Activate Success',
+			'Profile activated',
 			`Profile '${profileId}' is now active for screenshot recognition.`
 		);
 	};
@@ -598,9 +599,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const loadProfile = (profileId: string): boolean => {
 		if (!canvasRef) {
 			openDialog?.({
-				title: 'Edit Error',
+				title: "Couldn't edit profile",
 				description: 'Canvas not ready',
-				actionText: 'OK',
+				actionText: 'Close',
 			});
 			return false;
 		}
@@ -612,9 +613,9 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		);
 		if (!profileRegions) {
 			openDialog?.({
-				title: 'Edit Error',
+				title: "Couldn't edit profile",
 				description: `Error loading region data for profile '${profileId}'`,
-				actionText: 'OK',
+				actionText: 'Close',
 			});
 			return false;
 		}
@@ -640,23 +641,26 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 	const handleEditProfile = (profileId: string) => {
 		if (loadProfile(profileId)) {
-			toast('Edit Profile', `Now editing profile '${profileId}'.`);
+			toast('Editing profile', `Now editing profile '${profileId}'.`);
 		}
 	};
 
 	const handleDeleteProfile = (profileId: string) => {
 		if (activeProfileId() === profileId && profileList().length === 1) {
 			openDialog?.({
-				title: 'Delete Error',
+				title: "Couldn't delete profile",
 				description: 'Cannot delete the last remaining profile.',
-				actionText: 'OK',
+				actionText: 'Close',
 			});
 			return;
 		}
 
 		openDialog?.({
-			title: 'Delete Profile',
-			description: `Are you sure you want to delete profile '${profileId}'?`,
+			title: `Delete profile '${profileId}'?`,
+			description:
+				'The profile and its regions will be permanently removed from this browser.',
+			actionText: 'Delete Profile',
+			tone: 'danger',
 			onConfirm: () => {
 				if (activeProfileId() === profileId) {
 					// There must always be an active profile, so activate another
@@ -671,19 +675,24 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 					handleEditProfile(activeProfileId());
 				}
 
-				toast('Delete Success', `Profile '${profileId}' deleted.`);
+				toast('Profile deleted', `Profile '${profileId}' deleted.`);
 			},
 		});
 	};
 
 	const handleClearHashes = (profileId: string) => {
 		openDialog?.({
-			title: 'Clear Learned Hashes',
+			title: 'Clear learned hashes?',
 			description: `Are you sure you want to remove all learned image hashes from profile '${profileId}'? Bundled hashes are not affected.`,
+			actionText: 'Clear Hashes',
+			tone: 'danger',
 			onConfirm: () => {
 				Profiles.clearProfileHashes(profileId);
 				setHashesVersion((v) => v + 1);
-				toast('Clear Success', `Learned hashes removed from profile '${profileId}'.`);
+				toast(
+					'Learned hashes cleared',
+					`Learned hashes removed from profile '${profileId}'.`
+				);
 			},
 		});
 	};

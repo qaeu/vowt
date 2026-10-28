@@ -1079,7 +1079,7 @@ describe('ScoreboardOCR', () => {
 			await mockStats('Kiriko');
 			await renderAndSave();
 
-			expect(await screen.findByText('Remember Hero Portraits?')).toBeDefined();
+			expect(await screen.findByText('Remember hero portraits?')).toBeDefined();
 			expect(screen.getByText(/Save 1 corrected hero portrait so/)).toBeDefined();
 			expect(screen.getByAltText('Kiriko')).toBeDefined();
 		});
@@ -1101,7 +1101,7 @@ describe('ScoreboardOCR', () => {
 			await mockStats('Kiriko');
 			await renderAndSave();
 
-			await screen.findByText('Remember Hero Portraits?');
+			await screen.findByText('Remember hero portraits?');
 			fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
 
 			await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

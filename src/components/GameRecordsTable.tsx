@@ -171,8 +171,10 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 	const openDeleteDialog = (id: string) => {
 		openDialog?.({
-			title: 'Delete Record',
-			description: `Are you sure you want to delete this game record?`,
+			title: 'Delete this record?',
+			description: 'This game record will be permanently removed from this browser.',
+			actionText: 'Delete Record',
+			tone: 'danger',
 			onConfirm: () => handleDelete(id),
 		});
 	};
@@ -182,14 +184,14 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		setExpandedRecordId(null);
 		setEditingRecordId(null);
 		loadRecords();
-		toast('Delete Success', '1 game record deleted.');
+		toast('Record deleted', '1 game record deleted.');
 	};
 	const handleClearAll = () => {
 		Store.clearAllGameRecords();
 		setExpandedRecordId(null);
 		setEditingRecordId(null);
 		loadRecords();
-		toast('Delete Success', 'All game records deleted.');
+		toast('All records deleted', 'All game records deleted.');
 	};
 
 	const handleExport = () => {
@@ -219,13 +221,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 					try {
 						const data = event.target?.result as string;
 						const count = Store.importGameRecords(data);
-						toast('Import Success', `${count} new game record(s) created.`);
+						toast(
+							`${count} ${count === 1 ? 'record' : 'records'} imported`,
+							`${count} new game record(s) created.`
+						);
 						loadRecords();
 					} catch (error) {
 						openDialog?.({
-							title: 'Import Error',
+							title: "Couldn't import records",
 							description: 'Error importing game records. Please check the file format.',
-							actionText: 'OK',
+							actionText: 'Close',
 						});
 						console.error('Import error:', error);
 					}
@@ -240,10 +245,13 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		setIsUpdatingGameData(true);
 		try {
 			const { heroes, maps } = await updateOverFastData();
-			toast('Update Success', `${heroes.length} heroes and ${maps.length} maps updated.`);
+			toast(
+				'Game data updated',
+				`${heroes.length} heroes and ${maps.length} maps updated.`
+			);
 		} catch (error) {
 			toast(
-				'Update Failed',
+				"Couldn't update game data",
 				'Could not fetch game data from OverFast. Please try again later.'
 			);
 			console.error('Game data update error:', error);
@@ -257,9 +265,11 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 			handleUpdateGameData();
 		} else if (details.value === 'delete-all-records') {
 			openDialog?.({
-				title: 'Clear All Records',
+				title: `Delete all ${records().length} records?`,
 				description:
-					'Are you sure you want to delete all game records? This cannot be undone.',
+					'All game records will be permanently removed from this browser. This cannot be undone.',
+				actionText: `Delete ${records().length} Records`,
+				tone: 'danger',
 				onConfirm: handleClearAll,
 			});
 		}
@@ -298,12 +308,12 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 			Store.updateGameRecord(recordId, players, matchInfo);
 			setEditingRecordId(null);
 			loadRecords();
-			toast('Save Success', 'Game record updated.');
+			toast('Record saved', 'Game record updated.');
 		} catch (err) {
 			openDialog?.({
-				title: 'Update Error',
+				title: "Couldn't update record",
 				description: err instanceof Error ? err.message : 'Failed to update game record',
-				actionText: 'OK',
+				actionText: 'Close',
 			});
 		}
 	};
@@ -494,7 +504,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 																type="button"
 																onClick={() => setEditingRecordId(null)}
 															>
-																Close Editor
+																Cancel
 															</button>
 														</div>
 													</Show>

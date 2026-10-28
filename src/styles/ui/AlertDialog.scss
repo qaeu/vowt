@@ -84,9 +84,16 @@
 			font-size: 16px;
 		}
 
-		// Action buttons container
-		&[data-part='content'] .dialog-action {
-			@include button($successes);
+		// Action buttons container (.primary and .danger come from the global button mixin)
+		&[data-part='content'] .button-group {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: flex-end;
+			gap: 8px;
+		}
+
+		&[data-part='content'] .dialog-action,
+		&[data-part='content'] .dialog-cancel {
 			font-size: 14px;
 		}
 

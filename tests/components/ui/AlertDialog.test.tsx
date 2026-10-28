@@ -226,6 +226,70 @@ describe('AlertDialog', () => {
 		});
 	});
 
+	describe('Cancel button', () => {
+		const open = async (options: Partial<AlertDialogOptions> = {}) => {
+			render(() => <AlertDialog openDialog={captureOpenDialog} />);
+			openDialogFn?.({ title: 'Test', description: 'Test', ...options });
+			await screen.findByRole('dialog');
+		};
+
+		it('should close without calling onConfirm when Cancel is clicked', async () => {
+			const onConfirm = vi.fn();
+			await open({ onConfirm });
+
+			fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+			await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+			expect(onConfirm).not.toHaveBeenCalled();
+		});
+
+		it('should use cancelText when provided', async () => {
+			await open({ onConfirm: vi.fn(), cancelText: 'Keep it' });
+
+			expect(screen.getByRole('button', { name: 'Keep it' })).toBeDefined();
+			expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+		});
+
+		it('should not render Cancel when onConfirm is absent', async () => {
+			await open();
+
+			expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+		});
+
+		it('should default the action text to "Close" when onConfirm is absent', async () => {
+			await open();
+
+			expect(screen.getByRole('button', { name: 'Close' })).toBeDefined();
+		});
+	});
+
+	describe('Tone', () => {
+		const actionButton = () => document.querySelector('.dialog-action');
+
+		it('should style the action as primary by default', async () => {
+			render(() => <AlertDialog openDialog={captureOpenDialog} />);
+			openDialogFn?.({ title: 'Test', description: 'Test', onConfirm: vi.fn() });
+			await screen.findByRole('dialog');
+
+			expect(actionButton()?.classList.contains('primary')).toBe(true);
+			expect(actionButton()?.classList.contains('danger')).toBe(false);
+		});
+
+		it('should add the danger class for the danger tone', async () => {
+			render(() => <AlertDialog openDialog={captureOpenDialog} />);
+			openDialogFn?.({
+				title: 'Test',
+				description: 'Test',
+				tone: 'danger',
+				onConfirm: vi.fn(),
+			});
+			await screen.findByRole('dialog');
+
+			expect(actionButton()?.classList.contains('primary')).toBe(true);
+			expect(actionButton()?.classList.contains('danger')).toBe(true);
+		});
+	});
+
 	describe('Event Propagation', () => {
 		it('should stop propagation on confirm button click', async () => {
 			const onConfirm = vi.fn();
@@ -286,8 +350,8 @@ describe('AlertDialog', () => {
 			openDialogFn?.(options);
 
 			await waitFor(() => {
-				const confirmButton = screen.getByText('Confirm');
-				expect(() => fireEvent.click(confirmButton)).not.toThrow();
+				const closeButton = screen.getByRole('button', { name: 'Close' });
+				expect(() => fireEvent.click(closeButton)).not.toThrow();
 			});
 
 			await waitFor(() => {

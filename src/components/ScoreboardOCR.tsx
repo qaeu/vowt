@@ -248,15 +248,18 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			const duplicates = duplicate > 0 ? `, ${duplicate} already saved` : '';
 			const failures = failed > 0 ? `, ${failed} failed` : '';
 			toast(
-				'Recognition Complete',
+				'Recognition complete',
 				`${saved} game record${plural} saved${merges}${duplicates}${failures}.`
 			);
 		} else if (saved === 1) {
-			toast('Recognition Success', 'New game record saved.');
+			toast('Record saved', 'New game record saved.');
 		} else if (merged === 1) {
-			toast('Record Updated', 'Screenshot merged into an existing game record.');
+			toast(
+				'Screenshot merged into a record',
+				'Screenshot merged into an existing game record.'
+			);
 		} else if (duplicate === 1) {
-			toast('Already Saved', 'This screenshot already has a game record.');
+			toast('Already saved', 'This screenshot already has a game record.');
 		}
 	};
 
@@ -738,7 +741,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			updateGameRecord(job.recordId, players, matchInfo);
 			// Keep edits when switching between screenshots; editing confirms a merge
 			updateJob(jobId, { stats: { players, matchInfo }, undoMerge: undefined });
-			toast('Save Success', 'Game record updated.');
+			toast('Record saved', 'Game record updated.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save game record');
 			return;
@@ -780,7 +783,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				undoMerge: undefined,
 			});
 			setError('');
-			toast('Record Separated', 'Screenshot saved as a new game record.');
+			toast('Saved as a separate record', 'Screenshot saved as a new game record.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save game record');
 		}
@@ -821,7 +824,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 		const plural = corrections.length === 1 ? '' : 's';
 		openDialog?.({
-			title: 'Remember Hero Portraits?',
+			title: 'Remember hero portraits?',
 			description: `Save ${corrections.length} corrected hero portrait${plural} so they are recognised in future screenshots.`,
 			content: () => (
 				<ul class="learn-hash-list">
@@ -855,7 +858,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				saved += addProfileHashes(learnProfileId, hashSetId, hashes);
 			}
 			const plural = saved === 1 ? '' : 's';
-			toast('Portraits Saved', `${saved} hero portrait${plural} learned.`);
+			toast('Portraits saved', `${saved} hero portrait${plural} learned.`);
 		} catch (err) {
 			console.error('Error saving hero portrait hashes:', err);
 			setError(

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, assert } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, within } from '@solidjs/testing-library';
 
 import type {
 	PlayerStats,
@@ -72,6 +72,9 @@ const clickMenuItem = async (name: RegExp) => {
 	await openMoreMenu();
 	fireEvent.click(await screen.findByRole('menuitem', { name }));
 };
+
+const dialogContent = () =>
+	document.querySelector<HTMLElement>('[data-scope="dialog"][data-part="content"]')!;
 
 describe('GameRecordsTable', () => {
 	const mockOnUploadClick = vi.fn();
@@ -219,8 +222,13 @@ describe('GameRecordsTable', () => {
 				renderTable();
 				await clickMenuItem(/Delete all records/);
 
-				await waitFor(() => screen.getByText('Clear All Records'));
-				fireEvent.click(screen.getByText('Confirm'));
+				await waitFor(() => screen.getByText(/Delete all \d+ records\?/));
+				fireEvent.click(
+					within(dialogContent()).getByRole('button', {
+						name: /^Delete \d+ Records$/,
+						hidden: true,
+					})
+				);
 
 				expect(gameStorage.clearAllGameRecords).toHaveBeenCalled();
 			});
@@ -229,12 +237,10 @@ describe('GameRecordsTable', () => {
 				renderTable();
 				await clickMenuItem(/Delete all records/);
 
-				await waitFor(() => screen.getByText('Clear All Records'));
-				const closeButton = document.querySelector(
-					'[data-scope="dialog"][data-part="close-trigger"]'
+				await waitFor(() => screen.getByText(/Delete all \d+ records\?/));
+				fireEvent.click(
+					within(dialogContent()).getByRole('button', { name: 'Cancel', hidden: true })
 				);
-				assert(closeButton, 'Dialog close button not found');
-				fireEvent.click(closeButton);
 
 				expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
 			});
@@ -374,7 +380,7 @@ describe('GameRecordsTable', () => {
 			renderTable();
 			openFirstRecord();
 			fireEvent.click(screen.getByText('Edit Record'));
-			fireEvent.click(screen.getByText('Close Editor'));
+			fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
 			expect(screen.queryByTestId('editable-game-data')).toBeNull();
 			expect(screen.getByText('Blue team')).toBeDefined();
@@ -398,8 +404,13 @@ describe('GameRecordsTable', () => {
 			openFirstRecord();
 			fireEvent.click(screen.getByText('Delete Record'));
 
-			await waitFor(() => screen.getByText('Confirm'));
-			fireEvent.click(screen.getByText('Confirm'));
+			await screen.findByText('Delete this record?');
+			fireEvent.click(
+				within(dialogContent()).getByRole('button', {
+					name: 'Delete Record',
+					hidden: true,
+				})
+			);
 
 			expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
 		});
@@ -409,12 +420,10 @@ describe('GameRecordsTable', () => {
 			openFirstRecord();
 			fireEvent.click(screen.getByText('Delete Record'));
 
-			await waitFor(() => screen.getByText('Confirm'));
-			const closeButton = document.querySelector(
-				'[data-scope="dialog"][data-part="close-trigger"]'
+			await screen.findByText('Delete this record?');
+			fireEvent.click(
+				within(dialogContent()).getByRole('button', { name: 'Cancel', hidden: true })
 			);
-			assert(closeButton, 'Dialog close button not found');
-			fireEvent.click(closeButton);
 
 			expect(gameStorage.deleteGameRecord).not.toHaveBeenCalled();
 		});
@@ -537,7 +546,7 @@ describe('GameRecordsTable', () => {
 
 			await clickMenuItem(/Update game data/);
 
-			expect(await screen.findByText('Update Success')).toBeDefined();
+			expect(await screen.findByText('Game data updated')).toBeDefined();
 			expect(screen.getByText('3 heroes and 2 maps updated.')).toBeDefined();
 		});
 
@@ -548,7 +557,7 @@ describe('GameRecordsTable', () => {
 
 			await clickMenuItem(/Update game data/);
 
-			expect(await screen.findByText('Update Failed')).toBeDefined();
+			expect(await screen.findByText("Couldn't update game data")).toBeDefined();
 			expect(
 				screen.getByText(
 					'Could not fetch game data from OverFast. Please try again later.'

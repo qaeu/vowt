@@ -50,6 +50,9 @@ type RegionCallback = (region: DrawnRegion) => void;
 
 const PREVIEW = 'data:image/png;base64,test';
 
+const dialogContent = () =>
+	document.querySelector<HTMLElement>('[data-scope="dialog"][data-part="content"]')!;
+
 describe('RegionProfileManager', () => {
 	const mockProfiles = [
 		{ id: 'profile1', description: 'Test Profile 1' },
@@ -233,7 +236,7 @@ describe('RegionProfileManager', () => {
 
 			fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
-			expect(await screen.findByText('Export Error')).toBeDefined();
+			expect(await screen.findByText("Couldn't export profile")).toBeDefined();
 			expect(
 				screen.getByText('Could not export profile. Please save it first.')
 			).toBeDefined();
@@ -277,8 +280,13 @@ describe('RegionProfileManager', () => {
 				await openMenu();
 				fireEvent.click(screen.getByRole('menuitem', { name: 'Delete profile' }));
 
-				expect(await screen.findByText('Delete Profile')).toBeDefined();
-				fireEvent.click(screen.getByText('Confirm'));
+				expect(await screen.findByText("Delete profile 'profile2'?")).toBeDefined();
+				fireEvent.click(
+					within(dialogContent()).getByRole('button', {
+						name: 'Delete Profile',
+						hidden: true,
+					})
+				);
 
 				expect(regionProfiles.deleteProfile).toHaveBeenCalledWith('profile2');
 				expect(regionProfiles.setActiveProfile).toHaveBeenCalledWith('profile1');
@@ -288,7 +296,7 @@ describe('RegionProfileManager', () => {
 				render(() => <RegionProfileManager previewImage={null} />);
 				await openMenu();
 				fireEvent.click(screen.getByRole('menuitem', { name: 'Delete profile' }));
-				await screen.findByText('Delete Profile');
+				await screen.findByText("Delete profile 'profile2'?");
 
 				fireEvent.click(document.querySelector('[data-part="close-trigger"]')!);
 
@@ -361,7 +369,7 @@ describe('RegionProfileManager', () => {
 
 				fireEvent.click(screen.getByRole('button', { name: 'Clear Learned Hashes' }));
 				vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
-				fireEvent.click(await screen.findByText('Confirm'));
+				fireEvent.click(await screen.findByRole('button', { name: 'Clear Hashes' }));
 
 				expect(regionProfiles.clearProfileHashes).toHaveBeenCalledWith('profile2');
 				await waitFor(() => expect(screen.getByText(/0 learned hashes/)).toBeDefined());
@@ -706,7 +714,7 @@ describe('RegionProfileManager', () => {
 			fireEvent.click(screen.getByRole('button', { name: 'Draw Anchor' }));
 			draw({ x: 100, y: 50, width: 40, height: 20 });
 
-			expect(await screen.findByText('Anchor Error')).toBeDefined();
+			expect(await screen.findByText("Couldn't set anchor")).toBeDefined();
 			expect(screen.getByRole('button', { name: 'Draw Anchor' })).toBeDefined();
 		});
 
@@ -800,7 +808,7 @@ describe('RegionProfileManager', () => {
 				fireEvent.click(screen.getByTitle('Delete group blue'));
 
 				expect(screen.getByText('Alignment Groups (0)')).toBeDefined();
-				expect(screen.queryByText('Delete Alignment Group')).toBeNull();
+				expect(screen.queryByText('Delete alignment group?')).toBeNull();
 			});
 
 			it('should ask before deleting a group that regions use', async () => {
@@ -813,7 +821,7 @@ describe('RegionProfileManager', () => {
 
 				fireEvent.click(screen.getByTitle('Delete group blue'));
 
-				expect(await screen.findByText('Delete Alignment Group')).toBeDefined();
+				expect(await screen.findByText('Delete alignment group?')).toBeDefined();
 				expect(screen.getByText(/1 region uses 'blue'/)).toBeDefined();
 				expect(screen.getByText('Alignment Groups (1)')).toBeDefined();
 			});
@@ -827,7 +835,7 @@ describe('RegionProfileManager', () => {
 				await waitFor(() => expect(screen.getByText('1 regions')).toBeDefined());
 
 				fireEvent.click(screen.getByTitle('Delete group blue'));
-				fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+				fireEvent.click(await screen.findByRole('button', { name: 'Delete Group' }));
 
 				await waitFor(() => {
 					expect(screen.getByText('Alignment Groups (0)')).toBeDefined();

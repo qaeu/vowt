@@ -50,7 +50,12 @@ export interface AlertDialogOptions {
 	description: string;
 	/** Extra content rendered below the description */
 	content?: () => JSX.Element;
+	/** Action button label; defaults to 'Confirm', or 'Close' without onConfirm */
 	actionText?: string;
+	/** Cancel button label, shown only when onConfirm is set; defaults to 'Cancel' */
+	cancelText?: string;
+	/** 'danger' styles the action as destructive */
+	tone?: 'default' | 'danger';
 	onConfirm?: () => void;
 }
 
