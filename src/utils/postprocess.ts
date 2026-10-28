@@ -3,12 +3,14 @@
  */
 
 import type {
+	OverFastStore,
 	PlayerStatsNumberFields,
 	PlayerStats,
 	GameRecord,
 	RecognitionResult,
 } from '#types';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
+import { getHeroDisplayName, matchMapName } from '#utils/gameData';
 
 /** Formatted OCR results */
 interface FormattedResults {
@@ -36,15 +38,17 @@ export const formatResults = (allResults: RecognitionResult[]): FormattedResults
 /**
  * Extracts game stats from region-based OCR results
  * @param regionResults - Map of region names to OCR text
+ * @param gameData - Optional OverFast data used to normalise hero and map names
  * @returns Structured game stats
  */
 export function extractGameStats(
-	regionResults: Map<string, string>
+	regionResults: Map<string, string>,
+	gameData: OverFastStore | null = null
 ): Pick<GameRecord, 'players' | 'matchInfo'> {
 	// Extract players
 	const players: GameRecord['players'] = [];
-	players.push(...extractTeamPlayers('blue', regionResults));
-	players.push(...extractTeamPlayers('red', regionResults));
+	players.push(...extractTeamPlayers('blue', regionResults, gameData));
+	players.push(...extractTeamPlayers('red', regionResults, gameData));
 
 	// Extract match info
 	const finalScore = { blue: '', red: '' };
@@ -70,7 +74,7 @@ export function extractGameStats(
 		final_score: finalScore,
 		date: regionResults.get('date')?.split('DATE:')[1]?.trim() || '',
 		game_mode: gameMode,
-		map: infoline.map,
+		map: gameData ? matchMapName(infoline.map, gameData.maps) : infoline.map,
 		game_length: regionResults.get('game_length')?.split('LENGTH:')[1]?.trim() || '',
 	};
 
@@ -79,7 +83,8 @@ export function extractGameStats(
 
 function extractTeamPlayers(
 	team: PlayerStats['team'],
-	ocrResults: Map<string, string>
+	ocrResults: Map<string, string>,
+	gameData: OverFastStore | null
 ): PlayerStats[] {
 	const teamPlayers: PlayerStats[] = [];
 	for (let i = 1; i <= 5; i++) {
@@ -90,8 +95,9 @@ function extractTeamPlayers(
 			numberStats[field] = rawResult.replace(/,/g, '');
 		}
 
+		const rawHero = ocrResults.get(`${team}_player${i}_hero`) || '';
 		const player: PlayerStats = {
-			hero: ocrResults.get(`${team}_player${i}_hero`) || '',
+			hero: gameData ? getHeroDisplayName(rawHero, gameData.heroes) : rawHero,
 			name: ocrResults.get(`${team}_player${i}_name`)?.trim() || '',
 			team,
 			...(numberStats as PlayerStatsNumberFields),

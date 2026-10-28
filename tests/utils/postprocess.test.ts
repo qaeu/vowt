@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { extractGameStats, formatResults } from '#utils/postprocess';
-import type { RecognitionResult } from '#types';
+import type { OverFastStore, RecognitionResult } from '#types';
 
 const MOCK_REGION_RESULTS = new Map<string, string>([
 	['blue_player1_name', 'STARK'],
@@ -52,6 +52,33 @@ const MOCK_REGION_RESULTS = new Map<string, string>([
 ]);
 
 describe('extractGameStats', () => {
+	describe('with OverFast game data', () => {
+		const gameData = {
+			schemaVersion: 1,
+			heroes: [{ key: 'soldier-76', name: 'Soldier: 76' }],
+			maps: [{ key: 'kings-row', name: "King's Row" }],
+			updatedAt: '2025-01-01T00:00:00.000Z',
+		} as unknown as OverFastStore;
+		const regionResults = new Map<string, string>([
+			['blue_player1_hero', 'soldier'],
+			['red_player1_hero', 'unknown'],
+			['ingame_infoline', 'CONTROL | 12:00 | KINGS R0W'],
+		]);
+
+		it('normalises hero and map names', () => {
+			const result = extractGameStats(regionResults, gameData);
+			expect(result.players[0].hero).toBe('Soldier: 76');
+			expect(result.players[5].hero).toBe('unknown');
+			expect(result.matchInfo.map).toBe("King's Row");
+		});
+
+		it('leaves names unchanged without game data', () => {
+			const result = extractGameStats(regionResults);
+			expect(result.players[0].hero).toBe('soldier');
+			expect(result.matchInfo.map).toBe('KINGS R0W');
+		});
+	});
+
 	describe('with scoreboard table format', () => {
 		it('should extract player stats from region results', () => {
 			const result = extractGameStats(MOCK_REGION_RESULTS);

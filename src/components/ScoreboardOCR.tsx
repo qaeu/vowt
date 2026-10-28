@@ -26,6 +26,7 @@ import {
 } from '#utils/preprocess';
 import { recogniseImage } from '#utils/imageRecognition';
 import { extractGameStats, formatResults } from '#utils/postprocess';
+import { loadOverFastData } from '#utils/overfastApi';
 import { saveGameRecord, updateGameRecord } from '#utils/storage';
 import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
@@ -447,7 +448,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			setRawOcrText(ocrResults.ocrTextParts.join('\n'));
 
-			const stats = extractGameStats(ocrResults.regionResults);
+			const stats = extractGameStats(ocrResults.regionResults, loadOverFastData());
 			setExtractedStats(stats);
 			recordId = saveGameRecord(stats.players, stats.matchInfo);
 

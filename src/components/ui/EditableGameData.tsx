@@ -1,13 +1,24 @@
-import { createSignal, Index, onCleanup, Show, type Component } from 'solid-js';
+import {
+	createSignal,
+	createUniqueId,
+	For,
+	Index,
+	onCleanup,
+	Show,
+	type Component,
+} from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
+import { getHeroNames, getMapNames } from '#utils/gameData';
+import { loadOverFastData } from '#utils/overfastApi';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
 
 interface TeamDataTableProps {
 	players: () => PlayerStats[];
 	savedPlayers: () => PlayerStats[];
 	team: PlayerStats['team'];
+	heroListId?: string;
 	isNewRecord?: boolean;
 	onPlayerUpdate: <K extends keyof PlayerStats>(
 		index: number,
@@ -44,6 +55,7 @@ const TeamDataTable: Component<TeamDataTableProps> = (props) => {
 							<td class="hero-column">
 								<RecordFieldInput
 									staticId={`${props.team}-player-${index}-hero`}
+									staticListId={props.heroListId}
 									initialValue={props.players()[index]?.hero ?? ''}
 									baseline={() => props.savedPlayers()[index]?.hero ?? ''}
 									onInput={(value) => props.onPlayerUpdate(index, 'hero', value)}
@@ -113,6 +125,13 @@ interface EditableGameDataProps {
 }
 
 const EditableGameData: Component<EditableGameDataProps> = (props) => {
+	const overFastData = loadOverFastData();
+	const heroNames = getHeroNames(overFastData);
+	const mapNames = getMapNames(overFastData);
+	const uniqueId = createUniqueId();
+	const heroListId = `${uniqueId}-hero-list`;
+	const mapListId = `${uniqueId}-map-list`;
+
 	// Track the working state
 	const [editablePlayers, setEditablePlayers] = createSignal<PlayerStats[]>(
 		structuredClone(props.initialPlayers)
@@ -234,6 +253,12 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 
 	return (
 		<div class="editable-data-container">
+			<datalist id={heroListId}>
+				<For each={heroNames}>{(name) => <option value={name} />}</For>
+			</datalist>
+			<datalist id={mapListId}>
+				<For each={mapNames}>{(name) => <option value={name} />}</For>
+			</datalist>
 			<Show when={props.showActions !== false}>
 				<div class="editable-header">
 					<h2>Match Details</h2>
@@ -333,6 +358,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 						<label>Map:</label>
 						<RecordFieldInput
 							staticId="matchinfo-map"
+							staticListId={mapListId}
 							initialValue={editableMatchInfo().map ?? ''}
 							baseline={() => lastSavedMatchInfo().map ?? ''}
 							onInput={(value) => updateMatchInfoField('map', value)}
@@ -353,6 +379,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 								editablePlayers().filter((player) => player.team === 'blue')
 							}
 							team="blue"
+							heroListId={heroListId}
 							onPlayerUpdate={updatePlayerField}
 							isFieldJustSaved={isFieldJustSaved}
 							registerField={registerField}
@@ -369,6 +396,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 								editablePlayers().filter((player) => player.team === 'red')
 							}
 							team="red"
+							heroListId={heroListId}
 							onPlayerUpdate={(index, ...args) => {
 								updatePlayerField(index + 5, ...args);
 							}}

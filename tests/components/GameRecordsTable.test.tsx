@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 import type { PlayerStats, MatchInfo, GameRecord } from '#types';
 import GameRecordsTable from '#c/GameRecordsTable';
 import * as gameStorage from '#utils/storage';
+import { updateOverFastData } from '#utils/overfastApi';
 
 // Mock storage module
 vi.mock('#utils/storage', () => ({
@@ -15,6 +16,8 @@ vi.mock('#utils/storage', () => ({
 	importGameRecords: vi.fn(),
 	PLAYER_STATS_NUMBER_FIELD_NAMES: ['e', 'a', 'd', 'dmg', 'h', 'mit'],
 }));
+
+vi.mock('#utils/overfastApi');
 
 interface EditableGameDataProps {
 	initialPlayers: PlayerStats[];
@@ -392,5 +395,60 @@ describe('GameRecordsTable', () => {
 
 		expect(hasVictoryClass).toBe(true);
 		expect(hasDefeatClass).toBe(true);
+	});
+	describe('update game data', () => {
+		const mockUpdate = updateOverFastData as ReturnType<typeof vi.fn>;
+
+		it('should show a success toast with counts', async () => {
+			mockUpdate.mockResolvedValue({
+				schemaVersion: 1,
+				heroes: [{}, {}, {}],
+				maps: [{}, {}],
+				updatedAt: '2025-11-11T00:00:00.000Z',
+			});
+			const { container } = render(() => (
+				<GameRecordsTable onUploadClick={mockOnUploadClick} />
+			));
+
+			fireEvent.click(container.querySelector('#update-game-data')!);
+
+			expect(await screen.findByText('Update Success')).toBeDefined();
+			expect(screen.getByText('3 heroes and 2 maps updated.')).toBeDefined();
+		});
+
+		it('should show a failure toast when the update rejects', async () => {
+			const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			mockUpdate.mockRejectedValue(new Error('network'));
+			const { container } = render(() => (
+				<GameRecordsTable onUploadClick={mockOnUploadClick} />
+			));
+
+			fireEvent.click(container.querySelector('#update-game-data')!);
+
+			expect(await screen.findByText('Update Failed')).toBeDefined();
+			expect(
+				screen.getByText(
+					'Could not fetch game data from OverFast. Please try again later.'
+				)
+			).toBeDefined();
+			expect(errorSpy).toHaveBeenCalled();
+			errorSpy.mockRestore();
+		});
+
+		it('should disable the button while pending and re-enable afterwards', async () => {
+			let resolveUpdate!: (v: unknown) => void;
+			mockUpdate.mockReturnValue(new Promise((r) => (resolveUpdate = r)));
+			const { container } = render(() => (
+				<GameRecordsTable onUploadClick={mockOnUploadClick} />
+			));
+			const button = container.querySelector('#update-game-data') as HTMLButtonElement;
+			expect(button.disabled).toBe(false);
+
+			fireEvent.click(button);
+			await waitFor(() => expect(button.disabled).toBe(true));
+
+			resolveUpdate({ schemaVersion: 1, heroes: [], maps: [], updatedAt: '' });
+			await waitFor(() => expect(button.disabled).toBe(false));
+		});
 	});
 });

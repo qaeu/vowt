@@ -14,6 +14,7 @@ import EditableGameData from '#c/ui/EditableGameData';
 import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
 import * as Store from '#utils/storage';
+import { updateOverFastData } from '#utils/overfastApi';
 
 interface GameRecordsTableProps {
 	onUploadClick: () => void;
@@ -34,6 +35,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [records, setRecords] = createSignal<GameRecord[]>([]);
 	const [expandedRecordId, setExpandedRecordId] = createSignal<string | null>(null);
 	const [collapsingIds, setCollapsingIds] = createSignal<Set<string>>(new Set());
+	const [isUpdatingGameData, setIsUpdatingGameData] = createSignal(false);
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 
@@ -53,6 +55,12 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 			id: 'import-records',
 			text: 'Import Records',
 			onClick: () => handleImport(),
+		},
+		{
+			id: 'update-game-data',
+			text: 'Update Game Data',
+			disabled: () => isUpdatingGameData(),
+			onClick: () => handleUpdateGameData(),
 		},
 		{
 			id: 'delete-all-records',
@@ -142,6 +150,22 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 			}
 		};
 		input.click();
+	};
+
+	const handleUpdateGameData = async () => {
+		setIsUpdatingGameData(true);
+		try {
+			const { heroes, maps } = await updateOverFastData();
+			toast('Update Success', `${heroes.length} heroes and ${maps.length} maps updated.`);
+		} catch (error) {
+			toast(
+				'Update Failed',
+				'Could not fetch game data from OverFast. Please try again later.'
+			);
+			console.error('Game data update error:', error);
+		} finally {
+			setIsUpdatingGameData(false);
+		}
 	};
 
 	const removeFromCollapsing = (id: string) => {

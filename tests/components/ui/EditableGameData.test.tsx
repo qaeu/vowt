@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@solidjs/testing-library';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import EditableGameData from '#c/ui/EditableGameData';
+import { STORAGE_KEY, SCHEMA_VERSION } from '#utils/overfastApi';
 
 describe('EditableGameData', () => {
 	const mockPlayers: PlayerStats[] = [
@@ -279,5 +280,81 @@ describe('EditableGameData', () => {
 
 		expect.soft(saveButton).toBeNull();
 		expect.soft(cancelButton).toBeNull();
+	});
+
+	describe('Datalist suggestions', () => {
+		beforeEach(() => {
+			localStorage.clear();
+		});
+
+		afterEach(() => {
+			localStorage.clear();
+		});
+
+		const renderComponent = () =>
+			render(() => (
+				<EditableGameData
+					initialPlayers={mockPlayers}
+					initialMatchInfo={mockMatchInfo}
+					onSave={vi.fn()}
+				/>
+			));
+
+		it('should render hero and map options from stored OverFast data', () => {
+			localStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify({
+					schemaVersion: SCHEMA_VERSION,
+					heroes: [
+						{ key: 'tracer', name: 'Tracer' },
+						{ key: 'ana', name: 'Ana' },
+					],
+					maps: [{ key: 'ilios', name: 'Ilios' }],
+					updatedAt: new Date().toISOString(),
+				})
+			);
+
+			const { container } = renderComponent();
+			const datalists = container.querySelectorAll('datalist');
+			expect(datalists).toHaveLength(2);
+
+			const heroInput = container.querySelector(
+				'input[id="blue-player-0-hero"]'
+			) as HTMLInputElement;
+			const mapInput = container.querySelector(
+				'input[id="matchinfo-map"]'
+			) as HTMLInputElement;
+
+			const heroList = container.querySelector(
+				`datalist[id="${heroInput.getAttribute('list')}"]`
+			) as HTMLDataListElement;
+			const mapList = container.querySelector(
+				`datalist[id="${mapInput.getAttribute('list')}"]`
+			) as HTMLDataListElement;
+
+			expect(heroList).toBeTruthy();
+			expect(mapList).toBeTruthy();
+			expect(heroList).not.toBe(mapList);
+			expect(Array.from(heroList.options).map((o) => o.value)).toEqual(['Ana', 'Tracer']);
+			expect(Array.from(mapList.options).map((o) => o.value)).toEqual(['Ilios']);
+		});
+
+		it('should reference the hero datalist from every hero input', () => {
+			const { container } = renderComponent();
+			const heroInputs = container.querySelectorAll('input[id$="-hero"]');
+			expect(heroInputs.length).toBeGreaterThan(0);
+			const listIds = new Set(Array.from(heroInputs).map((i) => i.getAttribute('list')));
+			expect(listIds.size).toBe(1);
+			expect(container.querySelector(`datalist[id="${[...listIds][0]}"]`)).toBeTruthy();
+		});
+
+		it('should render empty datalists when nothing is stored', () => {
+			const { container } = renderComponent();
+			const datalists = container.querySelectorAll('datalist');
+			expect(datalists).toHaveLength(2);
+			datalists.forEach((list) => {
+				expect(list.querySelectorAll('option')).toHaveLength(0);
+			});
+		});
 	});
 });

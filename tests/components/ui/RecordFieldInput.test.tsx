@@ -12,6 +12,39 @@ describe('RecordFieldInput', () => {
 		registerFieldMock = vi.fn();
 	});
 
+	describe('List attribute', () => {
+		it('should set the list attribute when staticListId is given', () => {
+			const { container } = render(() => (
+				<RecordFieldInput
+					staticId="test-field"
+					staticListId="my-list"
+					initialValue={''}
+					baseline={() => ''}
+					onInput={onInputMock}
+					initialIsJustSaved={false}
+				/>
+			));
+
+			const input = container.querySelector('input') as HTMLInputElement;
+			expect(input.getAttribute('list')).toBe('my-list');
+		});
+
+		it('should not set the list attribute when staticListId is omitted', () => {
+			const { container } = render(() => (
+				<RecordFieldInput
+					staticId="test-field"
+					initialValue={''}
+					baseline={() => ''}
+					onInput={onInputMock}
+					initialIsJustSaved={false}
+				/>
+			));
+
+			const input = container.querySelector('input') as HTMLInputElement;
+			expect(input.hasAttribute('list')).toBe(false);
+		});
+	});
+
 	describe('Rendering', () => {
 		it('should render an input element with correct id', () => {
 			const { container } = render(() => (
