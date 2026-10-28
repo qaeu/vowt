@@ -1,0 +1,161 @@
+@use '../theme' as *;
+
+@layer ui {
+	.alignment-groups-container {
+		margin-top: 20px;
+
+		.alignment-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			flex-wrap: wrap;
+			gap: 15px;
+			margin-bottom: 10px;
+
+			h3 {
+				margin: 0;
+			}
+
+			.add-group {
+				display: flex;
+				gap: 8px;
+
+				button {
+					@include button($successes);
+				}
+			}
+		}
+
+		.group-name-input,
+		.feature-fields input {
+			padding: 6px 8px;
+			border: 1px solid get($neutrals, 'sep');
+			border-radius: 4px;
+			background-color: transparent;
+			color: $foreground;
+			font-size: 13px;
+
+			&:focus {
+				outline: none;
+				border-color: get($primaries, 'sep-dark');
+			}
+		}
+
+		.alignment-help {
+			margin: 0 0 15px;
+			font-size: 13px;
+			color: get($neutrals, 'fg-light');
+		}
+
+		.draw-prompt {
+			@include info-box(get($warnings, 'bg'), get($warnings, 'base'));
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 15px;
+			font-size: 14px;
+
+			button {
+				@include button($warnings);
+			}
+		}
+
+		.empty-state {
+			padding: 20px;
+			text-align: center;
+			color: get($neutrals, 'fg-light');
+			background-color: get($neutrals, 'bg');
+			border-radius: 4px;
+
+			p {
+				margin: 0;
+			}
+		}
+
+		.alignment-groups-list {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+
+		.alignment-group {
+			border: 1px solid get($neutrals, 'sep');
+			border-left: 6px solid get($warnings, 'base');
+			border-radius: 6px;
+			padding: 12px 15px;
+		}
+
+		.group-header {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 8px;
+
+			h4 {
+				margin: 0;
+			}
+
+			.region-count {
+				flex: 1;
+				font-size: 12px;
+				color: get($neutrals, 'fg-light');
+			}
+
+			.delete-button {
+				@include button-small($errors);
+				width: 28px;
+				height: 28px;
+			}
+		}
+
+		.group-feature {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 8px 15px;
+			padding: 8px 0;
+			border-top: 1px solid get($neutrals, 'sep');
+
+			.feature-label {
+				min-width: 60px;
+				font-size: 12px;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+
+			.feature-summary {
+				flex: 1;
+				font-size: 13px;
+				color: get($neutrals, 'fg-light');
+			}
+
+			.button-group button {
+				@include button($warnings);
+
+				&.remove-feature {
+					@include button($errors);
+				}
+			}
+		}
+
+		.feature-fields {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+			width: 100%;
+
+			label {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				font-size: 12px;
+				color: get($neutrals, 'fg-light');
+			}
+
+			input {
+				width: 90px;
+			}
+		}
+	}
+}
