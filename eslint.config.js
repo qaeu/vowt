@@ -14,5 +14,10 @@ export default defineConfig([
             globals: globals.browser,
             parserOptions: { project: 'tsconfig.json' },
         },
+        rules: {
+            ...solid.rules,
+            // Solid assigns `let el; <div ref={el} />` at compile time, which this rule can't see
+            'no-unassigned-vars': 'off',
+        },
     },
 ]);

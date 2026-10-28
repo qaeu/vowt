@@ -46,4 +46,11 @@
 		font-weight: bold;
 		color: $primary;
 	}
+
+	.dark-mode-toggle {
+		@include button($neutrals);
+		position: fixed;
+		top: 15px;
+		right: 15px;
+	}
 }

@@ -1,4 +1,4 @@
-import type { TextRegion, ExportedProfile, ImageHashSet } from '#types';
+import type { TextRegion, ExportedProfile, ImageHashSet, AlignmentGroup } from '#types';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
 	saveProfile,
@@ -10,6 +10,11 @@ import {
 	getActiveProfile,
 	getProfileHashSets,
 	getActiveProfileHashSets,
+	addProfileHashes,
+	countProfileHashes,
+	clearProfileHashes,
+	getProfileAlignment,
+	getActiveProfileAlignment,
 	exportProfile,
 	importProfile,
 } from '#utils/regionProfiles';
@@ -20,7 +25,7 @@ vi.mock('#data/profiles', () => ({
 	DEFAULT_PROFILES: [
 		{
 			type: 'vowt-region-profile',
-			schemaVersion: 1,
+			schemaVersion: 2,
 			profile: {
 				id: 'mock_profile',
 				description: 'Built-in default profile',
@@ -122,7 +127,7 @@ describe('Region Profiles', () => {
 			const storageKey = 'vowt_region_profiles';
 			const stored = JSON.parse(localStorage.getItem(storageKey)!);
 
-			expect(stored.schemaVersion).toBe(1);
+			expect(stored.schemaVersion).toBe(2);
 			// Find our test profile (excluding the builtin default)
 			const testProfile = stored.profiles.find((p: { id: string }) => p.id === profileId);
 			expect(testProfile).toBeDefined();
@@ -453,7 +458,7 @@ describe('Region Profiles', () => {
 
 			const parsed = JSON.parse(exported!);
 			expect(parsed.type).toBe('vowt-region-profile');
-			expect(parsed.schemaVersion).toBe(1);
+			expect(parsed.schemaVersion).toBe(2);
 			expect(parsed.profile.id).toBe(profileId);
 			expect(parsed.profile.description).toBe('Test Profile');
 			expect(parsed.profile.regions).toEqual(mockRegions);
@@ -544,6 +549,53 @@ describe('Region Profiles', () => {
 			expect(regions).toBeDefined();
 		});
 
+		it('should restore hash sets from an exported profile', () => {
+			const profileId = saveProfile(mockRegions, { description: 'With hashes' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+			const exported = exportProfile(profileId)!;
+
+			localStorage.clear();
+			importProfile(exported);
+
+			const hashSets = getProfileHashSets(profileId);
+			expect(hashSets).toHaveLength(1);
+			expect(hashSets![0].hashes).toEqual([
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+		});
+
+		it('should drop learned dHashes from a version 1 export', () => {
+			const profileId = saveProfile(mockRegions, { description: 'With hashes' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+			const exported = JSON.parse(exportProfile(profileId)!);
+			exported.schemaVersion = 1;
+
+			localStorage.clear();
+			importProfile(JSON.stringify(exported));
+
+			expect(getProfileHashSets(profileId)).toEqual([]);
+			expect(getProfile(profileId)).toEqual(mockRegions);
+		});
+
+		it('should drop learned dHashes from an export without a schema version', () => {
+			const profileId = saveProfile(mockRegions, { description: 'With hashes' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+			const exported = JSON.parse(exportProfile(profileId)!);
+			delete exported.schemaVersion;
+
+			localStorage.clear();
+			importProfile(JSON.stringify(exported));
+
+			expect(getProfileHashSets(profileId)).toEqual([]);
+			expect(getProfile(profileId)).toEqual(mockRegions);
+		});
+
 		it('should preserve original createdAt when updating via import', () => {
 			const profileId = saveProfile(mockRegions, {
 				id: 'custom_profile_id',
@@ -564,6 +616,171 @@ describe('Region Profiles', () => {
 				(p: { id: string }) => p.id === profileId
 			);
 			expect(importedProfile.createdAt).toBe(exportedProfile.createdAt);
+		});
+	});
+
+	describe('alignment', () => {
+		const mockAlignment: AlignmentGroup[] = [
+			{
+				name: 'table',
+				anchor: {
+					x: 10,
+					y: 20,
+					searchX: 30,
+					searchY: 40,
+					template: { width: 1, height: 1, data: 'AA==' },
+				},
+				rows: { x: 0, width: 100, y: 50, rowHeight: 40, count: 5 },
+			},
+		];
+
+		it('should return an empty array for a profile without alignment', () => {
+			const profileId = saveProfile(mockRegions, { description: 'No alignment' });
+
+			expect(getProfileAlignment(profileId)).toEqual([]);
+		});
+
+		it('should return an empty array for a non-existent profile', () => {
+			expect(getProfileAlignment('non_existent_id')).toEqual([]);
+		});
+
+		it('should save and load alignment groups', () => {
+			const profileId = saveProfile(mockRegions, {
+				description: 'With alignment',
+				alignment: mockAlignment,
+			});
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should keep existing alignment when saving without it', () => {
+			const profileId = saveProfile(mockRegions, { alignment: mockAlignment });
+			saveProfile(mockRegions, { id: profileId, description: 'Edited regions' });
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should not normalise alignment coordinates when saving', () => {
+			const profileId = saveProfile(
+				mockRegions,
+				{ alignment: mockAlignment },
+				1920,
+				1080
+			);
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should return the active profile alignment', () => {
+			const profileId = saveProfile(mockRegions, { alignment: mockAlignment });
+			setActiveProfile(profileId);
+
+			expect(getActiveProfileAlignment()).toEqual(mockAlignment);
+		});
+
+		it('should export and import alignment groups', () => {
+			const profileId = saveProfile(mockRegions, { alignment: mockAlignment });
+			const exported = exportProfile(profileId)!;
+			deleteProfile(profileId);
+
+			importProfile(exported);
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should preserve region group and row fields', () => {
+			const grouped: TextRegion[] = [{ ...mockRegion, group: 'table', row: 2 }];
+			const profileId = saveProfile(grouped, {}, 1280, 720);
+
+			expect(getProfile(profileId)![0]).toMatchObject({ group: 'table', row: 2 });
+		});
+	});
+
+	describe('default profiles', () => {
+		const storageKey = 'vowt_region_profiles';
+
+		const storeDefaultCopy = (updatedAt: string, schemaVersion = 2) => {
+			localStorage.setItem(
+				storageKey,
+				JSON.stringify({
+					schemaVersion,
+					activeProfileId: 'mock_profile',
+					profiles: [
+						{
+							id: 'mock_profile',
+							description: 'Stored copy',
+							regions: mockRegions,
+							hashSets: [],
+							createdAt: '2025-11-11T00:00:00.000Z',
+							updatedAt,
+						},
+					],
+				})
+			);
+		};
+
+		it('should replace a stored default older than the bundled version', () => {
+			storeDefaultCopy('2025-11-01T00:00:00.000Z');
+
+			const profile = listProfiles().find((p) => p.id === 'mock_profile');
+
+			expect(profile?.description).toBe('Built-in default profile');
+			expect(getProfile('mock_profile')).toEqual([]);
+			const stored = JSON.parse(localStorage.getItem(storageKey)!);
+			expect(stored.profiles[0].description).toBe('Built-in default profile');
+		});
+
+		it('should keep learned hash sets when replacing an outdated default', () => {
+			storeDefaultCopy('2025-11-01T00:00:00.000Z');
+			const stored = JSON.parse(localStorage.getItem(storageKey)!);
+			stored.profiles[0].hashSets = [
+				{
+					id: 'hero-portrait',
+					description: 'User-learned hashes',
+					hashes: [{ name: 'new-hero', hash: 'abcdef1234567890' }],
+					createdAt: '2025-11-01T00:00:00.000Z',
+					updatedAt: '2025-11-01T00:00:00.000Z',
+				},
+			];
+			localStorage.setItem(storageKey, JSON.stringify(stored));
+
+			expect(listProfiles().find((p) => p.id === 'mock_profile')?.description).toBe(
+				'Built-in default profile'
+			);
+			expect(getProfileHashSets('mock_profile')![0].hashes).toEqual([
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+		});
+
+		it('should drop learned dHashes from version 1 storage', () => {
+			storeDefaultCopy('2026-01-01T00:00:00.000Z', 1);
+			const stored = JSON.parse(localStorage.getItem(storageKey)!);
+			stored.profiles[0].hashSets = [
+				{
+					id: 'hero-portrait',
+					description: 'User-learned hashes',
+					hashes: [{ name: 'new-hero', hash: 'abcdef1234567890' }],
+					createdAt: '2025-11-01T00:00:00.000Z',
+					updatedAt: '2025-11-01T00:00:00.000Z',
+				},
+			];
+			localStorage.setItem(storageKey, JSON.stringify(stored));
+
+			expect(getProfileHashSets('mock_profile')).toEqual([]);
+			expect(listProfiles().find((p) => p.id === 'mock_profile')?.description).toBe(
+				'Stored copy'
+			);
+			expect(getProfile('mock_profile')).toEqual(mockRegions);
+			expect(JSON.parse(localStorage.getItem(storageKey)!).schemaVersion).toBe(2);
+		});
+
+		it('should keep a stored default edited after the bundled version', () => {
+			storeDefaultCopy('2026-01-01T00:00:00.000Z');
+
+			const profile = listProfiles().find((p) => p.id === 'mock_profile');
+
+			expect(profile?.description).toBe('Stored copy');
+			expect(getProfile('mock_profile')).toEqual(mockRegions);
 		});
 	});
 
@@ -613,6 +830,127 @@ describe('Region Profiles', () => {
 			expect(hashSets).toHaveLength(1);
 			expect(hashSets![0].id).toBe('test-heroes');
 			expect(hashSets![0].hashes).toHaveLength(2);
+		});
+	});
+
+	describe('addProfileHashes', () => {
+		const hashSetId = 'hero-portrait';
+
+		it('should create the hash set when the profile has none', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+
+			const added = addProfileHashes(profileId, hashSetId, [
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+
+			expect(added).toBe(1);
+			const hashSets = getProfileHashSets(profileId)!;
+			expect(hashSets).toHaveLength(1);
+			expect(hashSets[0].id).toBe(hashSetId);
+			expect(hashSets[0].hashes).toEqual([
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+		});
+
+		it('should append to an existing hash set', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, hashSetId, [{ name: 'ana', hash: '1111111111111111' }]);
+
+			addProfileHashes(profileId, hashSetId, [
+				{ name: 'ashe', hash: '2222222222222222' },
+			]);
+
+			expect(getProfileHashSets(profileId)![0].hashes.map((h) => h.name)).toEqual([
+				'ana',
+				'ashe',
+			]);
+		});
+
+		it('should skip hashes already stored under the same name', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			const hashes = [{ name: 'ana', hash: '1111111111111111' }];
+			addProfileHashes(profileId, hashSetId, hashes);
+
+			const added = addProfileHashes(profileId, hashSetId, hashes);
+
+			expect(added).toBe(0);
+			expect(getProfileHashSets(profileId)![0].hashes).toHaveLength(1);
+		});
+
+		it('should rename a hash stored under a different name', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, hashSetId, [{ name: 'ana', hash: '1111111111111111' }]);
+
+			const changed = addProfileHashes(profileId, hashSetId, [
+				{ name: 'ashe', hash: '1111111111111111' },
+			]);
+
+			expect(changed).toBe(1);
+			expect(getProfileHashSets(profileId)![0].hashes).toEqual([
+				{ name: 'ashe', hash: '1111111111111111' },
+			]);
+		});
+
+		it('should not change the profile updatedAt', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			const storageKey = 'vowt_region_profiles';
+			const readUpdatedAt = () =>
+				JSON.parse(localStorage.getItem(storageKey)!).profiles.find(
+					(p: { id: string }) => p.id === profileId
+				).updatedAt;
+			const before = readUpdatedAt();
+
+			addProfileHashes(profileId, hashSetId, [{ name: 'ana', hash: '1111111111111111' }]);
+
+			expect(readUpdatedAt()).toBe(before);
+		});
+
+		it('should keep hash sets when the profile regions are saved again', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, hashSetId, [{ name: 'ana', hash: '1111111111111111' }]);
+
+			saveProfile(mockRegions, { id: profileId, description: 'Edited' });
+
+			expect(getProfileHashSets(profileId)![0].hashes).toHaveLength(1);
+		});
+
+		it('should throw for a non-existent profile', () => {
+			expect(() =>
+				addProfileHashes('non_existent_id', hashSetId, [
+					{ name: 'ana', hash: '1111111111111111' },
+				])
+			).toThrow();
+		});
+	});
+
+	describe('countProfileHashes / clearProfileHashes', () => {
+		it('should count hashes across all hash sets', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'ana', hash: '1111111111111111' },
+				{ name: 'ashe', hash: '2222222222222222' },
+			]);
+			addProfileHashes(profileId, 'rank-icons', [
+				{ name: 'gold', hash: '3333333333333333' },
+			]);
+
+			expect(countProfileHashes(profileId)).toBe(3);
+		});
+
+		it('should return 0 for a non-existent profile', () => {
+			expect(countProfileHashes('non_existent_id')).toBe(0);
+		});
+
+		it('should remove all hash sets from a profile', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'ana', hash: '1111111111111111' },
+			]);
+
+			clearProfileHashes(profileId);
+
+			expect(getProfileHashSets(profileId)).toEqual([]);
+			expect(countProfileHashes(profileId)).toBe(0);
 		});
 	});
 

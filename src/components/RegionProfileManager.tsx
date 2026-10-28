@@ -1,18 +1,41 @@
 import type { Component } from 'solid-js';
-import { createSignal, batch, For, Show, onMount } from 'solid-js';
+import { createSignal, createMemo, batch, For, Show, onMount } from 'solid-js';
 import { X } from 'lucide-solid';
 
-import type { TextRegion, DrawnRegion, ScreenAction, AlertDialogOptions } from '#types';
+import type {
+	TextRegion,
+	DrawnRegion,
+	ScreenAction,
+	AlertDialogOptions,
+	AlignmentGroup,
+	AlignmentDrawTarget,
+	GrayImage,
+} from '#types';
 import Screen from '#c/ui/Screen';
 import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions } from '#utils/regionEditor';
 import EditableRegionsData from '#c/ui/EditableRegionsData';
+import AlignmentGroupsEditor from '#c/ui/AlignmentGroupsEditor';
+import {
+	ALIGN_SCALE,
+	createAnchor,
+	downsample,
+	findAnchorOffset,
+	loadReferenceGrayscale,
+} from '#utils/regionAlignment';
 
 const REGION_COLOUR_DEFAULT = '#ff0000';
 const REGION_COLOUR_ITALIC = '#4caf50';
 const REGION_COLOUR_IMAGE = '#3131da';
+const REGION_COLOUR_ANCHOR = '#ff9800';
+const REGION_COLOUR_ROWS = '#00bcd4';
+
+/** Default anchor search range in reference pixels */
+const ANCHOR_SEARCH_X = 48;
+const ANCHOR_SEARCH_Y = 160;
+const ROWS_COUNT_DEFAULT = 5;
 
 interface RegionProfileManagerProps {
 	previewImage: string | null;
@@ -33,6 +56,25 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const [editingProfileDesc, setEditingProfileDesc] = createSignal(
 		initialActiveProfileDesc
 	);
+	const [alignment, setAlignment] = createSignal<AlignmentGroup[]>(
+		Profiles.getActiveProfileAlignment()
+	);
+	const [drawTarget, setDrawTarget] = createSignal<AlignmentDrawTarget | null>(null);
+	// Bumped when stored hashes change, since they're read from storage
+	const [hashesVersion, setHashesVersion] = createSignal(0);
+
+	const learnedHashCount = createMemo(() => {
+		hashesVersion();
+		return Profiles.countProfileHashes(editingProfileId());
+	});
+
+	const regionCounts = createMemo(() => {
+		const counts: Record<string, number> = {};
+		for (const region of editingRegions()) {
+			if (region.group) counts[region.group] = (counts[region.group] ?? 0) + 1;
+		}
+		return counts;
+	});
 
 	const navActions: ScreenAction[] = [
 		{
@@ -46,6 +88,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 	let canvasRef: HTMLCanvasElement | undefined;
+	let referenceGray: { src: string; image: GrayImage } | null = null;
 
 	onMount(async () => {
 		if (!canvasRef) return;
@@ -61,6 +104,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			img.onerror = () => reject(new Error('Failed to load image'));
 		});
 
+		// Size the canvas now so alignment overlays scale correctly
+		canvasRef.width = img.width;
+		canvasRef.height = img.height;
+
 		const activeRegions = Profiles.getActiveProfile(img.width, img.height);
 		const drawnRegions = makeDrawnRegions(activeRegions, editingProfileId());
 
@@ -70,7 +117,10 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 
 		try {
-			await startRegionEditor(canvasRef, imageSource, handleRegionComplete, drawnRegions);
+			await startRegionEditor(canvasRef, imageSource, handleRegionComplete, [
+				...drawnRegions,
+				...alignmentOverlays(),
+			]);
 		} catch (err) {
 			console.error('Region editor error:', err);
 		}
@@ -105,13 +155,163 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		Profiles.setActiveProfile(profileId);
 	};
 
+	/** Scale factors from reference resolution to the canvas image */
+	const getCanvasScale = () => ({
+		x: (canvasRef?.width || Profiles.REFERENCE_WIDTH) / Profiles.REFERENCE_WIDTH,
+		y: (canvasRef?.height || Profiles.REFERENCE_HEIGHT) / Profiles.REFERENCE_HEIGHT,
+	});
+
+	/** Outlines of alignment anchors and row bands, scaled to the canvas image */
+	const alignmentOverlays = (): DrawnRegion[] => {
+		const scale = getCanvasScale();
+		const toCanvas = (
+			name: string,
+			colour: string,
+			x: number,
+			y: number,
+			width: number,
+			height: number
+		): DrawnRegion => ({
+			id: `alignment-${name}`,
+			name,
+			colour,
+			x: Math.round(x * scale.x),
+			y: Math.round(y * scale.y),
+			width: Math.round(width * scale.x),
+			height: Math.round(height * scale.y),
+		});
+
+		return alignment().flatMap((group) => {
+			const overlays: DrawnRegion[] = [];
+			const { anchor, rows } = group;
+
+			if (anchor) {
+				overlays.push(
+					toCanvas(
+						`${group.name}-anchor`,
+						REGION_COLOUR_ANCHOR,
+						anchor.x,
+						anchor.y,
+						anchor.template.width * ALIGN_SCALE,
+						anchor.template.height * ALIGN_SCALE
+					)
+				);
+			}
+
+			if (rows) {
+				for (let r = 0; r < rows.count; r++) {
+					overlays.push(
+						toCanvas(
+							`${group.name}-row${r}`,
+							REGION_COLOUR_ROWS,
+							rows.x,
+							rows.y + r * rows.rowHeight,
+							rows.width,
+							rows.rowHeight
+						)
+					);
+				}
+			}
+
+			return overlays;
+		});
+	};
+
 	const redrawRegions = () => {
 		if (canvasRef && getImageSource()) {
-			drawRegions(canvasRef, editingRegions(), getImageSource() as string);
+			drawRegions(
+				canvasRef,
+				[...editingRegions(), ...alignmentOverlays()],
+				getImageSource() as string
+			);
 		}
 	};
 
+	/** Loads the preview image at reference resolution, reusing the last result */
+	const getReferenceGray = async (src: string): Promise<GrayImage> => {
+		if (referenceGray?.src !== src) {
+			referenceGray = { src, image: await loadReferenceGrayscale(src) };
+		}
+		return referenceGray.image;
+	};
+
+	/** Turns a rectangle drawn on the canvas into an anchor or row bands for a group */
+	const applyAlignmentRect = async (target: AlignmentDrawTarget, region: DrawnRegion) => {
+		const imageSource = getImageSource();
+		const group = alignment().find((g) => g.name === target.group);
+		if (!imageSource || !group) return;
+
+		const scale = getCanvasScale();
+		const rect = {
+			x: Math.round(region.x / scale.x),
+			y: Math.round(region.y / scale.y),
+			width: Math.round(region.width / scale.x),
+			height: Math.round(region.height / scale.y),
+		};
+
+		let updated: AlignmentGroup;
+
+		if (target.kind === 'anchor') {
+			try {
+				const gray = await getReferenceGray(imageSource);
+				const anchor = createAnchor(
+					gray,
+					rect,
+					group.anchor?.searchX ?? ANCHOR_SEARCH_X,
+					group.anchor?.searchY ?? ANCHOR_SEARCH_Y
+				);
+
+				// An anchor must at least find itself; flat areas have nothing to match
+				if (!findAnchorOffset(downsample(gray, ALIGN_SCALE), anchor)) {
+					openDialog?.({
+						title: 'Anchor Error',
+						description:
+							'The selected area has too little detail to match. Draw the anchor around text, icons or edges.',
+						actionText: 'OK',
+					});
+					return;
+				}
+
+				updated = { ...group, anchor };
+			} catch (error) {
+				console.error('Anchor capture error:', error);
+				openDialog?.({
+					title: 'Anchor Error',
+					description: 'Could not read the image to capture the anchor.',
+					actionText: 'OK',
+				});
+				return;
+			}
+		} else {
+			const count = group.rows?.count ?? ROWS_COUNT_DEFAULT;
+			updated = {
+				...group,
+				rows: {
+					x: rect.x,
+					width: rect.width,
+					y: rect.y,
+					rowHeight: Math.max(1, Math.round(rect.height / count)),
+					count,
+				},
+			};
+		}
+
+		setAlignment((prev) => prev.map((g) => (g.name === group.name ? updated : g)));
+		redrawRegions();
+		toast(
+			'Alignment Updated',
+			`${target.kind === 'anchor' ? 'Anchor' : 'Rows'} set for group '${group.name}'.`
+		);
+	};
+
 	const handleRegionComplete = (region: DrawnRegion) => {
+		const target = drawTarget();
+		if (target) {
+			setDrawTarget(null);
+			void applyAlignmentRect(target, region);
+			return;
+		}
+
 		setEditingRegions((prev) => [...prev, region]);
 		redrawRegions();
 	};
@@ -119,6 +319,32 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const handleClearRegions = () => {
 		setEditingRegions([]);
 		redrawRegions();
+	};
+
+	const handleAlignmentChange = (groups: AlignmentGroup[]) => {
+		const applyChange = () => {
+			setAlignment(groups);
+			redrawRegions();
+		};
+
+		// Regions keep their group name, so warn before orphaning them
+		const counts = regionCounts();
+		const orphaned = alignment().filter(
+			(g) => !groups.some((kept) => kept.name === g.name) && counts[g.name]
+		);
+		if (orphaned.length === 0) {
+			applyChange();
+			return;
+		}
+
+		const count = orphaned.reduce((total, g) => total + counts[g.name], 0);
+		const names = orphaned.map((g) => `'${g.name}'`).join(', ');
+		openDialog?.({
+			title: 'Delete Alignment Group',
+			description: `${count} region${count === 1 ? ' uses' : 's use'} ${names}. They will keep their profile positions until assigned to another group. Delete anyway?`,
+			actionText: 'Delete',
+			onConfirm: applyChange,
+		});
 	};
 
 	const handleExportProfile = () => {
@@ -173,6 +399,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						}
 						toast('Import Success', 'Region profile imported');
 						setProfileList(Profiles.listProfiles());
+						setHashesVersion((v) => v + 1);
 					} catch (error) {
 						openDialog?.({
 							title: 'Import Error',
@@ -206,6 +433,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				{
 					id: editingProfileId(),
 					description: editingProfileDesc(),
+					alignment: alignment(),
 				},
 				canvasRef.width,
 				canvasRef.height
@@ -254,6 +482,8 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			const drawnRegions = makeDrawnRegions(profileRegions, profileId);
 			setSavedRegions(drawnRegions);
 			setEditingRegions(drawnRegions);
+			setAlignment(Profiles.getProfileAlignment(profileId));
+			setDrawTarget(null);
 
 			const profileDetails = profileList().find((p) => p.id === profileId);
 			if (profileDetails) {
@@ -293,6 +523,18 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				// Refresh profile list
 				setProfileList(Profiles.listProfiles());
 				toast('Delete Success', `Profile '${profileId}' deleted.`);
+			},
+		});
+	};
+
+	const handleClearHashes = (profileId: string) => {
+		openDialog?.({
+			title: 'Clear Learned Hashes',
+			description: `Are you sure you want to remove all learned image hashes from profile '${profileId}'? Bundled hashes are not affected.`,
+			onConfirm: () => {
+				Profiles.clearProfileHashes(profileId);
+				setHashesVersion((v) => v + 1);
+				toast('Clear Success', `Learned hashes removed from profile '${profileId}'.`);
 			},
 		});
 	};
@@ -387,6 +629,21 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 								Save Profile
 							</button>
 						</div>
+
+						<label class="input-label">Learned Image Hashes</label>
+						<p class="learned-hashes">
+							{learnedHashCount()} learned hash{learnedHashCount() === 1 ? '' : 'es'}.
+							Correct a hero after recognition to teach new portraits.
+						</p>
+						<div class="button-group">
+							<button
+								onClick={() => handleClearHashes(editingProfileId())}
+								class="clear-hashes highlight"
+								disabled={learnedHashCount() === 0}
+							>
+								Clear Learned Hashes
+							</button>
+						</div>
 					</div>
 				</div>
 
@@ -413,6 +670,15 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						currentRegions={editingRegions()}
 						savedRegions={savedRegions()}
 						onChange={handleRegionChange}
+					/>
+
+					<AlignmentGroupsEditor
+						groups={alignment()}
+						regionCounts={regionCounts()}
+						drawTarget={drawTarget()}
+						onChange={handleAlignmentChange}
+						onRequestDraw={setDrawTarget}
+						onCancelDraw={() => setDrawTarget(null)}
 					/>
 				</div>
 			</div>

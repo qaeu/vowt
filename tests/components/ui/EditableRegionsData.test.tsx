@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@solidjs/testing-library';
 
 import type { DrawnRegion } from '#types';
@@ -40,7 +40,7 @@ describe('EditableRegionsData', () => {
 		},
 	];
 
-	let onChangeMock: ReturnType<typeof vi.fn>;
+	let onChangeMock: Mock<(regions: DrawnRegion[]) => void>;
 
 	beforeEach(() => {
 		onChangeMock = vi.fn();
@@ -180,6 +180,59 @@ describe('EditableRegionsData', () => {
 			fireEvent.input(nameInput, { target: { value: 'new_name' } });
 
 			expect(screen.getByText(/Cancel Changes/)).toBeTruthy();
+		});
+	});
+
+	describe('Alignment Fields', () => {
+		const renderGrouped = () =>
+			render(() => (
+				<EditableRegionsData
+					profileId="test-profile"
+					currentRegions={[{ ...mockRegions[0], group: 'blue', row: 2 }]}
+					savedRegions={[{ ...mockRegions[0], group: 'blue', row: 2 }]}
+					onChange={onChangeMock}
+				/>
+			));
+
+		it('should render group and row columns with values', () => {
+			const { container } = renderGrouped();
+
+			expect(screen.getByText('Group')).toBeTruthy();
+			expect(screen.getByText('Row')).toBeTruthy();
+			expect(
+				(container.querySelector('input[id="region-mock-0-group"]') as HTMLInputElement)
+					.value
+			).toBe('blue');
+			expect(
+				(container.querySelector('input[id="region-mock-0-row"]') as HTMLInputElement)
+					.value
+			).toBe('2');
+		});
+
+		it('should update the group and clear it when emptied', () => {
+			const { container } = renderGrouped();
+			const input = container.querySelector(
+				'input[id="region-mock-0-group"]'
+			) as HTMLInputElement;
+
+			fireEvent.input(input, { target: { value: 'red' } });
+			expect(onChangeMock.mock.lastCall![0][0].group).toBe('red');
+
+			fireEvent.input(input, { target: { value: '' } });
+			expect(onChangeMock.mock.lastCall![0][0].group).toBeUndefined();
+		});
+
+		it('should update the row as a number and clear it when emptied', () => {
+			const { container } = renderGrouped();
+			const input = container.querySelector(
+				'input[id="region-mock-0-row"]'
+			) as HTMLInputElement;
+
+			fireEvent.input(input, { target: { value: '4' } });
+			expect(onChangeMock.mock.lastCall![0][0].row).toBe(4);
+
+			fireEvent.input(input, { target: { value: '' } });
+			expect(onChangeMock.mock.lastCall![0][0].row).toBeUndefined();
 		});
 	});
 

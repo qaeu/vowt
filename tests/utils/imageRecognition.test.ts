@@ -1,322 +1,268 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { dhash, hamDist, recogniseImage } from '#utils/imageRecognition';
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { PNG } from 'pngjs';
+import {
+	createTemplate,
+	recogniseImage,
+	mergeHashSets,
+	TEMPLATE_SIZE,
+} from '#utils/imageRecognition';
+import { DEFAULT_HASH_SETS } from '#data/hashSets';
 import type { ImageHashSet } from '#types';
+
+type Colour = [number, number, number];
+type Pattern = (x: number, y: number) => Colour;
 
 // Helper to create ImageData-like objects for testing
 // (ImageData constructor isn't available in Node.js test environment)
-function createImageData(
-	data: Uint8ClampedArray,
-	width: number,
-	height: number
-): ImageData {
+function createImage(width: number, height: number, pattern: Pattern): ImageData {
+	const data = new Uint8ClampedArray(width * height * 4);
+	for (let y = 0; y < height; y++) {
+		for (let x = 0; x < width; x++) {
+			const index = (y * width + x) * 4;
+			data.set([...pattern(x, y), 255], index);
+		}
+	}
 	return { data, width, height, colorSpace: 'srgb' } as ImageData;
 }
 
-// Mock hash set for testing
-const mockHashSet: ImageHashSet = {
+/** Shifts a pattern so the image appears moved by (-dx, -dy) */
+const shifted =
+	(pattern: Pattern, dx: number, dy: number): Pattern =>
+	(x, y) =>
+		pattern(x + dx, y + dy);
+
+const horizontalStripes: Pattern = (_x, y) =>
+	Math.floor(y / 6) % 2 ? [200, 40, 40] : [30, 30, 160];
+const verticalStripes: Pattern = (x) =>
+	Math.floor(x / 6) % 2 ? [40, 200, 40] : [160, 30, 30];
+const checkerboard: Pattern = (x, y) =>
+	(Math.floor(x / 9) + Math.floor(y / 9)) % 2 ? [230, 230, 60] : [20, 60, 90];
+const diagonalGradient: Pattern = (x, y) => [x * 4, y * 4, 128];
+
+const makeHashSet = (hashes: ImageHashSet['hashes']): ImageHashSet => ({
 	id: 'test-heroes',
-	description: 'Test hero portrait hashes',
-	hashes: [
-		{ name: 'ana', hash: '6b2b17451147b400' },
-		{ name: 'ashe', hash: '0a26b7350e052580' },
-		{ name: 'baptiste', hash: '13050b39456abe00' },
-	],
+	description: 'Test hero portrait templates',
+	hashes,
 	createdAt: new Date(),
 	updatedAt: new Date(),
-};
+});
 
-// Mock canvas context
-const mockCanvasContext = {
-	drawImage: vi.fn(),
-	getImageData: vi.fn(() => ({
-		data: new Uint8ClampedArray(9 * 8 * 4),
-		width: 9,
-		height: 8,
-	})),
-	putImageData: vi.fn(),
-};
+const decodedLength = (hash: string) => atob(hash).length;
 
-// Mock canvas element
-const mockCanvas = {
-	width: 0,
-	height: 0,
-	getContext: vi.fn(() => mockCanvasContext),
-};
-
-// Store original createElement
-const originalCreateElement = document.createElement.bind(document);
+const knownHashSet = makeHashSet([
+	{ name: 'ana', hash: createTemplate(createImage(40, 40, horizontalStripes)) },
+	{ name: 'ashe', hash: createTemplate(createImage(40, 40, verticalStripes)) },
+	{ name: 'baptiste', hash: createTemplate(createImage(40, 40, checkerboard)) },
+]);
 
 describe('imageRecognition', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
+	describe('createTemplate', () => {
+		it('should encode an RGB thumbnail as base64', () => {
+			const hash = createTemplate(createImage(40, 40, checkerboard));
 
-		// Mock document.createElement for canvas
-		vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-			if (tagName === 'canvas') {
-				return mockCanvas as unknown as HTMLCanvasElement;
+			expect(hash).toMatch(/^[A-Za-z0-9+/]+=*$/);
+			expect(decodedLength(hash)).toBe(TEMPLATE_SIZE ** 2 * 3);
+		});
+
+		it('should average a uniform image to its colour', () => {
+			const hash = createTemplate(createImage(37, 41, () => [10, 20, 30]));
+			const bytes = [...atob(hash)].map((c) => c.charCodeAt(0));
+
+			for (let i = 0; i < bytes.length; i += 3) {
+				expect(bytes.slice(i, i + 3)).toEqual([10, 20, 30]);
 			}
-			return originalCreateElement(tagName);
-		});
-	});
-
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
-	describe('dhash', () => {
-		it('should return a 16-character hex string for default hash size', () => {
-			// Create uniform gray ImageData
-			const width = 100;
-			const height = 100;
-			const data = new Uint8ClampedArray(width * height * 4);
-			for (let i = 0; i < data.length; i += 4) {
-				data[i] = 128; // R
-				data[i + 1] = 128; // G
-				data[i + 2] = 128; // B
-				data[i + 3] = 255; // A
-			}
-			const imageData = createImageData(data, width, height);
-
-			const hash = dhash(imageData);
-
-			expect(hash).toHaveLength(16);
-			expect(hash).toMatch(/^[0-9a-f]{16}$/);
 		});
 
-		it('should return consistent hash for same image data', () => {
-			const width = 50;
-			const height = 50;
-			const data = new Uint8ClampedArray(width * height * 4);
-			// Create a gradient pattern
-			for (let y = 0; y < height; y++) {
-				for (let x = 0; x < width; x++) {
-					const idx = (y * width + x) * 4;
-					const value = Math.floor((x / width) * 255);
-					data[idx] = value;
-					data[idx + 1] = value;
-					data[idx + 2] = value;
-					data[idx + 3] = 255;
-				}
-			}
-			const imageData1 = createImageData(new Uint8ClampedArray(data), width, height);
-			const imageData2 = createImageData(new Uint8ClampedArray(data), width, height);
+		it('should ignore the border of the image', () => {
+			const plain = createImage(40, 40, () => [90, 90, 90]);
+			const framed = createImage(40, 40, (x, y) =>
+				Math.min(x, y, 39 - x, 39 - y) < 5 ? [255, 0, 0] : [90, 90, 90]
+			);
 
-			const hash1 = dhash(imageData1);
-			const hash2 = dhash(imageData2);
-
-			expect(hash1).toBe(hash2);
+			expect(createTemplate(framed)).toBe(createTemplate(plain));
 		});
 
-		it('should produce hash based on pixel differences', () => {
-			// Note: Due to canvas mocking, we test that dhash produces valid output format
-			// and is deterministic. Real image difference detection is tested in integration tests.
-			const width = 50;
-			const height = 50;
+		it('should sample only the given rectangle', () => {
+			const large = createImage(80, 80, checkerboard);
+			const cropped = createImage(40, 40, shifted(checkerboard, 10, 20));
 
-			const data = new Uint8ClampedArray(width * height * 4);
-			for (let y = 0; y < height; y++) {
-				for (let x = 0; x < width; x++) {
-					const idx = (y * width + x) * 4;
-					const value = Math.floor((x / width) * 255);
-					data[idx] = value;
-					data[idx + 1] = value;
-					data[idx + 2] = value;
-					data[idx + 3] = 255;
-				}
-			}
-
-			const hash = dhash(createImageData(data, width, height));
-
-			// Should produce valid hex string
-			expect(hash).toHaveLength(16);
-			expect(hash).toMatch(/^[0-9a-f]{16}$/);
+			expect(createTemplate(large, { x: 10, y: 20, width: 40, height: 40 })).toBe(
+				createTemplate(cropped)
+			);
 		});
 
-		it('should return fallback hash when canvas context unavailable', () => {
-			// Temporarily make getContext return null
-			mockCanvas.getContext.mockReturnValueOnce(null as never);
+		it('should be deterministic', () => {
+			const image = createImage(50, 50, diagonalGradient);
 
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
-
-			const hash = dhash(imageData);
-
-			expect(hash).toBe('0000000000000000');
-		});
-
-		it('should support custom hash sizes', () => {
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
-
-			// Hash size 4 produces 16-bit hash (4 hex chars)
-			const hash4 = dhash(imageData, 4);
-			expect(hash4).toHaveLength(4);
-			expect(hash4).toMatch(/^[0-9a-f]{4}$/);
-
-			// Hash size 8 produces 64-bit hash (16 hex chars)
-			const hash8 = dhash(imageData, 8);
-			expect(hash8).toHaveLength(16);
-			expect(hash8).toMatch(/^[0-9a-f]{16}$/);
-		});
-	});
-
-	describe('hamDist', () => {
-		it('should return 0 for identical hashes', () => {
-			const hash = 'abcdef0123456789';
-
-			const distance = hamDist(hash, hash);
-
-			expect(distance).toBe(0);
-		});
-
-		it('should return correct distance for single bit difference', () => {
-			// 0 = 0000, 1 = 0001 (1 bit different)
-			const hashA = '0000000000000000';
-			const hashB = '0000000000000001';
-
-			const distance = hamDist(hashA, hashB);
-
-			expect(distance).toBe(1);
-		});
-
-		it('should return correct distance for multiple bit differences', () => {
-			// f = 1111, 0 = 0000 (4 bits different per hex digit)
-			const hashA = 'f000000000000000';
-			const hashB = '0000000000000000';
-
-			const distance = hamDist(hashA, hashB);
-
-			expect(distance).toBe(4);
-		});
-
-		it('should return 64 for completely opposite hashes', () => {
-			// All 0s vs all 1s (f in hex)
-			const hashA = '0000000000000000';
-			const hashB = 'ffffffffffffffff';
-
-			const distance = hamDist(hashA, hashB);
-
-			expect(distance).toBe(64);
-		});
-
-		it('should throw error for mismatched hash lengths', () => {
-			const hashA = 'abcd';
-			const hashB = 'abcdef';
-
-			expect(() => hamDist(hashA, hashB)).toThrow('Hash strings must be the same length');
-		});
-
-		it('should be commutative (order independent)', () => {
-			const hashA = 'abcdef0123456789';
-			const hashB = '123456789abcdef0';
-
-			const distAB = hamDist(hashA, hashB);
-			const distBA = hamDist(hashB, hashA);
-
-			expect(distAB).toBe(distBA);
+			expect(createTemplate(image)).toBe(createTemplate(image));
 		});
 	});
 
 	describe('recogniseImage', () => {
-		it('should return empty string when no match found within threshold', () => {
-			// Mock dhash to return a known hash that won't match any in mockHashSet
-			// Using all zeros which has maximum Hamming distance from the test hashes
-			mockCanvasContext.getImageData.mockReturnValueOnce({
-				data: new Uint8ClampedArray(9 * 8 * 4).fill(128), // Uniform grey produces all-zero hash
-				width: 9,
-				height: 8,
-			});
+		it('should recognise an image matching a known template', () => {
+			const result = recogniseImage(createImage(40, 40, verticalStripes), knownHashSet);
 
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
+			expect(result.name).toBe('ashe');
+			expect(result.confidence).toBeGreaterThan(90);
+		});
 
-			// Use high threshold to ensure no match with the dissimilar hashes
-			const result = recogniseImage(imageData, mockHashSet, 0.99);
+		it('should recognise an image that is out of alignment by a few pixels', () => {
+			const image = createImage(40, 40, shifted(checkerboard, 2, -1));
 
-			// With a known non-matching hash, the name should be empty
+			expect(recogniseImage(image, knownHashSet).name).toBe('baptiste');
+		});
+
+		it('should recognise an image at a different resolution', () => {
+			const scale = 76 / 40;
+			const image = createImage(76, 76, (x, y) =>
+				horizontalStripes(x / scale, y / scale)
+			);
+
+			expect(recogniseImage(image, knownHashSet).name).toBe('ana');
+		});
+
+		it('should not recognise an image unlike any known template', () => {
+			const result = recogniseImage(createImage(40, 40, diagonalGradient), knownHashSet);
+
 			expect(result.name).toBe('');
-			expect(typeof result.confidence).toBe('number');
-			expect(result.confidence).toBeGreaterThanOrEqual(0);
-			expect(result.confidence).toBeLessThanOrEqual(100);
+			expect(result.confidence).toBeLessThan(50);
 		});
 
-		it('should return a hero ID when match found within threshold', () => {
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
+		it('should not recognise an image that matches two names equally', () => {
+			const hash = createTemplate(createImage(40, 40, checkerboard));
+			const ambiguous = makeHashSet([
+				{ name: 'ana', hash },
+				{ name: 'ashe', hash },
+			]);
 
-			// Use very low threshold to ensure a match
-			const result = recogniseImage(imageData, mockHashSet, 0);
-
-			// Should return some hero ID since threshold is 0
-			expect(result.name).toBeTruthy();
-			expect(typeof result.name).toBe('string');
-			expect(typeof result.confidence).toBe('number');
-		});
-
-		it('should use default threshold when not specified', () => {
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
-
-			// Should not throw and return an object
-			const result = recogniseImage(imageData, mockHashSet);
-
-			expect(typeof result.name).toBe('string');
-			expect(typeof result.confidence).toBe('number');
-		});
-
-		it('should return best match among candidates', () => {
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
-
-			// Call twice with same data should give same result
-			const result1 = recogniseImage(imageData, mockHashSet, 0);
-			const result2 = recogniseImage(imageData, mockHashSet, 0);
-
-			expect(result1.name).toBe(result2.name);
-			expect(result1.confidence).toBe(result2.confidence);
-		});
-
-		it('should respect threshold parameter', () => {
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
-
-			// Very low threshold (0) should always return a match
-			const lowThresholdResult = recogniseImage(imageData, mockHashSet, 0);
-			expect(lowThresholdResult.name).toBeTruthy();
-
-			// Very high threshold (1.0) requires perfect match
-			const highThresholdResult = recogniseImage(imageData, mockHashSet, 1.0);
-			// May or may not match, but should be an object with string result
-			expect(typeof highThresholdResult.name).toBe('string');
-			expect(typeof highThresholdResult.confidence).toBe('number');
-		});
-
-		it('should accept threshold values between 0 and 1', () => {
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
-
-			// Test various threshold values
-			expect(() => recogniseImage(imageData, mockHashSet, 0)).not.toThrow();
-			expect(() => recogniseImage(imageData, mockHashSet, 0.5)).not.toThrow();
-			expect(() => recogniseImage(imageData, mockHashSet, 0.85)).not.toThrow();
-			expect(() => recogniseImage(imageData, mockHashSet, 1.0)).not.toThrow();
-		});
-
-		it('should return empty string for empty hash set', () => {
-			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
-			const imageData = createImageData(data, 100, 100);
-			const emptyHashSet: ImageHashSet = {
-				id: 'empty',
-				description: 'Empty hash set',
-				hashes: [],
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			};
-
-			const result = recogniseImage(imageData, emptyHashSet, 0);
+			const result = recogniseImage(createImage(40, 40, checkerboard), ambiguous);
 
 			expect(result.name).toBe('');
 			expect(result.confidence).toBe(0);
+		});
+
+		it('should ignore entries that are not templates', () => {
+			const withLegacy = makeHashSet([
+				{ name: 'ashe', hash: '6b2b17451147b400' },
+				...knownHashSet.hashes,
+			]);
+
+			const result = recogniseImage(createImage(40, 40, horizontalStripes), withLegacy);
+
+			expect(result.name).toBe('ana');
+		});
+
+		it('should return no match for a set without templates', () => {
+			const image = createImage(40, 40, checkerboard);
+
+			for (const hashSet of [
+				makeHashSet([]),
+				makeHashSet([{ name: 'ana', hash: '6b2b17451147b400' }]),
+			]) {
+				const result = recogniseImage(image, hashSet);
+				expect(result.name).toBe('');
+				expect(result.confidence).toBe(0);
+			}
+		});
+
+		it('should return the template of the image', () => {
+			const image = createImage(40, 40, diagonalGradient);
+
+			expect(recogniseImage(image, knownHashSet).hash).toBe(createTemplate(image));
+		});
+
+		it('should recognise a learned template of the image itself', () => {
+			const image = createImage(40, 40, diagonalGradient);
+			const learned = makeHashSet([
+				...knownHashSet.hashes,
+				{ name: 'new-hero', hash: recogniseImage(image, knownHashSet).hash },
+			]);
+
+			expect(recogniseImage(image, learned).name).toBe('new-hero');
+		});
+	});
+
+	describe('with bundled portraits and real screenshots', () => {
+		// 76px portrait regions at 1440p with a 4px margin: post-game (Screenshot 920)
+		// then in-game (examples/scoreboard-screenshot-example.jpg), blue team first
+		const CROP_SIZE = 84;
+		const MARGIN = 4;
+		// Empty names are heroes missing from the bundled portraits
+		const EXPECTED = [
+			['doomfist', '', 'ashe', 'ana', '', 'sigma', 'vendetta', 'soldier', '', 'ana'],
+			['zarya', 'genji', 'sombra', 'kiriko', 'moira'],
+			['reinhardt', 'genji', 'torbjorn', 'lucio', 'ana'],
+		].flat();
+
+		const strip = PNG.sync.read(
+			readFileSync(resolve(__dirname, '../fixtures/hero-portraits.png'))
+		);
+		const portraits = mergeHashSets(DEFAULT_HASH_SETS).find(
+			(hs) => hs.id === 'hero-portrait'
+		)!;
+
+		/** Crops a 76px region from a fixture portrait, offset from its true position */
+		const cropPortrait = (index: number, dx: number, dy: number) =>
+			createImage(76, 76, (x, y) => {
+				const sx = index * CROP_SIZE + MARGIN + dx + x;
+				const i = ((MARGIN + dy + y) * strip.width + sx) * 4;
+				return [strip.data[i], strip.data[i + 1], strip.data[i + 2]];
+			});
+
+		it.each(EXPECTED.map((name, index) => ({ name, index })))(
+			'should recognise portrait $index as "$name"',
+			({ name, index }) => {
+				for (const [dx, dy] of [
+					[0, 0],
+					[-2, 1],
+					[2, -2],
+				]) {
+					expect(recogniseImage(cropPortrait(index, dx, dy), portraits).name).toBe(name);
+				}
+			}
+		);
+	});
+
+	describe('mergeHashSets', () => {
+		const makeNamedHashSet = (id: string, names: string[]): ImageHashSet => ({
+			...makeHashSet(names.map((name, i) => ({ name, hash: `${i}` }))),
+			id,
+			description: id,
+		});
+
+		it('should combine hashes of sets sharing an ID, keeping input order', () => {
+			const learned = makeNamedHashSet('hero-portrait', ['new-hero']);
+			const bundled = makeNamedHashSet('hero-portrait', ['ana', 'ashe']);
+
+			const merged = mergeHashSets([learned, bundled]);
+
+			expect(merged).toHaveLength(1);
+			expect(merged[0].hashes.map((h) => h.name)).toEqual(['new-hero', 'ana', 'ashe']);
+		});
+
+		it('should keep sets with different IDs separate', () => {
+			const merged = mergeHashSets([
+				makeNamedHashSet('hero-portrait', ['ana']),
+				makeNamedHashSet('rank-icons', ['gold']),
+			]);
+
+			expect(merged.map((hs) => hs.id)).toEqual(['hero-portrait', 'rank-icons']);
+		});
+
+		it('should not mutate the input sets', () => {
+			const learned = makeNamedHashSet('hero-portrait', ['new-hero']);
+			const bundled = makeNamedHashSet('hero-portrait', ['ana']);
+
+			mergeHashSets([learned, bundled]);
+
+			expect(learned.hashes).toHaveLength(1);
+			expect(bundled.hashes).toHaveLength(1);
+		});
+
+		it('should return an empty array for no sets', () => {
+			expect(mergeHashSets([])).toEqual([]);
 		});
 	});
 });

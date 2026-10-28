@@ -4,6 +4,7 @@ import { createSignal, onMount, mergeProps } from 'solid-js';
 interface RecordFieldInputProps {
 	staticId: Readonly<string>;
 	staticInputmode?: Readonly<'text' | 'numeric' | 'none'>;
+	staticListId?: Readonly<string>;
 	initialValue: Readonly<string>;
 	baseline: () => Readonly<string>; // For comparison to detect modifications
 	initialIsJustSaved: Readonly<boolean>;
@@ -76,6 +77,7 @@ const RecordFieldInput: Component<RecordFieldInputProps> = (_props) => {
 			type="text"
 			inputmode={props.staticInputmode || 'text'}
 			pattern={validityPattern}
+			list={props.staticListId}
 			value={value()}
 			onInput={handleInput}
 			onFocus={(e) => e.target.select()}

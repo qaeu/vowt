@@ -10,7 +10,7 @@
 
 @layer screen {
 	@scope (#game-records-screen) to (.expanded-details) {
-		.records-table-wrapper thead tr {
+		.records-header {
 			@include shadow;
 			position: sticky;
 			z-index: 1;
@@ -39,18 +39,20 @@
 			padding: 0;
 			contain: paint;
 
-			table {
-				width: 100%;
-				border-collapse: collapse;
+			.records-list {
+				display: grid;
+				grid-template-columns: 2fr 1fr 1fr 2fr 3fr auto;
 			}
 
-			thead tr {
+			.records-header {
+				grid-column: 1 / -1;
+				display: grid;
+				grid-template-columns: subgrid;
 				background-color: get($greys, 'base');
 				color: $white;
 
-				th {
+				> div {
 					padding: 12px;
-					text-align: left;
 					font-weight: bold;
 
 					&.center {
@@ -59,9 +61,11 @@
 				}
 			}
 
-			tbody tr {
+			.record-group {
+				grid-column: 1 / -1;
+				display: grid;
+				grid-template-columns: subgrid;
 				border-bottom: 1px solid get($neutrals, 'sep');
-				cursor: pointer;
 
 				&:last-child {
 					border-bottom-color: transparent;
@@ -69,18 +73,21 @@
 
 				&.expanded {
 					background-color: $background;
-					border-bottom-color: transparent;
 				}
+			}
 
-				td {
+			.record-row {
+				grid-column: 1 / -1;
+				display: grid;
+				grid-template-columns: subgrid;
+				cursor: pointer;
+				user-select: none;
+
+				.record-cell {
 					padding: 12px;
 
 					&.center {
 						text-align: center;
-					}
-
-					&.expanded-details {
-						cursor: default;
 					}
 				}
 
@@ -127,39 +134,57 @@
 			}
 		}
 
+		.record-expanded-row {
+			grid-column: 1 / -1;
+			overflow: hidden;
+			display: grid;
+			grid-template-rows: 0fr;
+			transition: grid-template-rows $toggle-animation-dur cubic-bezier(0.2, 1, 0.75, 1);
+
+			&.expanded {
+				grid-template-rows: 1fr;
+			}
+		}
+
 		.expanded-details {
-			padding: 20px;
 			background-color: $background;
-			border-bottom: 1px solid get($neutrals, 'sep');
+			overflow: hidden;
+			opacity: 0;
+			transition: opacity $toggle-animation-dur cubic-bezier(0.2, 1, 0.75, 1);
+			min-height: 0;
+		}
 
-			h3 {
-				color: $foreground;
-				margin-top: 0;
+		.record-expanded-row.expanded .expanded-details {
+			opacity: 1;
+		}
+
+		.expanded-details h3 {
+			color: $foreground;
+			margin-top: 0;
+		}
+
+		.expanded-details h4 {
+			color: $foreground;
+			margin-bottom: 10px;
+		}
+
+		.expanded-details h5 {
+			margin-bottom: 10px;
+
+			&.blue-team {
+				color: $primary;
 			}
 
-			h4 {
-				color: $foreground;
-				margin-bottom: 10px;
+			&.red-team {
+				color: get($errors, 'base');
 			}
+		}
 
-			h5 {
-				margin-bottom: 10px;
+		.expanded-details .game-info {
+			margin-bottom: 15px;
 
-				&.blue-team {
-					color: $primary;
-				}
-
-				&.red-team {
-					color: get($errors, 'base');
-				}
-			}
-
-			.game-info {
-				margin-bottom: 15px;
-
-				strong {
-					font-weight: bold;
-				}
+			strong {
+				font-weight: bold;
 			}
 		}
 	}

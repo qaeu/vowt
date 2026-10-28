@@ -1,705 +1,928 @@
 {
 	"type": "vowt-region-profile",
-	"schemaVersion": 1,
+	"schemaVersion": 2,
 	"profile": {
 		"id": "Post-game_5v5",
 		"description": "Post-game F1 match info screen (5v5)",
 		"regions": [
 			{
 				"name": "blue_player1_hero",
-				"x": 400,
-				"y": 335,
+				"x": 404,
+				"y": 439,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player1_name",
 				"x": 490,
-				"y": 340,
+				"y": 451,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player1_e",
-				"y": 340,
+				"y": 458,
 				"x": 840,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player1_a",
 				"x": 907,
-				"y": 340,
+				"y": 458,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player1_d",
 				"x": 974,
-				"y": 340,
+				"y": 458,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player1_dmg",
 				"x": 1051,
-				"y": 340,
+				"y": 458,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player1_h",
 				"x": 1179,
-				"y": 340,
+				"y": 458,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player1_mit",
 				"x": 1307,
-				"y": 340,
+				"y": 458,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 0
 			},
 			{
 				"name": "blue_player2_hero",
-				"x": 400,
-				"y": 417,
+				"x": 404,
+				"y": 523,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player2_name",
 				"x": 490,
-				"y": 422,
+				"y": 535,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player2_e",
 				"x": 840,
-				"y": 422,
+				"y": 542,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player2_a",
 				"x": 907,
-				"y": 422,
+				"y": 542,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player2_d",
 				"x": 974,
-				"y": 422,
+				"y": 542,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player2_dmg",
 				"x": 1051,
-				"y": 422,
+				"y": 542,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player2_h",
 				"x": 1179,
-				"y": 422,
+				"y": 542,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player2_mit",
 				"x": 1307,
-				"y": 422,
+				"y": 542,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 1
 			},
 			{
 				"name": "blue_player3_hero",
-				"x": 400,
-				"y": 499,
+				"x": 404,
+				"y": 607,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player3_name",
 				"x": 490,
-				"y": 504,
+				"y": 619,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player3_e",
 				"x": 840,
-				"y": 504,
+				"y": 626,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player3_a",
 				"x": 907,
-				"y": 504,
+				"y": 626,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player3_d",
 				"x": 974,
-				"y": 504,
+				"y": 626,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player3_dmg",
 				"x": 1051,
-				"y": 504,
+				"y": 626,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player3_h",
 				"x": 1179,
-				"y": 504,
+				"y": 626,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player3_mit",
 				"x": 1307,
-				"y": 504,
+				"y": 626,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 2
 			},
 			{
 				"name": "blue_player4_hero",
-				"x": 400,
-				"y": 581,
+				"x": 404,
+				"y": 691,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player4_name",
 				"x": 490,
-				"y": 586,
+				"y": 703,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player4_e",
 				"x": 840,
-				"y": 586,
+				"y": 710,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player4_a",
 				"x": 907,
-				"y": 586,
+				"y": 710,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player4_d",
 				"x": 974,
-				"y": 586,
+				"y": 710,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player4_dmg",
 				"x": 1051,
-				"y": 586,
+				"y": 710,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player4_h",
 				"x": 1179,
-				"y": 586,
+				"y": 710,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player4_mit",
 				"x": 1307,
-				"y": 586,
+				"y": 710,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 3
 			},
 			{
 				"name": "blue_player5_hero",
-				"x": 400,
-				"y": 663,
+				"x": 404,
+				"y": 775,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "blue_player5_name",
 				"x": 490,
-				"y": 668,
+				"y": 787,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "blue_player5_e",
 				"x": 840,
-				"y": 668,
+				"y": 794,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "blue_player5_a",
 				"x": 907,
-				"y": 668,
+				"y": 794,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "blue_player5_d",
 				"x": 974,
-				"y": 668,
+				"y": 794,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "blue_player5_dmg",
 				"x": 1051,
-				"y": 668,
+				"y": 794,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "blue_player5_h",
 				"x": 1179,
-				"y": 668,
+				"y": 794,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "blue_player5_mit",
 				"x": 1307,
-				"y": 668,
+				"y": 794,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "blue",
+				"row": 4
 			},
 			{
 				"name": "red_player1_hero",
-				"x": 400,
-				"y": 875,
+				"x": 404,
+				"y": 972,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player1_name",
 				"x": 490,
-				"y": 880,
+				"y": 984,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player1_e",
 				"x": 840,
-				"y": 880,
+				"y": 991,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player1_a",
 				"x": 907,
-				"y": 880,
+				"y": 991,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player1_d",
 				"x": 974,
-				"y": 880,
+				"y": 991,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player1_dmg",
 				"x": 1051,
-				"y": 880,
+				"y": 991,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player1_h",
 				"x": 1179,
-				"y": 880,
+				"y": 991,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player1_mit",
 				"x": 1307,
-				"y": 880,
+				"y": 991,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 0
 			},
 			{
 				"name": "red_player2_hero",
-				"x": 400,
-				"y": 957,
+				"x": 404,
+				"y": 1056,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player2_name",
 				"x": 490,
-				"y": 962,
+				"y": 1068,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player2_e",
 				"x": 840,
-				"y": 962,
+				"y": 1075,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player2_a",
 				"x": 907,
-				"y": 962,
+				"y": 1075,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player2_d",
 				"x": 974,
-				"y": 962,
+				"y": 1075,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player2_dmg",
 				"x": 1051,
-				"y": 962,
+				"y": 1075,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player2_h",
 				"x": 1179,
-				"y": 962,
+				"y": 1075,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player2_mit",
 				"x": 1307,
-				"y": 962,
+				"y": 1075,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 1
 			},
 			{
 				"name": "red_player3_hero",
-				"x": 400,
-				"y": 1039,
+				"x": 404,
+				"y": 1140,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player3_name",
 				"x": 490,
-				"y": 1044,
+				"y": 1152,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player3_e",
 				"x": 840,
-				"y": 1044,
+				"y": 1159,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player3_a",
 				"x": 907,
-				"y": 1044,
+				"y": 1159,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player3_d",
 				"x": 974,
-				"y": 1044,
+				"y": 1159,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player3_dmg",
 				"x": 1051,
-				"y": 1044,
+				"y": 1159,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player3_h",
 				"x": 1179,
-				"y": 1044,
+				"y": 1159,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player3_mit",
 				"x": 1307,
-				"y": 1044,
+				"y": 1159,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 2
 			},
 			{
 				"name": "red_player4_hero",
-				"x": 400,
-				"y": 1121,
+				"x": 404,
+				"y": 1224,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player4_name",
 				"x": 490,
-				"y": 1126,
+				"y": 1236,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player4_e",
 				"x": 840,
-				"y": 1126,
+				"y": 1243,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player4_a",
 				"x": 907,
-				"y": 1126,
+				"y": 1243,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player4_d",
 				"x": 974,
-				"y": 1126,
+				"y": 1243,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player4_dmg",
 				"x": 1051,
-				"y": 1126,
+				"y": 1243,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player4_h",
 				"x": 1179,
-				"y": 1126,
+				"y": 1243,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player4_mit",
 				"x": 1307,
-				"y": 1126,
+				"y": 1243,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 3
 			},
 			{
 				"name": "red_player5_hero",
-				"x": 400,
-				"y": 1203,
+				"x": 404,
+				"y": 1308,
 				"width": 76,
 				"height": 76,
-				"imgHashSet": "hero-portrait"
+				"imgHashSet": "hero-portrait",
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "red_player5_name",
 				"x": 490,
-				"y": 1208,
+				"y": 1320,
 				"width": 300,
-				"height": 60,
+				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "red_player5_e",
 				"x": 840,
-				"y": 1208,
+				"y": 1327,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "red_player5_a",
 				"x": 907,
-				"y": 1208,
+				"y": 1327,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "red_player5_d",
 				"x": 974,
-				"y": 1208,
+				"y": 1327,
 				"width": 67,
-				"height": 60,
-				"charSet": "0123456789"
+				"height": 42,
+				"charSet": "0123456789",
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "red_player5_dmg",
 				"x": 1051,
-				"y": 1208,
+				"y": 1327,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "red_player5_h",
 				"x": 1179,
-				"y": 1208,
+				"y": 1327,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "red_player5_mit",
 				"x": 1307,
-				"y": 1208,
+				"y": 1327,
 				"width": 128,
-				"height": 60,
-				"charSet": "0123456789,"
+				"height": 42,
+				"charSet": "0123456789,",
+				"group": "red",
+				"row": 4
 			},
 			{
 				"name": "result",
 				"x": 1520,
-				"y": 765,
+				"y": 875,
 				"width": 400,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789: /-",
-				"height": 90,
-				"isItalic": true
+				"height": 80,
+				"isItalic": true,
+				"group": "match_info"
 			},
 			{
 				"name": "final_score",
 				"x": 1520,
-				"y": 855,
+				"y": 958,
 				"width": 400,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789: /-",
-				"height": 37
+				"height": 37,
+				"group": "match_info"
 			},
 			{
 				"name": "date",
 				"x": 1520,
-				"y": 892,
+				"y": 997,
 				"width": 400,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789: /-",
-				"height": 37
+				"height": 37,
+				"group": "match_info"
 			},
 			{
 				"name": "game_mode",
 				"x": 1520,
-				"y": 929,
+				"y": 1035,
 				"width": 400,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789: /-",
-				"height": 37
+				"height": 37,
+				"group": "match_info"
 			},
 			{
 				"name": "game_length",
 				"x": 1520,
-				"y": 966,
+				"y": 1074,
 				"width": 400,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789: /-",
-				"height": 37
+				"height": 37,
+				"group": "match_info"
 			}
 		],
 		"hashSets": [],
 		"createdAt": "2025-11-28T00:00:00.000Z",
-		"updatedAt": "2025-11-28T00:00:00.000Z"
+		"updatedAt": "2026-10-28T00:00:00.000Z",
+		"alignment": [
+			{
+				"name": "blue",
+				"anchor": {
+					"x": 830,
+					"y": 386,
+					"searchX": 48,
+					"searchY": 160,
+					"template": {
+						"width": 305,
+						"height": 25,
+						"data": "IyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiIjIyMjIyIjIyMjIyMjIiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMiIyMjIyMjIyMjIyMjIyMjIyMjIyMiIiIiIiIiIiIiIiIiIiIjIyIjIyMiIiIiIiIiIiIiIiMjIiIiIyIiIyIiIyIiIyMiIiIjIyIiIyMjIyIiIyMiIiIjIiIiIiIiIiIiIyMiIiIiIiIiIiIiIiIiIyIjIiIiIiIjIyIiIyMjIiIiIiIiIiIiIiIjIyIiIyMiIiIjIiMjIyMjIyMiIiIiIiIiIiIiIiEgICAfHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8jIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMiIiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiIiIiIiIyMjIyIiIiMjIyIjIiIiIyIiIiMiIiMjIyIiIiIjIiIiIiMiIiMjIiIiIiIiIiIiIiIjIiIiIiIiIiIiIiIiIiIiIiIjIyIiIyIiIiIiIiIiIiMjIyMiIiIiIiIiIiIiIiIiIiIjIiMjIyMjIyIiIiIiIiIiIiIiISAgICAfHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiMjIiIiIyMjIyIiIyIiIiIiIiMiIyMiIyIiIiIjIyIjIiIiIyMiIyIiIyIiIyMjIiIiIiIiIiIiIiMiIiMiIiIiIiIiIiMiIyIiIiIjIyIiIyMiIyIiIyMjIyMjIiIiIiIiIiIiIiIiICAgIB8fHx8fHx8fICAgICAgHyAfHx8fHx8fHx8feHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh3d3h4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHd3d3d3d3h4eHh4eHh4d3d3d3d4d3h3eHh4d3d3eHd4d3d3d3d3eHd3eHd3eHd3d3h3d3d3d3d4d3d3eHd3d3h4eHd3d3d4eHd3d3d4eHd3d3h4d3d3d3d4eHh4eHh3d3d3d3d3d3d3d3d3dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnA5Hx8fHx/u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6XHx8fH+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u5oHx8f7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7pkfHx/u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7utB8fH+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u60Hx8f7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7rQfHx/u7u7u7u7u7u7u7u7u7u7u7u7th4CAk+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6zgeju7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7t2AgIes5+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7utaamr9fu7t6m0O7u16bW7u7sv6ChyO7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7Ese7u6qbQ7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7rqs7u7usrLu5abbpqampuXu7u7u7u7u7u7u7u7u7u7u7u7u7u7utB8gH+7u7u7u7u7u7u7u7u7u7u7u7uwhRmR37u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7UQbp+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u0BtdWyU93+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6EeY10ZrjuwGaS7u6cZqzu6IVpjYVmne7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7p997u7nZrfu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7ufGbW7uBma+zfZs2PdnWP3u7u7u7u7u7u7u7u7u7u7u7u7u7u7u60ICAg7u7u7u7u7u7u7u7u7u7u7u7u7CGi7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7CG1lX7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7QG87u1Cl47u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7oSa7uuPa+eoZmji6m5mmO6latTu7r2L5+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7un33u7udmt+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7upoZqDurWZm3N9m2u6Sju7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7rQgICDu7u7u7u7u7u7u7u7u7u7u7u7sIVt9mO7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7mtUuhvV7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7tAbzu7ua0nu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7uhJru7sxmzJqAaq/AZpV97naW7u7m5uPq7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6fcaKioWa37u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u3WaFb+l8lmbC32ba7pKO7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7utCAgIO7u7u7u7u7u7u7u7u7u7u7u7uwhTWqE7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7hIp/qLoLu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u0BvO7u5xQe7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6Emu7u0mbHhJ2ZfI+MsWfobpvu6GZmZqru7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7p9yn5+eZrfu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7IZs9mpGbPbqbfZtruko7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u60ISIi7u7u7u7u7u7u7u7u7u7u7u7u7CGi7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7pQbOEAjMuru7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7QG87u6Tpm7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7oSa7u6qZt1trs9mZr/NZtWPc+bt4sNmx+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7un33u7udmt+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7q9s7ItmfO2Jkd9m2u6Sju7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7rQiIiLu7u7u7u7u7u7u7u7u7u7u7u7sIWmapO7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7sQWfFxbMbs+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7tAbhYxSI8fu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7uhIOunWea42bI7Xtv6uJmuddvfLGrdH/s7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6ffe7u52a37u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7un4Tuvmav7p513mba7pKO7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7utCIiIu7u7u7u7u7u7u7u7u7u7u7u7uxYVVVp7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7sxVyu7u7myE7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u0FVVWW3H7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6Ug4OMsOvRg93utq3u7YWv7tmVcXSd5O7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7q2P7u7ng7/u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u6bqO7qhOPuuYPVg9ruoJzu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u60IiIi7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7rQiIiLu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7utCIiIu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u60IiMj7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7rQjIyPu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7utCMjI+7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u60IyMj7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7bQjIyM="
+					}
+				},
+				"rows": {
+					"x": 840,
+					"width": 596,
+					"y": 436,
+					"rowHeight": 84,
+					"count": 5
+				}
+			},
+			{
+				"name": "red",
+				"anchor": {
+					"x": 840,
+					"y": 864,
+					"searchX": 48,
+					"searchY": 160,
+					"template": {
+						"width": 130,
+						"height": 55,
+						"data": "NDMzMzMzMzMzMzMzNDQ0MzQzNDMzMzMzMzMzMzMzNDMzMzM0MzMzMzMzMzMzMzMzMzQzMzMzMzMzMzMzNDMzMzMzMzMzMzMzMzM0NDMzMzMzMzMzMzMzMzMzMzMzMzMyMjIyMjIyMjIyMjEyMjIyMjIyMjIxMjIyMjIxMTEyMjIyMTM0NDMzMzQzNDQzMzM0NDQ0NDM0MzQ0MzMzMzMzMzQzNDM0NDMzMzQzNDQzNDQzMzQ0MzQzMzMzMzMzNDQzNDQzMzMzMzMzMzQ0MzQzNDM0NDQzMzMzMzMzMzMzMzMzMzIyMjIxMjIxMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI0NDQ0MzM0NDQ0NDQ0MzQ0NDQzMzQ0NDQ0NDQ0NDQzNDQ0NDQzNDM0NDQ0NDQ0MzQ0NDQ0MzQ0NDM0NDQ0NDQ0NDQ0NDQ0NDQ0NDQzNDQzMzQ0NDQzMzQ0NDQzMzMzMzMzMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMTIyNDQ0NDQ0NDQ0NDMzNDQ0NDMzNDQ0MzQzNDQ0NDQzNDM0NDQ0MzQ0NDQ0NDQ0NDQ0MzQ0NDMzNDM0MzM0NDQ0NDQ0NDQ0NDQ0NDQzMzQ0NDQzNDQ0MzQ0NDQ0MzMzMzMzMzIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjQ0NDQ0NDQ0NDM0NDQ0NDQ0NDQyLCsrKywyNDQzNDQuKysrKy40MzQ0My4sKysrKy0xNDM0NDQ0NDM0NDM0MzQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQzMzMzMzMyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0KXKQkJBlKjQ0NDQvRI6QkIcsMjQzKyhdfYaQjoVxOSkzNDQ0NDQ0NDQ0NDQzMzQ0NDQzNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDMzMzMzMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NCbX7u7uoCo0NDQ0KaXu7u7RJzMyJ3Lc7u7u7u7u7uZtKTQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQzNDMzMzMzMjIyMjIyMjIyMjIyMzIyMjIyMjIyMjIyMjIyMjIyMjQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDMl4u7u7oIsNDQ0MjPm7u7ueys0KITu7u7u7u7u7u7u5C0yNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDMzMzMzMzIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI0NDQ0NDQ0NDQ0NDQ0NDQ0NDQyMe3u7u5yLTQ0NCx77u7u5jQyL0Pq7u7u7u7u7u7u7u5TMDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDMzMzMzMzIyMjIyMjIyMjIyMzIyMjIzMzIyMjMyMjIyMjIyMjIyNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0MUju7u7uYC80NDQmzu7u7p4pNCqd7u7u7ZlpaL3u7u7uVTA0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDMzMzMyMjIyMjIyMjMyMjMzMzMzMzMzMzMzMjIyMjIyMjMzMzQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDBe7u7u7kkxNDQvVu7u7u5MLzQm3u7u7q8nLil57u7u7DYyNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDMzMzMzMjIyMjIyMzIzMjIzMzMzMzMzMzMyMjIyMjIyMjIzMzM0NDQ0NDQ0NDQ0NDQ0NDQ0NDQucO7u7uoqMzQ0KaPu7u7EJzQwVO7u7u50LTQqp+7u7tkmNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NTQ0NDQ0NDQ0NDQzMzMzMzMzMzMzMzMyMzIyMzMzMzMzMzMzMzMzMjIyMzMzMzMzNDQ0NTQ0NDQ0NDQ0NTU0NDQ0LX7u7u7cJjQ0MjPn7u7ucC00LHju7u7tPzE0Jtnu7u6jKjQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NTU0NDQ0NDQ0NDQzMzMzMzMyMjMyMjMzMzIzMjIyMzMzMzMzMzMzMzIyMzMzMzMzMzQ0NDQ0NDQ0NDQ0NTU0NDQ0NCuM7u7uyyc0NCx37u7u3yozNCqq7u7u1SY0MUbu7u7udS40NTQ0NDU0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0MzMzMzIzMjMzMzMyMzMyMjMzMzMzMzMzMzMzMzMzMzMzMzMzMzM1NDQ0NDQ0NDQ1NDQ0NDQ0NDQqp+7u7rIpNDQnzO7u7o8rNDQm2e7u7qMqNC107u7u7UExNDQ0NDU0NDQ1NDU1NDQ0NDQ0NDQ0NDU0NDQ0NDQ0NDQ0NDQ1NDQ0MzQ0MzMzMzIyMzMzMzMzMzIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzNTU0NDU0NDQ1NTU1NDU0NDU1KLzu7u6XKzQwVe7u7uo+MTQyPe3u7u5wLjUqlN7f38UnNTU0NDU0NDU1NTU1NDU0NDQ0NDQ0NDU1NTQ1NTU1NDQ0NDQ0NDQ0NDQ0MzMzMjIzMzMzMzMzMzMyMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzQ1NTU1NDQ0NDU0NTQ0NDQ1NCfR7u7ufi01KqDu7u62KDU0Lm/u7u7tQTM1LiYmJSUmLTU0NDU0NTU0NDQ0NDQ1NDQ0NDU0NDQ0NTQ0NDQ0NTQ1NDQ0NDQ1NDMzMzMzMzMyMjIzMzIzMzIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM1NTU1NTQ0NDQ1NDQ0NDU1NDQm3e7u7mouMjPm7u7uYS81NSyJ7u7u1yU0NDQ0NDQ0NDU1NTU1NTU1NTU1NTU1NTU0NDU0NDQ0NTU0NDQ0NTU0NTU1NDU1NTQ0MzQzMzMyMzMyMzMzMzMyMjIzMzMzMzMzMzMzMzMzMzMzNDQzMzMzNTU1NTU1NTQ0NTU1NTU1NTQzJ+nu7u5XMC137u7u1Cc0NTUqoe7u7tgzLjU1NTU1NTU1NTU1NTU1NTU1NDU1NTU1NTU1NTQ0NDU1NTU1NDU1NTU1NTU1NTU0NDQ0MzMzMjMyMjMzMzIyMjIyMzMzMzMzMzMzMzMzMzMzMzQ0NDQ0MzU1NTU1NTU0NDU1NDU1NTU1Mjru7u7uPTInyu7u7oAsNTQ1K5Xu7u7uz0krNDU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NDU1NTU1NDQ0MzMzMzMzMzMzMzMyMzMzMzMzMzMzMzMzMzM0MzM0NDQ0MzM0NDM0NTU1NTU1NTU1NTU1NTU1NTFR7u7u5yguUu7u7uczMjQ1NS5i7u7u7u7jZSgzNDU1NTU1NTU1NTU1NTQ1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTQ0NDQzMzMzMzIyMzMzMzMzMzMzMzMzMzMzMzQ0NDQzNDQzMzM0NDQzNTU1NTU1NTU1NTU1NTU1NTUwZe7u7tknK53u7u6hKjU1NTU0KJ3u7u7u7uuKLDE1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU0NDU1NTU1NTU0NDQzMzMzMzMzMzMzMzIzMzMzMzMzMzMzNDMzNDM0NDM0NDQzNDQzM2FhYVU1NTU1NTU1NTU1NTU1Lnju7u6/JzPk7u7uVDA1NTU1NTMpheru7u7u7q0vMTU1NTU1NTU1VWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWBgYGBgYGBgYGBgYGFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFVNTU1NTU1NTU1NTU1NS2E7u7upyZ17u7uxyg1NTU1NTU1Myla4e7u7u7uqSk1NTU1NTU1NVVhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgNTU1NTU1NTU1NTU1NTU1NTUsmu7u7osmx+7u7nAuNTU1NTU1NTU1LELD7u7u7uovNDU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU0NDQ0MzMzMzMzMzMzMzMzMzMzMzMzMzQ0NDQ0NDQ0NDQ0NDQ0MzMzMzU1NTU1NTU1NTU1NTU1NTU1Kq7u7u57U+7u7t0tMzU1NTU1NTU1NTUvKq/u7u7uOTM1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NDQ0NDMzMzMzMzMzMzMzMzMzMzMzMzM0NDQ0NDQ0NDQ0NDQ0MzMzMzM1NTU1NTU1NTU1NTU1NTU1NSnF7u7uZ53u7u6VKzU1NTU1NTU1NTU1NS1z7u7u5ic0NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTQ0NDQzMzMzMzMzMzMzMzMzMzMzMzMzNDQ0NDQ0NDQ0NDQzMzMzMzMzNTU1NTU1NTU1NTU1NTU1NTUn2O7u7mPk7u7sQTE1NTU1NTU1NTU1NTUslu7u7sgoNTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NDQ0MzMzMzMzMzMzMzMzMzMzMzMzMzM0NDQ0NDQ0MzMzMzMzMzMzMzU1NTU1NTU1NTU1NTU1NTU0JuXu7uyu7u7utSk1NTU1NTU1NTU1NTU1KM/u7u6SLDU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTQ0NDMzNDQzMzMzMzMzMzMzMzMzMzMzMzM0MzMzMzMzMzMzMzMzMzM1NTU1NTU1NTU1NTU1NTU1NDLs7u7m4O7u7mMuNTU1NSkmJiYmKjQ1Mzjt7u7uby81NTU1NTU1NTU1NTU1NTU1NjY1NTU1NTY1NTU1NTY1NTU1NTY1NTU1NTU1NDQzMzMzMzMzMzMzMzMzMzMzMzMzMzM0NDQzMzMzMzMzMzMzMzMzNTU1NTU1NTU1NTU1NTU1NTNH7u7u7u7u7tcnNDU1NTBX4uHh31AxNS9u7u7u7UAyNTU1NTU1NTU1NTU1NTU1NjU1NjU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU0NDMzMzMzMzMzMzQ0MzMzMzMzMzQ0MzQ0MzQzMzM0NDMzMzQ0NDU1NTU1NTU1NTU1NTU1NTYxW+7u7u7u7u6DLTU1NTUsjO7u7ukvNDUsnu7u7twnNTY2NTY1NTU1NTU1NTU1NjY2NjU1NTU1NTU1NTU2NjU1NTU1NTU1NTU1NTU1NTQzMzM0MzMzMzQzMzMzMzMzMzM0MzMzMzM0MzQzMzQzMzMzMzM1NTU2NTU1NTU1NTY1NTU1L2/u7u7u7u7nNjM1NTU1KcPu7u7EKTU1KNbu7u60KzY2NjU1NTY2NTU1NTY1NTU1NjY2NTU2NjY1NjY1NjY2NjY1NTU1NTU1NTU1NTU0MzM0NDM0MzQzMzMzMzMzMzMzMzM0NDQzMzMzMzMzMzMzMzMzNTU2NjU2NjY2NTY2NTY2NS5+7u7u7u7upCo1NTU1NCrn7u7ujiw1MT7t7u7ufS42NjU2NjU1NjU1NjY2NjY2NjY2NjY1NTY2NTY2NjY2NTU1NTY1NTU2NjU2NTU0NDMzNDMzMzQzMzMzNDQ0MzMzMzQ0NDMzNDMzMzQ0MzMzMzM0NDU2NjY1NjY2NjY2NjY2NjYtju7u7u7u7lcwNTY2NTJD7u7u7pknJi+h7u7u7UgyNjY1NjY2NjY1NTU2NjY2NjY2NjY2NTY1NTU1NjY2NjU2NTU2NjU2NjY2NjU1NTU0NDQ0NDQ0NDQ0NDQ0NDMzMzM0NDQ0MzM0NDM0MzMzNDMzNDM2NjY2NjU1NjY1NjY1NjY2K6bu7u7u7skoNTY1NjYyS+7u7u7u5+br7u7u7r8oNTY2NjY2NjY1NjU1NjY2NjY1NjY2NjU1NTU1NjY2NjY1NjY1NTY1NTY2NjY1NTU1NTQ0NDQ0NDQ0NDQ0NDQzMzMzMzQ0NDM0NDQzNDQ0MzMzNDQ0NjY2NjU1NjY2NjY2NjY2Niq57u7u7u5zLTU2NjY2NS/n7u7u7u7u7u7u7udMMDY2NjY2NjY2NjY1NjY2NjY2NjY2NjY2NjY2NjY1NTY2NjY2NjY2NTU2NjY2NTU1NDQ0NDQ0NDQzNDQ0NDQ0NDQ0NDQ0MzM0NDQ0NDQ0NDQ0NDQ0NDY2NjY2NjY2NjY2NjY2NjYpze7u7u7iLjQ1NjY2NjYrku7u7u7u7u7u7t9eLDU2NjY2NjY2NjY1NTU2NjU2NTY2NjY2NjY2NjY2NjY2NjY1NjY2NjU2NjY2NjY1NTU1NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ2NjY2NjY2NjY2NjY2NjY2KL3Y2NjYgyw2NjY2NjY2NClvtNHY2NfOsXk1LTY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY1NjY2NjY2NjY2NjY2NjY2NjY2NTU1NTQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NjY2NjY2NjY2NjY2NjY2Ni8oKCgoKCk0NjY2NjY2NjY1LyooKCgoKCsvMzY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjU1NTU0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDM0NDQ0NDY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY1NTU1NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NTU1NTQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjU1NTU1NDQ1NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY1NTU1NDQ0NTU0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjU1NTQ1NDQ0NTU1NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NjY2NjY2NjY2NjY2NjY2Nzc2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY1NTU1NDQ0NDU1NTQ0NDQ0NDQ0NDQ0NDQ1NTQ0NDQ0NDQ0NTQ0NDY2NjY2NjY2Nzc2NjY2Njc3Nzc2NjY2NzY2NjY3NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3NjY2NjY2NjY2NjU1NDQ1NTQ1NDQ0NDQ0NDU1NTU0NDQ0NDQ1NDQ0NDQ1NTU0NTQ2NjY2Nzc3Nzc3Njc3Nzc3Nzc3NzY2Nzc3Njc2Njc2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NzY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjU1NTQ1NDU1NTQ1NDQ0NDQ1NTU1NTQ0NDQ0NTU0NDU1NTU1NDU0Nzc2Njc2Nzc2NjY3Nzc3Nzc3NjY3Nzc2Nzc3NzY2NjY2Njc3NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2Nzc2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NTU1NDU1NTU1NTQ0NTU1NTU1NTU0NDU1NDQ1NTU1NTU1NTQ0NTc3Nzc3Nzc3Nzc2Njc3Nzc3Nzc3Nzc3Nzc3Nzc3Njc3Nzc3NzY2Njc3NzY2NjY3NjY3NjY2NjY2NzY2Njc2NjY2NjY2NjY2NjY2Njc3NjY2NjY2NjY2NjY3NjY2NjU2NTU0NTQ1NTQ0NDQ0NDU1NTU1NTU1NTU0NTU1NTQ1NTU0NTU3Nzc3Nzc3Nzc3Nzc3Njc3Nzc3Nzc2Nzc3Nzc3NzY3Nzc3Nzc2NzY2Njc3Njc2NjY3Nzc3NjY2Njc2NjY2NjY2Njc3Nzc3NzY2NjY2NjY2NjY2Njc2NjY2NzY2NjY2NTU1NTU1NTQ1NTU1NTU1NTU1NTQ1NTU1NTU1NTU0NTU1NTU1Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc2Njc2Njc2Nzc2NzY2Nzc3NzY2Nzc2NjY2Nzc3NzY3Nzc3Nzc3NjY2NjY2NzY2Njc3NjY2NjY2NjY2NjY1NTU1NTU1NTU1NTU1NTU1NDU1NTU1NTU1NDU1NTU1NTU1NUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlISEhISEhISFBRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlTVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJU1RUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVA=="
+					}
+				},
+				"rows": {
+					"x": 840,
+					"width": 596,
+					"y": 969,
+					"rowHeight": 84,
+					"count": 5
+				}
+			},
+			{
+				"name": "match_info",
+				"anchor": {
+					"x": 1534,
+					"y": 960,
+					"searchX": 48,
+					"searchY": 160,
+					"template": {
+						"width": 34,
+						"height": 73,
+						"data": "NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NJ6fn59gjpY5n5o1NDRcn2g0NEqfijQ0NJo0NDQ0NDQ0NDT/////iuPvPf//qzQ0g/+ZNDSd//5GNDT1NDQ0NDQ0NDQ0/9o2NjTj7z3///93NIP/mTQ07/b/kTQ09TQ0NDQ0NDQ0NP/mjIxT4+89/9r29lOD/5k0eP+r+uY0NPU0NDQ0SzQ0NDT/////duPvPf/TfP/dh/+ZNMj/Vrz/aTT1NDQ0pf9bNDQ0/9plZULj7z3/0zSu/+T/mU3/97jW/7U09TQ0NGzBQjQ0NP/aNDQ04+89/9M0Ntn//5mg//Hv7/r6QPU0NDQ0NDQ0NDT/2jQ0NOPvPf/TNDRR8/+Z8fc8NDSk/4v1NDQ0NDQ0NDQ0mIc0NDSLkTmagzQ0NGKafpp8NDQ0UJp+lDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDRqamlcNzQ0NDRFak80NGdqampqT2pqamU0NDQ0NDQ0NDQ0/P////eONDQ0nv/dNDTq/////Zz////lNDQ0NDQ0NDQ0NPzxip/2/2w0NPD//100hLX/w4mc/6CJgjQ0NDQ0NDQ0NDT86jQ0gv+6NHn/0f+sNDSD/5c0nP9mPTlHNDQ0NDQ0NDQ0/Oo0NEb/4TTJ/1Pz9jk0g/+XNJz////XgjQ0NH/cSDQ0NPzqNDRX/9lN/+l90P+DNIP/lzSc/7CahTQ0NDSd+lA0NDT86jQ0sv+ioP//////0jSD/5c0nP9iNDQ0NDQ0NDY0NDQ0/Pfc7//tSvL3ZWVl3/9Sg/+XNJz/3dvGZjQ0NDQ0NDQ0NOXn5t2uTnHnojQ0NIjnjX3nizSP5+fn0mA0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDRu1v37xlg0NDR68sU0NDSN8qk0NGPy3TQ0NDQ0NDQ0NDSE//rK1//3WjQ0yf//TTQ0pP/3OjSr//43NDQ0NDQ0NDQ99vlYNDSB6lc0Tv/k/500NM3//4U29f//YjQ0NDQ0NDQ0dv+8NDppaXtnNKD/gfjuNDTt9//Te//0/4k0NDRZkTQ0NID/sTRd////6TTy9Te2/3Q3/tfP/8X/k/+kNDQ0rP9lNDRR/+9CQnqm/799///+/v/BWv+tgP//1EX/1TQ0NE6BNDQ0NLX/4ZGX8f9wzf+gm5vu/pD/kzb1/4Y09vc0NDQ0NDQ0NDQ3rv7///iOUP/XNDQ0mv/y/3g0qvg8NNf/NDQ0NDQ0NDQ0NDREd3I/NERZRzQ0NEBZWVk4NENTNDRJWTQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0Po65s4Q0NDQ0VJ9/NDQ0Yp9uNDRIn440NDQ0NDQ0NDQ0Vuv/////2EE0NK3/9zs0NJz/5zQ0kf/5NDQ0NDQ0NDQ0NOH/nDlHu/92NDz39f+FNDTA//9qNOL//1A0NDQ0NDQ0NGb/1DQ0NDZwNDSI/6T/1jQ05Pz/tF///P9+NDQ0NEs0NDSB/6s0W/Hx8eM02/5H0f9VNPvj6vmq/73/mTQ0NKX/WzQ0aP/ZNEi0xP/VYP/vudz/pkv/vZj/9u5W/8U0NDRswUI0NDTh/6tEUsz/kLH/7+/v/fN0/5hI/v+gNPzuNDQ0NDQ0NDQ0Ver/////zD/48DQ0NLT/2P+DNMP/TjTj/zQ0NDQ0NDQ0NDQ7irCqfzRXmnE0NDRampmaTzRgjTQ0fJo0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NA=="
+					}
+				}
+			}
+		]
 	},
-	"exportedAt": "2025-11-28T00:00:00.000Z"
+	"exportedAt": "2026-10-28T00:00:00.000Z"
 }

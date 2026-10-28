@@ -41,7 +41,7 @@ Configure your repository to deploy from the `dist` folder via GitHub Actions or
 
 ## Documentation
 
--   [AGENTS.md](./AGENTS.md) - Comprehensive development guidelines and project architecture
+-   [CLAUDE.md](./CLAUDE.md) - Comprehensive development guidelines and project architecture
 -   [TESTING.md](./TESTING.md) - Testing setup and best practices
 
 ## Learn More

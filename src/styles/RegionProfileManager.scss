@@ -43,7 +43,8 @@
 					@include button($successes);
 				}
 
-				&.clear-regions {
+				&.clear-regions,
+				&.clear-hashes {
 					@include button($errors);
 				}
 			}
@@ -144,6 +145,12 @@
 				color: get($primaries, 'fg-light');
 				cursor: not-allowed;
 			}
+		}
+
+		.learned-hashes {
+			margin: 0 0 10px;
+			font-size: 13px;
+			color: get($neutrals, 'fg-light');
 		}
 
 		.profile-textarea {

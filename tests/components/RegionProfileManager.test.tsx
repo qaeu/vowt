@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
+import type { DrawnRegion } from '#types';
+
 import RegionProfileManager from '#c/RegionProfileManager';
 import * as regionProfiles from '#utils/regionProfiles';
 import * as regionEditor from '#utils/regionEditor';
+import * as regionAlignment from '#utils/regionAlignment';
 
 // Mock the region profiles utility
 vi.mock('#utils/regionProfiles', () => ({
@@ -18,6 +21,21 @@ vi.mock('#utils/regionProfiles', () => ({
 	getProfile: vi.fn(),
 	exportProfile: vi.fn(),
 	importProfile: vi.fn(),
+	getActiveProfileAlignment: vi.fn(),
+	getProfileAlignment: vi.fn(),
+	countProfileHashes: vi.fn(),
+	clearProfileHashes: vi.fn(),
+	REFERENCE_WIDTH: 2560,
+	REFERENCE_HEIGHT: 1440,
+}));
+
+// Mock the alignment utility; anchors are captured from a fake grayscale image
+vi.mock('#utils/regionAlignment', () => ({
+	ALIGN_SCALE: 2,
+	loadReferenceGrayscale: vi.fn(),
+	createAnchor: vi.fn(),
+	downsample: vi.fn((image) => image),
+	findAnchorOffset: vi.fn(),
 }));
 
 // Mock the region editor utility
@@ -42,6 +60,9 @@ describe('RegionProfileManager', () => {
 		vi.mocked(regionProfiles.getActiveProfileId).mockReturnValue(mockProfiles[1].id);
 		vi.mocked(regionProfiles.getActiveProfileDetails).mockReturnValue(mockProfiles[1]);
 		vi.mocked(regionEditor.startRegionEditor).mockResolvedValue(undefined);
+		vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([]);
+		vi.mocked(regionProfiles.getProfileAlignment).mockReturnValue([]);
+		vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
 	});
 
 	afterEach(() => {
@@ -63,6 +84,37 @@ describe('RegionProfileManager', () => {
 		it('should render instructions text', () => {
 			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
 			expect(screen.getByText(/Create and manage region profiles/i)).toBeDefined();
+		});
+	});
+
+	describe('Learned Image Hashes', () => {
+		it('should show the learned hash count for the editing profile', () => {
+			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(3);
+			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+
+			expect(screen.getByText(/3 learned hashes/)).toBeDefined();
+			expect(regionProfiles.countProfileHashes).toHaveBeenCalledWith(mockProfiles[1].id);
+		});
+
+		it('should disable Clear Learned Hashes when there are none', () => {
+			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			const button = screen.getByRole('button', {
+				name: /Clear Learned Hashes/i,
+			}) as HTMLButtonElement;
+
+			expect(button.disabled).toBe(true);
+		});
+
+		it('should clear learned hashes after confirming', async () => {
+			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(2);
+			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+
+			fireEvent.click(screen.getByRole('button', { name: /Clear Learned Hashes/i }));
+			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
+			fireEvent.click(await screen.findByText('Confirm'));
+
+			expect(regionProfiles.clearProfileHashes).toHaveBeenCalledWith(mockProfiles[1].id);
+			await waitFor(() => expect(screen.getByText(/0 learned hashes/)).toBeDefined());
 		});
 	});
 
@@ -325,7 +377,7 @@ describe('RegionProfileManager', () => {
 				height: testHeight,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				// Trigger onload asynchronously
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
@@ -358,7 +410,7 @@ describe('RegionProfileManager', () => {
 				height: testHeight,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -386,6 +438,263 @@ describe('RegionProfileManager', () => {
 				expect.any(Number),
 				expect.any(Number)
 			);
+		});
+	});
+
+	describe('Alignment Groups', () => {
+		const gray = { width: 4, height: 4, data: new Uint8ClampedArray(16) };
+		const anchor = {
+			x: 200,
+			y: 100,
+			searchX: 48,
+			searchY: 160,
+			template: { width: 40, height: 20, data: '' },
+		};
+
+		/** Renders with a 1280x720 preview and returns the editor's region callback */
+		const renderWithEditor = async () => {
+			const mockImage = {
+				onload: null as (() => void) | null,
+				onerror: null as (() => void) | null,
+				src: '',
+				width: 1280,
+				height: 720,
+			};
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
+				setTimeout(() => mockImage.onload?.(), 0);
+				return mockImage as unknown as HTMLImageElement;
+			});
+
+			let onRegionComplete: ((region: DrawnRegion) => void) | undefined;
+			vi.mocked(regionEditor.startRegionEditor).mockImplementation(
+				async (_canvas, _src, callback) => {
+					onRegionComplete = callback;
+				}
+			);
+
+			render(() => (
+				<RegionProfileManager
+					previewImage="data:image/png;base64,test"
+					onClose={mockOnClose}
+				/>
+			));
+
+			await vi.waitFor(() => expect(onRegionComplete).toBeDefined());
+			return (rect: Pick<DrawnRegion, 'x' | 'y' | 'width' | 'height'>) =>
+				onRegionComplete!({ ...rect, id: 'drawn-0', name: 'region_0', colour: '#f00' });
+		};
+
+		const addGroup = (name: string) => {
+			fireEvent.input(screen.getByLabelText('New group name'), {
+				target: { value: name },
+			});
+			fireEvent.click(screen.getByRole('button', { name: 'Add Group' }));
+		};
+
+		beforeEach(() => {
+			vi.mocked(regionAlignment.loadReferenceGrayscale).mockResolvedValue(gray);
+			vi.mocked(regionAlignment.createAnchor).mockReturnValue(anchor);
+			vi.mocked(regionAlignment.findAnchorOffset).mockReturnValue({
+				dx: 0,
+				dy: 0,
+				score: 1,
+			});
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('should load alignment groups for the active profile', () => {
+			vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
+				{ name: 'blue' },
+			]);
+
+			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+
+			expect(screen.getByText('Alignment Groups (1)')).toBeDefined();
+			expect(screen.getByText('blue')).toBeDefined();
+		});
+
+		it('should capture an anchor from a drawn rectangle at reference resolution', async () => {
+			const draw = await renderWithEditor();
+			addGroup('blue');
+
+			fireEvent.click(screen.getByRole('button', { name: 'Draw Anchor' }));
+			expect(screen.getByText(/set the anchor for 'blue'/)).toBeDefined();
+
+			draw({ x: 100, y: 50, width: 40, height: 20 });
+
+			await waitFor(() => {
+				expect(screen.getByRole('button', { name: 'Redraw Anchor' })).toBeDefined();
+			});
+			expect(regionAlignment.loadReferenceGrayscale).toHaveBeenCalledWith(
+				'data:image/png;base64,test'
+			);
+			expect(regionAlignment.createAnchor).toHaveBeenCalledWith(
+				gray,
+				{ x: 200, y: 100, width: 80, height: 40 },
+				48,
+				160
+			);
+			expect(screen.queryByText(/set the anchor for/)).toBeNull();
+			expect(screen.getByText('Drawn Regions (0)')).toBeDefined();
+		});
+
+		it('should reject an anchor without enough detail', async () => {
+			vi.mocked(regionAlignment.findAnchorOffset).mockReturnValue(null);
+			const draw = await renderWithEditor();
+			addGroup('blue');
+
+			fireEvent.click(screen.getByRole('button', { name: 'Draw Anchor' }));
+			draw({ x: 100, y: 50, width: 40, height: 20 });
+
+			await waitFor(() => {
+				expect(screen.getByText('Anchor Error')).toBeDefined();
+			});
+			expect(screen.getByRole('button', { name: 'Draw Anchor' })).toBeDefined();
+		});
+
+		it('should show an error when the image cannot be read', async () => {
+			vi.mocked(regionAlignment.loadReferenceGrayscale).mockRejectedValue(
+				new Error('Failed to load image')
+			);
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			const draw = await renderWithEditor();
+			addGroup('blue');
+
+			fireEvent.click(screen.getByRole('button', { name: 'Draw Anchor' }));
+			draw({ x: 100, y: 50, width: 40, height: 20 });
+
+			await waitFor(() => {
+				expect(
+					screen.getByText('Could not read the image to capture the anchor.')
+				).toBeDefined();
+			});
+		});
+
+		it('should create row bands from a drawn rectangle', async () => {
+			const draw = await renderWithEditor();
+			addGroup('blue');
+
+			fireEvent.click(screen.getByRole('button', { name: 'Draw Rows' }));
+			draw({ x: 420, y: 218, width: 298, height: 210 });
+
+			await waitFor(() => {
+				expect(screen.getByText('5 rows')).toBeDefined();
+			});
+			expect((screen.getByLabelText('Row Height') as HTMLInputElement).value).toBe('84');
+			expect((screen.getByLabelText('Y') as HTMLInputElement).value).toBe('436');
+		});
+
+		it('should add drawn rectangles as regions when not drawing alignment', async () => {
+			const draw = await renderWithEditor();
+
+			draw({ x: 10, y: 10, width: 40, height: 20 });
+
+			await waitFor(() => {
+				expect(screen.getByText('Drawn Regions (1)')).toBeDefined();
+			});
+			expect(regionAlignment.createAnchor).not.toHaveBeenCalled();
+		});
+
+		it('should draw alignment overlays scaled to the canvas', async () => {
+			const draw = await renderWithEditor();
+			addGroup('blue');
+
+			fireEvent.click(screen.getByRole('button', { name: 'Draw Anchor' }));
+			draw({ x: 100, y: 50, width: 40, height: 20 });
+
+			await waitFor(() => {
+				expect(regionEditor.drawRegions).toHaveBeenLastCalledWith(
+					expect.anything(),
+					[expect.objectContaining({ x: 100, y: 50, width: 40, height: 20 })],
+					'data:image/png;base64,test'
+				);
+			});
+		});
+
+		it('should save alignment groups with the profile', async () => {
+			const draw = await renderWithEditor();
+			addGroup('blue');
+			fireEvent.click(screen.getByRole('button', { name: 'Draw Anchor' }));
+			draw({ x: 100, y: 50, width: 40, height: 20 });
+			await waitFor(() => screen.getByRole('button', { name: 'Redraw Anchor' }));
+
+			fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+
+			expect(regionProfiles.saveProfile).toHaveBeenCalledWith(
+				[],
+				expect.objectContaining({ alignment: [{ name: 'blue', anchor }] }),
+				1280,
+				720
+			);
+		});
+
+		describe('deleting a group', () => {
+			const groupedRegion = {
+				name: 'blue_player1_name',
+				x: 0,
+				y: 0,
+				width: 10,
+				height: 10,
+				group: 'blue',
+			};
+
+			it('should delete a group without regions immediately', () => {
+				vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
+					{ name: 'blue' },
+				]);
+				render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+
+				fireEvent.click(screen.getByTitle('Delete group blue'));
+
+				expect(screen.getByText('Alignment Groups (0)')).toBeDefined();
+				expect(screen.queryByText('Delete Alignment Group')).toBeNull();
+			});
+
+			it('should ask before deleting a group that regions use', async () => {
+				vi.mocked(regionProfiles.getActiveProfile).mockReturnValue([groupedRegion]);
+				vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
+					{ name: 'blue' },
+				]);
+				await renderWithEditor();
+				await waitFor(() => expect(screen.getByText('1 regions')).toBeDefined());
+
+				fireEvent.click(screen.getByTitle('Delete group blue'));
+
+				expect(await screen.findByText('Delete Alignment Group')).toBeDefined();
+				expect(screen.getByText(/1 region uses 'blue'/)).toBeDefined();
+				expect(screen.getByText('Alignment Groups (1)')).toBeDefined();
+			});
+
+			it('should delete the group after confirming', async () => {
+				vi.mocked(regionProfiles.getActiveProfile).mockReturnValue([groupedRegion]);
+				vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
+					{ name: 'blue' },
+				]);
+				await renderWithEditor();
+				await waitFor(() => expect(screen.getByText('1 regions')).toBeDefined());
+
+				fireEvent.click(screen.getByTitle('Delete group blue'));
+				fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+
+				await waitFor(() => {
+					expect(screen.getByText('Alignment Groups (0)')).toBeDefined();
+				});
+			});
+		});
+
+		it('should load alignment groups when editing another profile', async () => {
+			vi.mocked(regionProfiles.getProfile).mockReturnValue([]);
+			vi.mocked(regionProfiles.getProfileAlignment).mockReturnValue([{ name: 'red' }]);
+			await renderWithEditor();
+
+			const editButtons = screen.getAllByRole('button', { name: /^Edit$/ });
+			fireEvent.click(editButtons[0]);
+
+			expect(regionProfiles.getProfileAlignment).toHaveBeenCalledWith(mockProfiles[0].id);
+			expect(screen.getByText('red')).toBeDefined();
 		});
 	});
 });

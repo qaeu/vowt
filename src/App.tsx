@@ -1,16 +1,17 @@
-import {
-	createSignal,
-	onMount,
-	onCleanup,
-	Switch,
-	Match,
-	type Component,
-} from 'solid-js';
+import type { Component } from 'solid-js';
+import { createSignal, onMount, onCleanup, Switch, Match } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
+import { Sun, Moon } from 'lucide-solid';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
-import { triggerUploadDialog, handleFileUpload } from '#utils/gameStorage';
+import {
+	triggerUploadDialog,
+	handleFileUpload,
+	loadSettings,
+	saveSettings,
+} from '#utils/storage';
 import '#styles/App';
 
 type ViewMode = 'ocr' | 'records' | 'regions';
@@ -19,6 +20,9 @@ const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
 	const [uploadedImage, setUploadedImage] = createSignal<string | null>(null);
 	const [isDragging, setIsDragging] = createSignal(false);
+
+	const settings = loadSettings();
+	const [isDarkMode, setIsDarkMode] = createSignal(settings.darkMode);
 
 	const handleDragOver = (e: DragEvent) => {
 		e.preventDefault();
@@ -57,6 +61,10 @@ const App: Component = () => {
 		document.addEventListener('dragover', handleDragOver);
 		document.addEventListener('dragleave', handleDragLeave);
 		document.addEventListener('drop', handleDrop);
+
+		if (isDarkMode()) {
+			document.querySelector('body')?.classList.add('dark-theme');
+		}
 	});
 
 	onCleanup(() => {
@@ -74,6 +82,13 @@ const App: Component = () => {
 
 	const handleCloseOCR = () => {
 		setViewMode('records');
+	};
+
+	const handleDarkMode = () => {
+		const currentDarkMode = isDarkMode();
+		setIsDarkMode(!currentDarkMode);
+		saveSettings({ ...settings, darkMode: !currentDarkMode });
+		document.querySelector('body')?.classList.toggle('dark-theme');
 	};
 
 	return (
@@ -106,6 +121,15 @@ const App: Component = () => {
 					/>
 				</Match>
 			</Switch>
+
+			<button
+				title="Toggle dark mode"
+				aria-label="Toggle dark mode"
+				class="dark-mode-toggle"
+				onClick={handleDarkMode}
+			>
+				<Dynamic component={isDarkMode() ? Moon : Sun} size={18} />
+			</button>
 		</div>
 	);
 };

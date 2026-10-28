@@ -1,12 +1,20 @@
 import type {
 	Merge,
 	TextRegion,
+	AlignmentGroup,
 	ProfileDetails,
 	RegionProfile,
 	ExportedProfile,
+	ImageHash,
 	ImageHashSet,
 } from '#types';
 import { DEFAULT_PROFILES } from '#data/profiles';
+
+/**
+ * Reference resolution for stored coordinates (1440p)
+ */
+export const REFERENCE_WIDTH = 2560;
+export const REFERENCE_HEIGHT = 1440;
 
 /**
  * Internal storage format for all profiles
@@ -25,14 +33,10 @@ type ImportedProfile = Merge<
 >;
 
 const STORAGE_KEY = 'vowt_region_profiles';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+/** Schema versions before this stored dHashes, which can't be used as templates */
+const FIRST_TEMPLATE_SCHEMA_VERSION = 2;
 const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
-
-/**
- * Reference resolution for stored coordinates (1440p)
- */
-const _REFERENCE_WIDTH = 2560;
-const _REFERENCE_HEIGHT = 1440;
 
 /**
  * Converts region coordinates from source image dimensions to reference resolution.
@@ -47,8 +51,8 @@ function _normaliseRegion(
 	sourceWidth: number,
 	sourceHeight: number
 ): TextRegion {
-	const scaleX = _REFERENCE_WIDTH / sourceWidth;
-	const scaleY = _REFERENCE_HEIGHT / sourceHeight;
+	const scaleX = REFERENCE_WIDTH / sourceWidth;
+	const scaleY = REFERENCE_HEIGHT / sourceHeight;
 
 	return {
 		...region,
@@ -72,8 +76,8 @@ function _denormaliseRegion(
 	targetWidth: number,
 	targetHeight: number
 ): TextRegion {
-	const scaleX = targetWidth / _REFERENCE_WIDTH;
-	const scaleY = targetHeight / _REFERENCE_HEIGHT;
+	const scaleX = targetWidth / REFERENCE_WIDTH;
+	const scaleY = targetHeight / REFERENCE_HEIGHT;
 
 	return {
 		...region,
@@ -111,15 +115,18 @@ function _loadStorage(): ProfileStore {
 		const stored: ProfileStore = JSON.parse(data, _reviver);
 
 		// Handle schema version for future migrations
-		if (stored.schemaVersion !== SCHEMA_VERSION) {
+		if (stored.schemaVersion < FIRST_TEMPLATE_SCHEMA_VERSION) {
+			const profiles = stored.profiles.map((profile) => ({ ...profile, hashSets: [] }));
+			return _saveProfiles(_ensureDefaultProfilesExist(profiles), stored.activeProfileId);
+		} else if (stored.schemaVersion !== SCHEMA_VERSION) {
 			console.warn(
 				`Profiles storage uses schema version ${stored.schemaVersion}, expected ${SCHEMA_VERSION}`
 			);
 		}
 
-		// Ensure all default profiles exist; add any that are missing
+		// Ensure all default profiles exist and are current
 		const updatedProfiles = _ensureDefaultProfilesExist(stored.profiles);
-		if (updatedProfiles.length > stored.profiles.length) {
+		if (updatedProfiles !== stored.profiles) {
 			const newStorage = _saveProfiles(updatedProfiles, stored.activeProfileId);
 			return newStorage;
 		}
@@ -148,22 +155,37 @@ function _convertExportedProfile(profile: ExportedProfile): RegionProfile {
 }
 
 /**
- * Ensures all default profiles exist in storage; adds missing ones
+ * Ensures all default profiles exist in storage; adds missing ones and replaces stored
+ * copies older than the bundled version (a stored copy edited by the user is newer)
+ * Replaced copies keep their stored hash sets so learned hashes survive app updates
+ * @returns The input array if nothing changed, otherwise a new array
  */
 function _ensureDefaultProfilesExist(
 	existingProfiles?: RegionProfile[]
 ): RegionProfile[] {
-	existingProfiles = existingProfiles || [];
-	const missingDefaults = [];
+	let profiles = existingProfiles || [];
 
 	for (const exportedDefault of DEFAULT_PROFILES) {
-		if (!existingProfiles.some((p) => p.id === exportedDefault.profile.id)) {
-			const defaultProfile = _convertExportedProfile(exportedDefault);
-			missingDefaults.push(defaultProfile);
+		const defaultProfile = _convertExportedProfile(exportedDefault);
+		const index = profiles.findIndex((p) => p.id === defaultProfile.id);
+
+		if (index < 0) {
+			profiles = [...profiles, defaultProfile];
+		} else if (
+			new Date(profiles[index].updatedAt).getTime() < defaultProfile.updatedAt.getTime()
+		) {
+			const storedHashSets = profiles[index].hashSets || [];
+			const hashSets = [
+				...storedHashSets,
+				...(defaultProfile.hashSets || []).filter(
+					(hs) => !storedHashSets.some((stored) => stored.id === hs.id)
+				),
+			];
+			profiles = profiles.with(index, { ...defaultProfile, hashSets });
 		}
 	}
 
-	return [...existingProfiles, ...missingDefaults];
+	return profiles;
 }
 
 function _loadProfile(profileId: string, storage?: ProfileStore): RegionProfile | null {
@@ -191,11 +213,18 @@ function _saveProfiles(profiles: RegionProfile[], activeProfileId: string): Prof
  * @param regions - The regions to save in the profile
  * @param id - Optional profile ID; if provided, updates existing profile
  * @param description - Optional profile description
+ * @param alignment - Optional alignment groups; existing groups are kept if omitted
+ * @param hashSets - Optional image hash sets; existing sets are kept if omitted
  * @returns The profile ID
  */
 export function saveProfile(
 	regions: TextRegion[],
-	options?: { id?: string; description?: string },
+	options?: {
+		id?: string;
+		description?: string;
+		alignment?: AlignmentGroup[];
+		hashSets?: ImageHashSet[];
+	},
 	imgWidth?: number,
 	imgHeight?: number
 ): string {
@@ -215,7 +244,12 @@ export function saveProfile(
 			id: profileId,
 			description: profileDesc,
 			regions,
-			hashSets: existingIndex >= 0 ? stored.profiles[existingIndex].hashSets : [],
+			hashSets:
+				options?.hashSets
+				?? (existingIndex >= 0 ? stored.profiles[existingIndex].hashSets : []),
+			alignment:
+				options?.alignment
+				?? (existingIndex >= 0 ? stored.profiles[existingIndex].alignment : undefined),
 			createdAt: existingIndex >= 0 ? stored.profiles[existingIndex].createdAt : now,
 			updatedAt: now,
 		};
@@ -266,6 +300,92 @@ export function getProfileHashSets(profileId: string): ImageHashSet[] | null {
 	const profile = _loadProfile(profileId);
 	if (!profile) return null;
 	return profile.hashSets || [];
+}
+
+/**
+ * Adds learned hashes to one of a profile's hash sets, creating the set if needed
+ * A hash already stored under another name is renamed, so corrections take priority
+ * @param profileId - The profile ID
+ * @param hashSetId - The hash set ID to add to
+ * @param hashes - Hashes to add
+ * @returns The number of hashes added or renamed
+ */
+export function addProfileHashes(
+	profileId: string,
+	hashSetId: string,
+	hashes: ImageHash[]
+): number {
+	const stored = _loadStorage();
+	const profile = stored.profiles.find((p) => p.id === profileId);
+	if (!profile) {
+		throw new Error(`Profile '${profileId}' not found`);
+	}
+
+	const now = new Date();
+	profile.hashSets = profile.hashSets || [];
+	let hashSet = profile.hashSets.find((hs) => hs.id === hashSetId);
+	if (!hashSet) {
+		hashSet = {
+			id: hashSetId,
+			description: 'User-learned hashes',
+			hashes: [],
+			createdAt: now,
+			updatedAt: now,
+		};
+		profile.hashSets.push(hashSet);
+	}
+
+	let changed = 0;
+	for (const { name, hash } of hashes) {
+		const existing = hashSet.hashes.find((h) => h.hash === hash);
+		if (!existing) {
+			hashSet.hashes.push({ name, hash });
+			changed++;
+		} else if (existing.name !== name) {
+			existing.name = name;
+			changed++;
+		}
+	}
+
+	if (changed > 0) {
+		hashSet.updatedAt = now;
+		_saveProfiles(stored.profiles, stored.activeProfileId);
+	}
+	return changed;
+}
+
+/**
+ * Counts the hashes stored across a profile's hash sets
+ * @param profileId - The profile ID
+ * @returns Total number of stored hashes, 0 if the profile doesn't exist
+ */
+export function countProfileHashes(profileId: string): number {
+	return (getProfileHashSets(profileId) || []).reduce(
+		(total, hs) => total + hs.hashes.length,
+		0
+	);
+}
+
+/**
+ * Removes all hash sets from a profile
+ * @param profileId - The profile ID
+ */
+export function clearProfileHashes(profileId: string): void {
+	const stored = _loadStorage();
+	const profile = stored.profiles.find((p) => p.id === profileId);
+	if (!profile) return;
+
+	profile.hashSets = [];
+	_saveProfiles(stored.profiles, stored.activeProfileId);
+}
+
+/**
+ * Gets a profile's alignment groups (coordinates at reference resolution)
+ * @param profileId - The profile ID
+ * @returns The alignment groups, or an empty array if none
+ */
+export function getProfileAlignment(profileId: string): AlignmentGroup[] {
+	return _loadProfile(profileId)?.alignment || [];
 }
 
 /**
@@ -360,6 +480,14 @@ export function getActiveProfileHashSets(): ImageHashSet[] {
 }
 
 /**
+ * Gets the alignment groups from the currently active region profile
+ * @returns The alignment groups, or empty array if none
+ */
+export function getActiveProfileAlignment(): AlignmentGroup[] {
+	return getProfileAlignment(getActiveProfileId());
+}
+
+/**
  * Exports a region profile to JSON format
  * @param profileId - The profile ID to export
  * @returns JSON string representation of the profile, or null if not found
@@ -418,6 +546,12 @@ export function importProfile(jsonData: string): number | null {
 		saveProfile(importedProfile.regions, {
 			id: importedProfile.id,
 			description: importedProfile.description,
+			alignment: importedProfile.alignment,
+			hashSets:
+				// Exports without a schema version predate templates
+				(parsed.schemaVersion ?? 1) < FIRST_TEMPLATE_SCHEMA_VERSION ?
+					[]
+				:	(importedProfile.hashSets ?? []),
 		});
 
 		const storage = _loadStorage();

@@ -1,6 +1,6 @@
 {
 	"type": "vowt-region-profile",
-	"schemaVersion": 1,
+	"schemaVersion": 2,
 	"profile": {
 		"id": "In-game_5v5",
 		"description": "In-game Tab scoreboard screen (5v5)",

@@ -1,15 +1,51 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent } from '@solidjs/testing-library';
+import type { ComponentProps } from 'solid-js';
 
 import RecordFieldInput from '#c/ui/RecordFieldInput';
 
+type RecordFieldInputProps = ComponentProps<typeof RecordFieldInput>;
+
 describe('RecordFieldInput', () => {
-	let onInputMock: ReturnType<typeof vi.fn>;
-	let registerFieldMock: ReturnType<typeof vi.fn>;
+	let onInputMock: Mock<RecordFieldInputProps['onInput']>;
+	let registerFieldMock: Mock<NonNullable<RecordFieldInputProps['staticRegisterField']>>;
 
 	beforeEach(() => {
 		onInputMock = vi.fn();
 		registerFieldMock = vi.fn();
+	});
+
+	describe('List attribute', () => {
+		it('should set the list attribute when staticListId is given', () => {
+			const { container } = render(() => (
+				<RecordFieldInput
+					staticId="test-field"
+					staticListId="my-list"
+					initialValue={''}
+					baseline={() => ''}
+					onInput={onInputMock}
+					initialIsJustSaved={false}
+				/>
+			));
+
+			const input = container.querySelector('input') as HTMLInputElement;
+			expect(input.getAttribute('list')).toBe('my-list');
+		});
+
+		it('should not set the list attribute when staticListId is omitted', () => {
+			const { container } = render(() => (
+				<RecordFieldInput
+					staticId="test-field"
+					initialValue={''}
+					baseline={() => ''}
+					onInput={onInputMock}
+					initialIsJustSaved={false}
+				/>
+			));
+
+			const input = container.querySelector('input') as HTMLInputElement;
+			expect(input.hasAttribute('list')).toBe(false);
+		});
 	});
 
 	describe('Rendering', () => {

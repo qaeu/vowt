@@ -57,6 +57,12 @@
 			oklch(from get($primaries, 'sep') l c h / 0.1) 0%,
 			/* oklch(96.258% 0.02046 298.061 / 0.1) 40%, */ transparent 54%
 		);
+		transition:
+			color 300ms,
+			background-color 300ms,
+			border-color 300ms,
+			background-image 300ms,
+			box-shadow 300ms;
 	}
 
 	button,

@@ -67,6 +67,9 @@ $errors: _colourset('ruby');
 $white: var(--white-a12);
 $black: var(--black-a12);
 
+// Animation
+$toggle-animation-dur: 240ms;
+
 // Shadows
 $shadow-base: $black;
 $shadow-light: var(--mauve-10);
@@ -80,12 +83,24 @@ $shadow-light: var(--mauve-10);
 	box-shadow:
 		0px 0px 1px oklch(from $colour l c h / 0.05),
 		1px 2px 3px oklch(from $colour l c h / 0.05);
+
+	@at-root .dark-theme & {
+		box-shadow:
+			0px 0px 1px oklch(from $colour l c h / 0.2),
+			1px 2px 3px oklch(from $colour l c h / 0.2);
+	}
 }
 
 @mixin shadow($colour: $shadow-base) {
 	box-shadow:
 		1px 2px 3px oklch(from $colour l c h / 0.05),
 		2px 4px 6px oklch(from $colour l c h / 0.05);
+
+	@at-root .dark-theme & {
+		box-shadow:
+			1px 2px 3px oklch(from $colour l c h / 0.2),
+			2px 4px 6px oklch(from $colour l c h / 0.2);
+	}
 }
 
 @mixin shadow-tall($colour: $shadow-base) {
@@ -93,21 +108,43 @@ $shadow-light: var(--mauve-10);
 		2px 4px 3px oklch(from $colour l c h / 0.015),
 		4px 8px 6px oklch(from $colour l c h / 0.03),
 		4px 8px 12px oklch(from $colour l c h / 0.03);
+
+	@at-root .dark-theme & {
+		box-shadow:
+			2px 4px 3px oklch(from $colour l c h / 0.06),
+			4px 8px 6px oklch(from $colour l c h / 0.12),
+			4px 8px 12px oklch(from $colour l c h / 0.12);
+	}
 }
 
 @mixin shadow-inset($colour: $shadow-base) {
 	box-shadow:
 		inset 1px 2px 3px oklch(from $colour l c h / 0.05),
 		inset 2px 4px 6px oklch(from $colour l c h / 0.05);
+
+	@at-root .dark-theme & {
+		box-shadow:
+			inset 1px 2px 3px oklch(from $colour l c h / 0.3),
+			inset 2px 4px 6px oklch(from $colour l c h / 0.3);
+	}
 }
 
 @mixin background-light-glow {
-	background: radial-gradient(
+	background-image: radial-gradient(
 		circle at calc(50% - 14px) calc(50% - 28px),
 		oklch(100% 0.00011 271.152 / 0.35) 0%,
 		oklch(96.258% 0.02046 298.061 / 0.1) 66%,
 		transparent 100%
 	);
+
+	@at-root .dark-theme & {
+		background-image: radial-gradient(
+			circle at calc(50% - 14px) calc(50% - 28px),
+			oklch(30% 0.00006 271.152 / 0.35) 0%,
+			oklch(25% 0.00004 271.152 / 0.1) 66%,
+			transparent 100%
+		);
+	}
 }
 
 // Container mixin for main content areas
@@ -149,6 +186,7 @@ $shadow-light: var(--mauve-10);
 	border: 1px solid get($greys, 'sep');
 	border-radius: 4px;
 	color: get($greys, 'fg-light');
+	background-color: transparent;
 	cursor: pointer;
 	font-size: 13px;
 	letter-spacing: 1px;
