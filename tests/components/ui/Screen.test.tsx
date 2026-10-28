@@ -18,6 +18,21 @@ describe('Screen', () => {
 		expect(screen.getByText('My Test Screen')).toBeDefined();
 	});
 
+	it('should accept JSX as the title', () => {
+		render(() => (
+			<Screen
+				id="test-screen"
+				title={
+					<>
+						Title <select aria-label="Inline choice" />
+					</>
+				}
+			/>
+		));
+
+		expect(screen.getByLabelText('Inline choice')).toBeDefined();
+	});
+
 	it('should render screen action buttons with correct text', () => {
 		const screenActions: ScreenAction[] = [
 			{

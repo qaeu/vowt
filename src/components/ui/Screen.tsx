@@ -5,7 +5,7 @@ import type { ScreenAction } from '#types';
 
 interface ScreenProps {
 	id: string;
-	title: string;
+	title: JSXElement;
 	/** Short line shown under the title */
 	subtitle?: string;
 	/** Buttons shown on the right of the title row */

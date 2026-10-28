@@ -6,7 +6,7 @@ import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import type { LucideIcon } from 'lucide-solid';
-import { Download, Skull, Star, TriangleAlert } from 'lucide-solid';
+import { Download, RotateCcw, Skull, Star, TriangleAlert } from 'lucide-solid';
 
 import type {
 	GameRecord,
@@ -75,6 +75,8 @@ const ROLE_OPTIONS = [
 const MINUS = '−';
 const EN_DASH = '–';
 const NO_VALUE = '—';
+const UP_ARROW = '▲';
+const DOWN_ARROW = '▼';
 const MAPS_COLLAPSED_COUNT = 8;
 
 const _formatNumber = (value: number | null, digits = 0): string =>
@@ -188,8 +190,9 @@ const _describeDelta = (
 	const rounded = Number(delta.toFixed(digits));
 	if (rounded === 0) return { text: `0${suffix}`, tone: 'neutral' };
 	const sign = rounded > 0 ? '+' : MINUS;
+	const arrow = rounded > 0 ? UP_ARROW : DOWN_ARROW;
 	return {
-		text: `${sign}${_formatNumber(Math.abs(rounded), digits)}${suffix}`,
+		text: `${arrow} ${sign}${_formatNumber(Math.abs(rounded), digits)}${suffix}`,
 		tone: rounded > 0 !== lowerIsBetter ? 'good' : 'bad',
 	};
 };
@@ -326,6 +329,13 @@ const Insights: Component<InsightsProps> = (props) => {
 		Store.saveSettings({ ...Store.loadSettings(), trackedPlayer: name });
 	};
 
+	const handleResetFilters = () => {
+		setPeriod('last90');
+		setCompare('previous');
+		setRole('all');
+		setMode('all');
+	};
+
 	const handleExport = () => {
 		_downloadJson(
 			Store.exportInsightsSummary(summary()),
@@ -350,26 +360,18 @@ const Insights: Component<InsightsProps> = (props) => {
 		+ `enemy average ${_formatNumber(row.enemy, 1)}`;
 
 	return (
-		<Screen id="insights-screen" title="Your progress">
-			<Show
-				when={records.length > 0 && names.length > 0}
-				fallback={
-					<div class="insights-empty">
-						<p>No game records to analyse yet</p>
-						<p>Upload a scoreboard screenshot to start tracking your progress.</p>
-					</div>
-				}
-			>
-				<p class="insights-subtitle">
-					Aggregated from {headline().games.value} of your {records.length} stored game
-					records
-				</p>
-
-				<section class="insights-controls" aria-label="Filters">
-					<div class="insights-select">
-						<label for="insights-player">Tracked player</label>
+		<Screen
+			id="insights-screen"
+			title={
+				<>
+					Insights for{' '}
+					<Show when={names.length > 0}>
+						<label for="insights-player" class="visually-hidden">
+							Tracked player
+						</label>
 						<select
 							id="insights-player"
+							class="insights-title-select"
 							onChange={(e) => handlePlayerChange(e.currentTarget.value)}
 						>
 							<For each={names}>
@@ -380,54 +382,74 @@ const Insights: Component<InsightsProps> = (props) => {
 								)}
 							</For>
 						</select>
+					</Show>
+				</>
+			}
+			subtitle={
+				records.length > 0 && names.length > 0 ?
+					`Aggregated from ${headline().games.value} of your ${records.length} stored game records`
+				:	undefined
+			}
+		>
+			<Show
+				when={records.length > 0 && names.length > 0}
+				fallback={
+					<div class="insights-empty">
+						<p>No game records to analyse yet</p>
+						<p>Upload a scoreboard screenshot to start tracking your progress.</p>
 					</div>
-					<div class="insights-select">
-						<label for="insights-period">Period</label>
-						<select
-							id="insights-period"
-							onChange={(e) => setPeriod(e.currentTarget.value as InsightsPeriod)}
-						>
-							<For each={PERIOD_OPTIONS}>
-								{(option) => (
-									<option value={option.value} selected={option.value === period()}>
-										{option.text}
-									</option>
-								)}
-							</For>
-						</select>
+				}
+			>
+				<section class="insights-filters" aria-label="Filters">
+					<div class="insights-filters__row">
+						<div class="insights-select">
+							<label for="insights-period">Period</label>
+							<select
+								id="insights-period"
+								onChange={(e) => setPeriod(e.currentTarget.value as InsightsPeriod)}
+							>
+								<For each={PERIOD_OPTIONS}>
+									{(option) => (
+										<option value={option.value} selected={option.value === period()}>
+											{option.text}
+										</option>
+									)}
+								</For>
+							</select>
+						</div>
+						<div class="insights-select">
+							<label for="insights-compare">Compare to</label>
+							<select
+								id="insights-compare"
+								onChange={(e) =>
+									setCompare(e.currentTarget.value as InsightsFilters['compare'])
+								}
+							>
+								<For each={COMPARE_OPTIONS}>
+									{(option) => (
+										<option value={option.value} selected={option.value === compare()}>
+											{option.text}
+										</option>
+									)}
+								</For>
+							</select>
+						</div>
+						<ChipGroup
+							label="Role"
+							value={role()}
+							options={ROLE_OPTIONS}
+							onSelect={(v) => setRole(v as InsightsFilters['role'])}
+						/>
+						<ChipGroup
+							label="Mode"
+							value={mode()}
+							options={modeOptions()}
+							onSelect={setMode}
+						/>
 					</div>
-					<div class="insights-select">
-						<label for="insights-compare">Compare to</label>
-						<select
-							id="insights-compare"
-							onChange={(e) =>
-								setCompare(e.currentTarget.value as InsightsFilters['compare'])
-							}
-						>
-							<For each={COMPARE_OPTIONS}>
-								{(option) => (
-									<option value={option.value} selected={option.value === compare()}>
-										{option.text}
-									</option>
-								)}
-							</For>
-						</select>
-					</div>
-				</section>
-
-				<section class="insights-filters">
-					<ChipGroup
-						label="Role"
-						value={role()}
-						options={ROLE_OPTIONS}
-						onSelect={(v) => setRole(v as InsightsFilters['role'])}
-					/>
-					<ChipGroup
-						label="Mode"
-						value={mode()}
-						options={modeOptions()}
-						onSelect={setMode}
-					/>
+					<button type="button" id="reset-insights-filters" onClick={handleResetFilters}>
+						<RotateCcw size={14} /> Reset Filters
+					</button>
 				</section>
 
 				<Show

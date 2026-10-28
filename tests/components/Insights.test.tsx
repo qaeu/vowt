@@ -181,7 +181,7 @@ describe('Insights', () => {
 		it('should render the title, subtitle and labelled selects', () => {
 			renderInsights();
 
-			expect(screen.getByRole('heading', { name: 'Your progress' })).toBeDefined();
+			expect(screen.getByRole('heading', { name: /Insights for/ })).toBeDefined();
 			expect(
 				screen.getByText('Aggregated from 6 of your 6 stored game records')
 			).toBeDefined();
@@ -311,14 +311,14 @@ describe('Insights', () => {
 			const winRateDelta = container.querySelector(
 				'[data-stat="winRate"] .insights-delta'
 			)!;
-			expect(winRateDelta.textContent).toBe('+50.0 pts');
+			expect(winRateDelta.textContent).toBe('▲ +50.0 pts');
 			expect(winRateDelta.classList.contains('insights-delta--good')).toBe(true);
 
 			// Fewer deaths is an improvement even though the number went down
 			const deathsDelta = container.querySelector(
 				'[data-stat="deaths10"] .insights-delta'
 			)!;
-			expect(deathsDelta.textContent?.startsWith('−')).toBe(true);
+			expect(deathsDelta.textContent?.startsWith('▼ −')).toBe(true);
 			expect(deathsDelta.classList.contains('insights-delta--good')).toBe(true);
 
 			fireEvent.change(screen.getByLabelText('Compare to'), {
@@ -435,6 +435,60 @@ describe('Insights', () => {
 			fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'all' } });
 
 			expect(statValue(container, 'games')).toBe('7');
+		});
+	});
+
+	describe('delta prefix', () => {
+		const deltaText = (container: HTMLElement, key: string) =>
+			container.querySelector(`[data-stat="${key}"] .insights-delta`)?.textContent;
+
+		it('should prefix improvements and declines with arrows', () => {
+			const earlier = [
+				makeRecord({ id: 'p1', date: '02/05/2025', result: 'DEFEAT', deaths: '8' }),
+				makeRecord({ id: 'p2', date: '02/06/2025', result: 'DEFEAT', deaths: '8' }),
+			];
+			vi.mocked(Store.loadGameRecords).mockReturnValue([...RECORDS, ...earlier]);
+			const { container } = renderInsights();
+
+			expect(deltaText(container, 'winRate')).toBe('▲ +50.0 pts');
+			expect(deltaText(container, 'deaths10')?.startsWith('▼ −')).toBe(true);
+		});
+
+		it('should use the down arrow for a drop in win rate', () => {
+			const earlier = [
+				makeRecord({ id: 'p1', date: '02/05/2025' }),
+				makeRecord({ id: 'p2', date: '02/06/2025' }),
+			];
+			vi.mocked(Store.loadGameRecords).mockReturnValue([...RECORDS, ...earlier]);
+			const { container } = renderInsights();
+
+			expect(deltaText(container, 'winRate')).toBe('▼ −50.0 pts');
+		});
+	});
+
+	describe('reset filters', () => {
+		it('should restore the default filters', () => {
+			const old = makeRecord({ id: 'old', date: '01/05/2025' });
+			vi.mocked(Store.loadGameRecords).mockReturnValue([...RECORDS, old]);
+			const { container } = renderInsights();
+
+			fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'all' } });
+			fireEvent.change(screen.getByLabelText('Compare to'), {
+				target: { value: 'none' },
+			});
+			fireEvent.click(screen.getByRole('button', { name: 'Tank' }));
+			expect(statValue(container, 'games')).toBe('2');
+
+			fireEvent.click(screen.getByRole('button', { name: /Reset Filters/ }));
+
+			expect(statValue(container, 'games')).toBe('6');
+			expect((screen.getByLabelText('Period') as HTMLSelectElement).value).toBe('last90');
+			expect((screen.getByLabelText('Compare to') as HTMLSelectElement).value).toBe(
+				'previous'
+			);
+			expect(
+				screen.getAllByRole('button', { name: 'All' })[0].getAttribute('aria-pressed')
+			).toBe('true');
 		});
 	});
 
