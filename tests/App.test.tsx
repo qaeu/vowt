@@ -127,12 +127,16 @@ describe('App', () => {
 
 	describe('dark mode', () => {
 		it('should save the setting without losing the tracked player', () => {
-			saveSettings({ darkMode: false, trackedPlayer: 'ALICE' });
+			saveSettings({ darkMode: false, trackedPlayer: 'ALICE', lastExportedAt: null });
 			render(() => <App />);
 
 			fireEvent.click(screen.getByLabelText('Toggle dark mode'));
 
-			expect(loadSettings()).toEqual({ darkMode: true, trackedPlayer: 'ALICE' });
+			expect(loadSettings()).toEqual({
+				darkMode: true,
+				trackedPlayer: 'ALICE',
+				lastExportedAt: null,
+			});
 			expect(document.body.classList.contains('dark-theme')).toBe(true);
 		});
 

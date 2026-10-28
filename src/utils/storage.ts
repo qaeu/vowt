@@ -34,10 +34,11 @@ const SCHEMA_VERSION = 2;
 const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
 
 const SETTINGS_STORAGE_KEY = 'vowt_settings';
-const SETTINGS_SCHEMA_VERSION = 1;
+const SETTINGS_SCHEMA_VERSION = 2;
 const DEFAULT_SETTINGS: Settings = {
 	darkMode: false,
 	trackedPlayer: null,
+	lastExportedAt: null,
 };
 
 const INSIGHTS_SUMMARY_SCHEMA_VERSION = 1;
@@ -355,6 +356,13 @@ function _sanitiseSettings(stored: unknown): Settings {
 			typeof values.trackedPlayer === 'string' && values.trackedPlayer.trim() ?
 				values.trackedPlayer.trim()
 			:	DEFAULT_SETTINGS.trackedPlayer,
+		lastExportedAt:
+			(
+				typeof values.lastExportedAt === 'string'
+				&& !Number.isNaN(Date.parse(values.lastExportedAt))
+			) ?
+				values.lastExportedAt
+			:	DEFAULT_SETTINGS.lastExportedAt,
 	};
 }
 
@@ -371,8 +379,11 @@ export function loadSettings(): Settings {
 
 		const stored: unknown = JSON.parse(data);
 		const schemaVersion = (stored as Partial<SettingsStore> | null)?.schemaVersion;
-		// Settings saved before versioning have no schemaVersion and use the same fields
-		if (schemaVersion !== undefined && schemaVersion !== SETTINGS_SCHEMA_VERSION) {
+		// Older versions (and unversioned settings) are loaded with defaults for new fields
+		if (
+			schemaVersion !== undefined
+			&& !(typeof schemaVersion === 'number' && schemaVersion <= SETTINGS_SCHEMA_VERSION)
+		) {
 			console.warn(
 				`Settings storage uses schema version ${schemaVersion}, expected ${SETTINGS_SCHEMA_VERSION}`
 			);

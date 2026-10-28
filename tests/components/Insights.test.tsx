@@ -127,7 +127,7 @@ const RECORDS: GameRecord[] = [
 	}),
 ];
 
-const SETTINGS = { darkMode: false, trackedPlayer: null };
+const SETTINGS = { darkMode: false, trackedPlayer: null, lastExportedAt: null };
 
 const statValue = (container: HTMLElement, key: string) =>
 	container.querySelector(`[data-stat="${key}"] .insights-stat-card__value`)?.textContent;
@@ -381,6 +381,7 @@ describe('Insights', () => {
 			vi.mocked(Store.loadSettings).mockReturnValue({
 				darkMode: true,
 				trackedPlayer: null,
+				lastExportedAt: null,
 			});
 			const { container } = renderInsights();
 
@@ -391,6 +392,7 @@ describe('Insights', () => {
 			expect(Store.saveSettings).toHaveBeenCalledWith({
 				darkMode: true,
 				trackedPlayer: 'BOB',
+				lastExportedAt: null,
 			});
 			// BOB played two of the six games
 			expect(statValue(container, 'games')).toBe('2');

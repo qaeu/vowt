@@ -21,6 +21,8 @@ vi.mock('#utils/storage', () => ({
 	clearAllGameRecords: vi.fn(),
 	exportGameRecords: vi.fn(),
 	importGameRecords: vi.fn(),
+	loadSettings: vi.fn(),
+	saveSettings: vi.fn(),
 	PLAYER_STATS_NUMBER_FIELD_NAMES: ['e', 'a', 'd', 'dmg', 'h', 'mit'],
 }));
 
@@ -49,6 +51,27 @@ vi.mock('#c/ui/EditableGameData', () => ({
 		</div>
 	),
 }));
+
+// jsdom has no ResizeObserver, which the menu's positioning needs
+vi.stubGlobal(
+	'ResizeObserver',
+	class {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	}
+);
+
+const openMoreMenu = async () => {
+	const trigger = screen.getByRole('button', { name: /More actions/ });
+	fireEvent.click(trigger);
+	await waitFor(() => expect(trigger.getAttribute('data-state')).toBe('open'));
+};
+
+const clickMenuItem = async (name: RegExp) => {
+	await openMoreMenu();
+	fireEvent.click(await screen.findByRole('menuitem', { name }));
+};
 
 describe('GameRecordsTable', () => {
 	const mockOnUploadClick = vi.fn();
@@ -122,76 +145,204 @@ describe('GameRecordsTable', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(gameStorage.loadGameRecords).mockReturnValue(mockRecords);
+		vi.mocked(gameStorage.loadSettings).mockReturnValue({
+			darkMode: false,
+			trackedPlayer: null,
+			lastExportedAt: null,
+		});
 	});
 
-	it('should render the component', () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		expect(screen.getByText('Game History')).toBeDefined();
-	});
+	const renderTable = (props: { initialExpandedId?: string } = {}) =>
+		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} {...props} />);
 
-	it('should display upload, export, import, and clear buttons', () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		expect(screen.getByText(/Upload Screenshot/)).toBeDefined();
-		expect(screen.getByText(/Export Records/)).toBeDefined();
-		expect(screen.getByText(/Import Records/)).toBeDefined();
-		expect(screen.getByText(/Delete All/)).toBeDefined();
-	});
+	describe('title row', () => {
+		it('should render the title and a record count subtitle', () => {
+			renderTable();
+			expect(screen.getByText('Game History')).toBeDefined();
+			expect(screen.getByText(/2 records · stored in this browser/)).toBeDefined();
+		});
 
-	it('should show empty state when no records exist', () => {
-		vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		expect(screen.getByText(/No game records found/)).toBeDefined();
-	});
+		it('should say there is no backup when never exported', () => {
+			renderTable();
+			expect(screen.getByText(/no backup yet/)).toBeDefined();
+		});
 
-	it('should display all game records in table', () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		expect(screen.getByText('VICTORY')).toBeDefined();
-		expect(screen.getByText('DEFEAT')).toBeDefined();
-		expect(screen.getByText('ESCORT')).toBeDefined();
-		expect(screen.getByText('PAYLOAD')).toBeDefined();
-	});
-
-	it('should display correct score format in table', () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		expect(screen.getByText(/3 - 2/)).toBeDefined();
-		expect(screen.getByText(/2 - 3/)).toBeDefined();
-	});
-
-	it('should display player count in table', () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		const rows = screen.getAllByRole('row');
-		// Should have header + 2 data rows (+ 0 expanded rows initially)
-		expect(rows.length).toBeGreaterThanOrEqual(3);
-	});
-
-	describe('insights', () => {
-		it('should expand the record given by initialExpandedId', async () => {
-			render(() => (
-				<GameRecordsTable onUploadClick={mockOnUploadClick} initialExpandedId="game_2" />
-			));
-
-			await waitFor(() => {
-				expect(screen.getAllByTestId('editable-game-data')).toHaveLength(1);
+		it('should show the last backup as relative time', () => {
+			const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+			vi.mocked(gameStorage.loadSettings).mockReturnValue({
+				darkMode: false,
+				trackedPlayer: null,
+				lastExportedAt: twoDaysAgo,
 			});
+			renderTable();
+			expect(screen.getByText(/last backup 2 days ago/)).toBeDefined();
+		});
+
+		it('should not offer Upload (it lives in the header)', () => {
+			renderTable();
+			expect(screen.queryByText(/Upload Screenshot/)).toBeNull();
+		});
+
+		it('should show Import and Export buttons', () => {
+			renderTable();
+			expect(screen.getByText('Import Records')).toBeDefined();
+			expect(screen.getByText('Export Records')).toBeDefined();
+		});
+
+		it('should disable Export when no records exist', () => {
+			vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
+			renderTable();
+			const exportButton = screen.getByText('Export Records') as HTMLButtonElement;
+			expect(exportButton.disabled).toBe(true);
+		});
+
+		describe('export', () => {
+			it('should export records and save the last backup time', () => {
+				window.URL.createObjectURL = vi.fn(() => 'blob:mock');
+				window.URL.revokeObjectURL = vi.fn();
+				renderTable();
+
+				fireEvent.click(screen.getByText('Export Records'));
+
+				expect(gameStorage.exportGameRecords).toHaveBeenCalled();
+				expect(gameStorage.saveSettings).toHaveBeenCalledWith(
+					expect.objectContaining({ lastExportedAt: expect.any(String) })
+				);
+				const saved = vi.mocked(gameStorage.saveSettings).mock.calls[0][0];
+				expect(Number.isNaN(Date.parse(saved.lastExportedAt!))).toBe(false);
+				expect(screen.getByText(/last backup/).textContent).not.toMatch(/no backup/);
+			});
+		});
+
+		describe('more actions menu', () => {
+			it('should delete all records after confirmation', async () => {
+				renderTable();
+				await clickMenuItem(/Delete all records/);
+
+				await waitFor(() => screen.getByText('Clear All Records'));
+				fireEvent.click(screen.getByText('Confirm'));
+
+				expect(gameStorage.clearAllGameRecords).toHaveBeenCalled();
+			});
+
+			it('should not delete all records when cancelled', async () => {
+				renderTable();
+				await clickMenuItem(/Delete all records/);
+
+				await waitFor(() => screen.getByText('Clear All Records'));
+				const closeButton = document.querySelector(
+					'[data-scope="dialog"][data-part="close-trigger"]'
+				);
+				assert(closeButton, 'Dialog close button not found');
+				fireEvent.click(closeButton);
+
+				expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
+			});
+
+			it('should disable Delete all records when there are no records', async () => {
+				vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
+				renderTable();
+				await openMoreMenu();
+				const item = await screen.findByRole('menuitem', {
+					name: /Delete all records/,
+				});
+				expect(item.hasAttribute('data-disabled')).toBe(true);
+			});
+		});
+	});
+
+	describe('records list', () => {
+		it('should display all game records', () => {
+			renderTable();
+			expect(screen.getByText('VICTORY')).toBeDefined();
+			expect(screen.getByText('DEFEAT')).toBeDefined();
+			expect(screen.getAllByText('ESCORT').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('PAYLOAD').length).toBeGreaterThan(0);
+		});
+
+		it('should display the score, map and length', () => {
+			renderTable();
+			expect(screen.getByText(/3 - 2/)).toBeDefined();
+			expect(screen.getByText(/2 - 3/)).toBeDefined();
+			expect(screen.getByText('Hollywood')).toBeDefined();
+			expect(screen.getByText('10:30')).toBeDefined();
+		});
+
+		it('should fall back to the creation time when the date is unreadable', () => {
+			const records = [
+				{
+					...mockRecords[0],
+					matchInfo: { ...mockRecords[0].matchInfo, date: 'unreadable' },
+				},
+			];
+			vi.mocked(gameStorage.loadGameRecords).mockReturnValue(records);
+			renderTable();
+			expect(screen.getByText(records[0].createdAt.toLocaleDateString())).toBeDefined();
+		});
+
+		it('should apply victory and defeat CSS classes to result badges', () => {
+			const { container } = renderTable();
+			expect(container.querySelector('.result-badge.victory')).not.toBeNull();
+			expect(container.querySelector('.result-badge.defeat')).not.toBeNull();
+		});
+
+		it('should have no per-row delete button', () => {
+			const { container } = renderTable();
+			expect(container.querySelector('.delete-button')).toBeNull();
+		});
+	});
+
+	describe('row expansion', () => {
+		const getRowButton = (resultText: string) =>
+			screen.getByText(resultText).closest('button')!;
+
+		it('should start with every row button collapsed', () => {
+			renderTable();
+			const buttons = document.querySelectorAll('button.record-row');
+			expect(buttons).toHaveLength(2);
+			buttons.forEach((b) => expect(b.getAttribute('aria-expanded')).toBe('false'));
+		});
+
+		it('should set aria-expanded when a row is opened and closed', async () => {
+			renderTable();
+			const button = getRowButton('VICTORY');
+
+			fireEvent.click(button);
+			expect(button.getAttribute('aria-expanded')).toBe('true');
+			expect(getRowButton('DEFEAT').getAttribute('aria-expanded')).toBe('false');
+
+			fireEvent.click(button);
+			expect(button.getAttribute('aria-expanded')).toBe('false');
+			await waitFor(() => expect(screen.queryByText('Edit Record')).toBeNull());
+		});
+
+		it('should show the Blue and Red team scoreboards when opened', () => {
+			renderTable();
+			fireEvent.click(getRowButton('VICTORY'));
+
+			expect(screen.getByText('Blue team')).toBeDefined();
+			expect(screen.getByText('Red team')).toBeDefined();
+			expect(screen.getByText('Player1')).toBeDefined();
+			expect(screen.getByText('Player2')).toBeDefined();
+			expect(screen.queryByTestId('editable-game-data')).toBeNull();
+		});
+
+		it('should expand the record given by initialExpandedId', () => {
+			renderTable({ initialExpandedId: 'game_2' });
 			expect(
 				document.getElementById('record-game_2')?.classList.contains('expanded')
 			).toBe(true);
 			expect(
 				document.getElementById('record-game_1')?.classList.contains('expanded')
 			).toBe(false);
+			expect(screen.getByText('Player3')).toBeDefined();
 		});
 
 		it('should scroll the initial record into view when supported', async () => {
 			const scrollIntoView = vi.fn();
 			Element.prototype.scrollIntoView = scrollIntoView;
 			try {
-				render(() => (
-					<GameRecordsTable
-						onUploadClick={mockOnUploadClick}
-						initialExpandedId="game_1"
-					/>
-				));
-
+				renderTable({ initialExpandedId: 'game_1' });
 				await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
 			} finally {
 				// jsdom does not implement scrollIntoView
@@ -200,251 +351,178 @@ describe('GameRecordsTable', () => {
 		});
 
 		it('should ignore an initialExpandedId that has no record', () => {
-			render(() => (
-				<GameRecordsTable onUploadClick={mockOnUploadClick} initialExpandedId="missing" />
-			));
+			renderTable({ initialExpandedId: 'missing' });
+			expect(screen.queryByText('Blue team')).toBeNull();
+		});
+	});
+
+	describe('editing and deleting a record', () => {
+		const openFirstRecord = () =>
+			fireEvent.click(screen.getByText('VICTORY').closest('button')!);
+
+		it('should swap the scoreboard for the editor on Edit Record', () => {
+			renderTable();
+			openFirstRecord();
+			fireEvent.click(screen.getByText('Edit Record'));
+
+			expect(screen.getByTestId('players-count').textContent).toBe('2 players');
+			expect(screen.getByTestId('match-result').textContent).toBe('VICTORY');
+			expect(screen.queryByText('Blue team')).toBeNull();
+		});
+
+		it('should return to the scoreboard when the editor is closed', () => {
+			renderTable();
+			openFirstRecord();
+			fireEvent.click(screen.getByText('Edit Record'));
+			fireEvent.click(screen.getByText('Close Editor'));
 
 			expect(screen.queryByTestId('editable-game-data')).toBeNull();
+			expect(screen.getByText('Blue team')).toBeDefined();
+		});
+
+		it('should call updateGameRecord when edits are saved', () => {
+			renderTable();
+			openFirstRecord();
+			fireEvent.click(screen.getByText('Edit Record'));
+			fireEvent.click(screen.getByTestId('save-edits-button'));
+
+			expect(gameStorage.updateGameRecord).toHaveBeenCalledWith(
+				'game_1',
+				mockRecords[0].players,
+				mockRecords[0].matchInfo
+			);
+		});
+
+		it('should delete the record after confirmation', async () => {
+			renderTable();
+			openFirstRecord();
+			fireEvent.click(screen.getByText('Delete Record'));
+
+			await waitFor(() => screen.getByText('Confirm'));
+			fireEvent.click(screen.getByText('Confirm'));
+
+			expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
+		});
+
+		it('should not delete the record when cancelled', async () => {
+			renderTable();
+			openFirstRecord();
+			fireEvent.click(screen.getByText('Delete Record'));
+
+			await waitFor(() => screen.getByText('Confirm'));
+			const closeButton = document.querySelector(
+				'[data-scope="dialog"][data-part="close-trigger"]'
+			);
+			assert(closeButton, 'Dialog close button not found');
+			fireEvent.click(closeButton);
+
+			expect(gameStorage.deleteGameRecord).not.toHaveBeenCalled();
 		});
 	});
 
-	it('should call onUploadClick when upload button is clicked', () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		const uploadButton = screen.getByText(/Upload Screenshot/);
-		fireEvent.click(uploadButton);
-		expect(mockOnUploadClick).toHaveBeenCalled();
-	});
+	describe('filters', () => {
+		const rowCount = () => document.querySelectorAll('button.record-row').length;
+		const search = (value: string) =>
+			fireEvent.input(screen.getByLabelText('Search records'), {
+				target: { value },
+			});
 
-	it('should expand record when clicked', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
+		describe('search', () => {
+			it.each([
+				['map', 'hollywood', 'VICTORY'],
+				['mode', 'payload', 'DEFEAT'],
+				['hero', 'reinhardt', 'DEFEAT'],
+				['player name', 'player2', 'VICTORY'],
+			])('should match by %s', (_label, query, expected) => {
+				renderTable();
+				search(query);
+				expect(rowCount()).toBe(1);
+				expect(screen.getByText(expected)).toBeDefined();
+			});
+		});
 
-		const victoryCell = screen.getByText('VICTORY');
-		fireEvent.click(victoryCell);
+		describe('result toggles', () => {
+			it('should mark All as pressed by default', () => {
+				renderTable();
+				expect(screen.getByText('All').getAttribute('aria-pressed')).toBe('true');
+			});
 
-		await waitFor(() => {
-			expect(screen.queryByTestId('editable-game-data')).not.toBeNull();
+			it('should show only victories', () => {
+				renderTable();
+				fireEvent.click(screen.getByText('Victories'));
+				expect(screen.getByText('Victories').getAttribute('aria-pressed')).toBe('true');
+				expect(screen.getByText('All').getAttribute('aria-pressed')).toBe('false');
+				expect(rowCount()).toBe(1);
+				expect(screen.queryByText('DEFEAT')).toBeNull();
+			});
+
+			it('should show only defeats', () => {
+				renderTable();
+				fireEvent.click(screen.getByText('Defeats'));
+				expect(rowCount()).toBe(1);
+				expect(screen.queryByText('VICTORY')).toBeNull();
+			});
+		});
+
+		describe('mode select', () => {
+			it('should list the modes found in the records', () => {
+				renderTable();
+				const options = Array.from(
+					(screen.getByLabelText('Mode') as HTMLSelectElement).options
+				).map((o) => o.value);
+				expect(options).toEqual(['all', 'ESCORT', 'PAYLOAD']);
+			});
+
+			it('should filter by mode', () => {
+				renderTable();
+				fireEvent.change(screen.getByLabelText('Mode'), { target: { value: 'ESCORT' } });
+				expect(rowCount()).toBe(1);
+				expect(screen.getByText('VICTORY')).toBeDefined();
+			});
+		});
+
+		describe('no matches', () => {
+			it('should show a no-match state with Clear filters', () => {
+				renderTable();
+				search('zzz');
+				expect(screen.getByText('No records match')).toBeDefined();
+				expect(rowCount()).toBe(0);
+			});
+
+			it('should restore all records on Clear filters', () => {
+				renderTable();
+				fireEvent.click(screen.getByText('Victories'));
+				search('zzz');
+				fireEvent.click(screen.getByText('Clear filters'));
+
+				expect(rowCount()).toBe(2);
+				expect((screen.getByLabelText('Search records') as HTMLInputElement).value).toBe(
+					''
+				);
+				expect(screen.getByText('All').getAttribute('aria-pressed')).toBe('true');
+				expect((screen.getByLabelText('Mode') as HTMLSelectElement).value).toBe('all');
+			});
 		});
 	});
 
-	it('should render EditableGameData with correct props when expanded', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
+	describe('empty state', () => {
+		beforeEach(() => {
+			vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
+		});
 
-		const victoryCell = screen.getByText('VICTORY');
-		fireEvent.click(victoryCell);
+		it('should show the drop zone', () => {
+			renderTable();
+			expect(screen.getByText('Drop scoreboard screenshots here')).toBeDefined();
+			expect(screen.queryByLabelText('Search records')).toBeNull();
+		});
 
-		await waitFor(() => {
-			const playersCount = screen.queryByTestId('players-count');
-			expect(playersCount?.textContent).toBe('2 players');
+		it('should open the file picker from Choose Files', () => {
+			renderTable();
+			fireEvent.click(screen.getByText('Choose Files'));
+			expect(mockOnUploadClick).toHaveBeenCalled();
 		});
 	});
 
-	it('should display match result in EditableGameData', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const victoryCell = screen.getByText('VICTORY');
-		fireEvent.click(victoryCell);
-
-		await waitFor(() => {
-			const matchResult = screen.queryByTestId('match-result');
-			expect(matchResult?.textContent).toBe('VICTORY');
-		});
-	});
-
-	it('should collapse record when clicked again', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const victoryCell = screen.getByText('VICTORY');
-
-		// Expand
-		fireEvent.click(victoryCell);
-		await waitFor(() => {
-			expect(screen.queryByTestId('editable-game-data')).not.toBeNull();
-		});
-
-		// Collapse
-		fireEvent.click(victoryCell);
-		await waitFor(
-			() => {
-				expect(screen.queryByTestId('editable-game-data')).toBeNull();
-			},
-			{ timeout: 500 }
-		);
-	});
-
-	it('should call updateGameRecord when save edits is clicked', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const victoryCell = screen.getByText('VICTORY');
-		fireEvent.click(victoryCell);
-
-		await waitFor(() => {
-			const saveButton = screen.queryByTestId('save-edits-button');
-			expect(saveButton).not.toBeNull();
-		});
-
-		const saveButton = screen.getByTestId('save-edits-button');
-		fireEvent.click(saveButton);
-
-		expect(gameStorage.updateGameRecord).toHaveBeenCalledWith(
-			'game_1',
-			mockRecords[0].players,
-			mockRecords[0].matchInfo
-		);
-	});
-
-	it('should delete record when delete button is clicked', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const deleteButtons = document.querySelectorAll('.delete-button');
-		fireEvent.click(deleteButtons[0]);
-
-		await waitFor(() => {
-			screen.getByText('Delete Record');
-		});
-
-		const confirmButton = screen.getByText('Confirm');
-		fireEvent.click(confirmButton);
-
-		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
-	});
-
-	it('should not delete record when confirm is cancelled', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const deleteButtons = document.querySelectorAll('.delete-button');
-		fireEvent.click(deleteButtons[0]);
-
-		await waitFor(() => {
-			screen.getByText('Delete Record');
-		});
-
-		const dialogCloseButton = document.querySelector(
-			'[data-scope="dialog"][data-part="close-trigger"]'
-		);
-		assert(dialogCloseButton, 'Dialog close button not found');
-
-		fireEvent.click(dialogCloseButton);
-
-		expect(gameStorage.deleteGameRecord).not.toHaveBeenCalled();
-	});
-
-	it('should close expanded record when deleted', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const victoryCell = screen.getByText('VICTORY');
-		fireEvent.click(victoryCell);
-
-		await waitFor(() => {
-			expect(screen.queryByTestId('editable-game-data')).not.toBeNull();
-		});
-
-		const deleteButtons = document.querySelectorAll('.delete-button');
-		fireEvent.click(deleteButtons[0]);
-
-		await waitFor(() => {
-			screen.getByText('Delete Record');
-		});
-
-		const confirmButton = screen.getByText('Confirm');
-		fireEvent.click(confirmButton);
-
-		expect(gameStorage.deleteGameRecord).toHaveBeenCalledWith('game_1');
-	});
-
-	it('should call exportGameRecords when export button is clicked', () => {
-		window.URL.createObjectURL = vi.fn(() => 'blob:mock');
-		window.URL.revokeObjectURL = vi.fn();
-
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-		const exportButton = screen.getByText(/Export/);
-		fireEvent.click(exportButton);
-
-		expect(gameStorage.exportGameRecords).toHaveBeenCalled();
-	});
-
-	it('should call clearAllGameRecords when clear all button is clicked with confirmation', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const clearButton = screen.getByText(/Delete All/);
-		fireEvent.click(clearButton);
-
-		await waitFor(() => {
-			screen.getByText('Clear All Records');
-		});
-
-		const confirmButton = screen.getByText('Confirm');
-		fireEvent.click(confirmButton);
-
-		expect(gameStorage.clearAllGameRecords).toHaveBeenCalled();
-	});
-
-	it('should not clear records when confirm is cancelled', async () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const clearButton = screen.getByText(/Delete All/);
-		fireEvent.click(clearButton);
-
-		await waitFor(() => {
-			screen.getByText('Clear All Records');
-		});
-
-		const dialogCloseButton = document.querySelector(
-			'[data-scope="dialog"][data-part="close-trigger"]'
-		);
-		assert(dialogCloseButton, 'Dialog close button not found');
-
-		fireEvent.click(dialogCloseButton);
-
-		expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
-	});
-
-	it('should disable export button when no records exist', () => {
-		vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const exportButton = screen.getByText(/Export/);
-		expect((exportButton as HTMLButtonElement).disabled).toBe(true);
-	});
-
-	it('should disable clear all button when no records exist', () => {
-		vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const clearButton = screen.getByText(/Delete All/);
-		expect((clearButton as HTMLButtonElement).disabled).toBe(true);
-	});
-
-	it('should format timestamp correctly', () => {
-		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
-
-		const dateTexts = screen.getAllByText(/2025/);
-		expect(dateTexts.length).toBeGreaterThanOrEqual(1);
-		expect(dateTexts[0].textContent).toMatch(/\d+\/\d+\/2025/);
-	});
-
-	it('should apply victory and defeat CSS classes to result badges', () => {
-		const { container } = render(() => (
-			<GameRecordsTable onUploadClick={mockOnUploadClick} />
-		));
-
-		const badges = container.querySelectorAll('.result-badge');
-		expect(badges.length).toBeGreaterThanOrEqual(2);
-
-		let hasVictoryClass = false;
-		let hasDefeatClass = false;
-
-		badges.forEach((badge) => {
-			if (badge.classList.contains('victory')) {
-				hasVictoryClass = true;
-			}
-			if (badge.classList.contains('defeat')) {
-				hasDefeatClass = true;
-			}
-		});
-
-		expect(hasVictoryClass).toBe(true);
-		expect(hasDefeatClass).toBe(true);
-	});
 	describe('update game data', () => {
 		const mockUpdate = vi.mocked(updateOverFastData);
 
@@ -455,11 +533,9 @@ describe('GameRecordsTable', () => {
 				maps: [{}, {}] as OverFastMap[],
 				updatedAt: new Date('2025-11-11T00:00:00.000Z'),
 			});
-			const { container } = render(() => (
-				<GameRecordsTable onUploadClick={mockOnUploadClick} />
-			));
+			renderTable();
 
-			fireEvent.click(container.querySelector('#update-game-data')!);
+			await clickMenuItem(/Update game data/);
 
 			expect(await screen.findByText('Update Success')).toBeDefined();
 			expect(screen.getByText('3 heroes and 2 maps updated.')).toBeDefined();
@@ -468,11 +544,9 @@ describe('GameRecordsTable', () => {
 		it('should show a failure toast when the update rejects', async () => {
 			const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 			mockUpdate.mockRejectedValue(new Error('network'));
-			const { container } = render(() => (
-				<GameRecordsTable onUploadClick={mockOnUploadClick} />
-			));
+			renderTable();
 
-			fireEvent.click(container.querySelector('#update-game-data')!);
+			await clickMenuItem(/Update game data/);
 
 			expect(await screen.findByText('Update Failed')).toBeDefined();
 			expect(
@@ -484,20 +558,20 @@ describe('GameRecordsTable', () => {
 			errorSpy.mockRestore();
 		});
 
-		it('should disable the button while pending and re-enable afterwards', async () => {
+		it('should disable the item while pending and re-enable afterwards', async () => {
 			let resolveUpdate!: (v: OverFastStore) => void;
 			mockUpdate.mockReturnValue(new Promise((r) => (resolveUpdate = r)));
-			const { container } = render(() => (
-				<GameRecordsTable onUploadClick={mockOnUploadClick} />
-			));
-			const button = container.querySelector('#update-game-data') as HTMLButtonElement;
-			expect(button.disabled).toBe(false);
+			renderTable();
+			const item = () =>
+				screen.getByRole('menuitem', { name: /Update game data/, hidden: true });
+			await openMoreMenu();
+			expect(item().hasAttribute('data-disabled')).toBe(false);
 
-			fireEvent.click(button);
-			await waitFor(() => expect(button.disabled).toBe(true));
+			fireEvent.click(item());
+			await waitFor(() => expect(item().hasAttribute('data-disabled')).toBe(true));
 
 			resolveUpdate({ schemaVersion: 1, heroes: [], maps: [], updatedAt: new Date() });
-			await waitFor(() => expect(button.disabled).toBe(false));
+			await waitFor(() => expect(item().hasAttribute('data-disabled')).toBe(false));
 		});
 	});
 });

@@ -10,6 +10,8 @@ interface ScreenProps {
 	subtitle?: string;
 	/** Buttons shown on the right of the title row */
 	screenActions?: () => ScreenAction[];
+	/** Extra controls (e.g. a menu) shown after the action buttons */
+	extraActions?: JSXElement;
 	children?: JSXElement;
 }
 
@@ -37,6 +39,7 @@ const Screen: Component<ScreenProps> = (props) => {
 							</button>
 						)}
 					</For>
+					{props.extraActions}
 				</div>
 			</header>
 

@@ -30,6 +30,8 @@ export interface Settings {
 	darkMode: boolean;
 	/** Player whose games the Insights screen analyses; null until chosen */
 	trackedPlayer: string | null;
+	/** ISO timestamp of the last records export (backup); null if never exported */
+	lastExportedAt: string | null;
 }
 
 // UI Component Types
