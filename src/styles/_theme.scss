@@ -164,11 +164,11 @@ $shadow-light: var(--mauve-10);
 	contain: layout;
 }
 
-// Info box styling with left border accent
+// Info box styling with a full tinted border
 @mixin info-box($bg-colour, $border-colour) {
 	padding: 15px;
 	background-color: $bg-colour;
-	border-left: 4px solid $border-colour;
+	border: 1px solid $border-colour;
 	margin-bottom: 20px;
 	border-radius: 4px;
 
@@ -176,6 +176,42 @@ $shadow-light: var(--mauve-10);
 		margin: 0;
 		font-size: 14px;
 	}
+}
+
+// Wrapping flex row with a gap
+@mixin toolbar($gap: 10px) {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: $gap;
+}
+
+// Stacked label and input
+@mixin field($gap: 4px) {
+	display: flex;
+	flex-direction: column;
+	gap: $gap;
+
+	label {
+		font-size: 12px;
+		font-weight: 600;
+		color: get($neutrals, 'fg-light');
+	}
+}
+
+// Bar fixed to the bottom of the page
+@mixin sticky-footer {
+	@include shadow-tall;
+	position: sticky;
+	bottom: 0;
+	z-index: 10;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 20px;
+	background-color: get($neutrals, 'bg-dark');
+	border-top: 1px solid get($neutrals, 'sep');
 }
 
 // Button styling
@@ -194,19 +230,49 @@ $shadow-light: var(--mauve-10);
 	filter: drop-shadow(1px 2px 1px oklch(from $shadow-base l c h / 0.03));
 	backdrop-filter: blur(4px);
 
-	&:hover:not(:disabled, .active) {
+	&:hover:not(:disabled, .active, [aria-pressed='true']) {
 		border-color: get($colourset, 'sep-dark');
 		color: get($colourset, 'base-dark');
 	}
 
-	&.highlight:hover:not(:disabled, .active) {
+	&.highlight:hover:not(:disabled, .active, [aria-pressed='true']) {
 		background-color: get($colourset, 'fade');
 	}
 
-	&.active {
-		background-color: get($colourset, 'base');
-		border-color: transparent;
-		color: white;
+	&.active,
+	&[aria-pressed='true'] {
+		@include shadow-inset;
+		background-color: get($neutrals, 'highlight');
+		background-image: none;
+		border-color: get($neutrals, 'base');
+		color: $foreground;
+		filter: none;
+		font-weight: 600;
+	}
+
+	&.primary {
+		border-color: get($primaries, 'sep-dark');
+		color: get($primaries, 'fg-light');
+		background-color: get($primaries, 'bg-dark');
+		font-weight: 600;
+
+		&:hover:not(:disabled) {
+			border-color: get($primaries, 'base-dark');
+			color: get($primaries, 'fg-light');
+			background-color: get($primaries, 'highlight');
+		}
+	}
+
+	&.danger {
+		border-color: get($errors, 'sep-dark');
+		color: get($errors, 'fg-light');
+		background-color: get($errors, 'bg-dark');
+
+		&:hover:not(:disabled) {
+			border-color: get($errors, 'base-dark');
+			color: get($errors, 'fg-light');
+			background-color: get($errors, 'highlight');
+		}
 	}
 
 	&:disabled {
