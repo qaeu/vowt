@@ -11,6 +11,7 @@ import type {
 } from '#types';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
 import { getHeroDisplayName, matchMapName } from '#utils/gameData';
+import { correctPlayerNames } from '#utils/playerNames';
 
 /** Formatted OCR results */
 interface FormattedResults {
@@ -39,16 +40,21 @@ export const formatResults = (allResults: RecognitionResult[]): FormattedResults
  * Extracts game stats from region-based OCR results
  * @param regionResults - Map of region names to OCR text
  * @param gameData - Optional OverFast data used to normalise hero and map names
+ * @param knownNames - Optional known player names; look-alike OCR errors are corrected to them
  * @returns Structured game stats
  */
 export function extractGameStats(
 	regionResults: Map<string, string>,
-	gameData: OverFastStore | null = null
+	gameData: OverFastStore | null = null,
+	knownNames: string[] = []
 ): Pick<GameRecord, 'players' | 'matchInfo'> {
 	// Extract players
 	const players: GameRecord['players'] = [];
 	players.push(...extractTeamPlayers('blue', regionResults, gameData));
 	players.push(...extractTeamPlayers('red', regionResults, gameData));
+
+	const correctedPlayers =
+		knownNames.length ? correctPlayerNames(players, knownNames) : players;
 
 	// Extract match info
 	const finalScore = { blue: '', red: '' };
@@ -78,7 +84,7 @@ export function extractGameStats(
 		game_length: regionResults.get('game_length')?.split('LENGTH:')[1]?.trim() || '',
 	};
 
-	return { players, matchInfo };
+	return { players: correctedPlayers, matchInfo };
 }
 
 function extractTeamPlayers(

@@ -3,11 +3,13 @@
  */
 
 import type { TextRegion, PartitionGroup } from '#types';
+import { isolateText } from '#utils/textCleanup';
 
 const SKEW_ANGLE_DEFAULT = -14;
 const REGION_COLOUR_DEFAULT = '#ff0000';
 const REGION_COLOUR_ITALIC = '#4caf50';
 const REGION_COLOUR_IMAGE = '#3131da';
+const REGION_COLOUR_ISOLATED = '#d63cf5';
 
 /** Minimum number of jobs to warrant using a scheduler instead of a standalone worker */
 const SCHEDULER_JOBS_MIN = 3;
@@ -221,8 +223,57 @@ export const getRegionDataURLs = (
 };
 
 /**
+ * Cleans up flagged regions on their own and converts them to data URLs
+ * Regions with `isolateText` are enlarged, binarised and cropped to the text
+ * Reuses a single canvas for efficiency
+ * @param preprocessedRegionMap - Map of region name to preprocessed (unskewed) ImageData
+ * @param regions - Array of region definitions
+ * @returns Map of region name to data URL string; empty if no canvas context is available
+ */
+export const getIsolatedTextDataURLs = (
+	preprocessedRegionMap: Map<string, ImageData>,
+	regions: TextRegion[]
+): Map<string, string> => {
+	const dataURLMap = new Map<string, string>();
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d');
+
+	if (!ctx) return dataURLMap;
+
+	for (const region of regions) {
+		if (!region.isolateText) continue;
+
+		const imageData = preprocessedRegionMap.get(region.name);
+		if (!imageData) continue;
+
+		const gray = isolateText(imageData);
+
+		// Resize canvas only when needed
+		if (canvas.width !== gray.width || canvas.height !== gray.height) {
+			canvas.width = gray.width;
+			canvas.height = gray.height;
+		}
+
+		const output = ctx.createImageData(gray.width, gray.height);
+		for (let i = 0; i < gray.data.length; i++) {
+			const value = gray.data[i];
+			output.data[i * 4] = value;
+			output.data[i * 4 + 1] = value;
+			output.data[i * 4 + 2] = value;
+			output.data[i * 4 + 3] = 255;
+		}
+
+		ctx.putImageData(output, 0, 0);
+		dataURLMap.set(region.name, canvas.toDataURL('image/png'));
+	}
+
+	return dataURLMap;
+};
+
+/**
  * Draws italic regions with unskew visualization on the preprocessed image
- * Uses green overlay for regions to show which ones are being unskewed
+ * Uses green overlay for regions to show which ones are being unskewed,
+ * and magenta for regions that are cleaned up on their own
  * @param imageUrl - URL of the preprocessed image
  * @param regions - Array of region definitions to draw
  * @returns Promise resolving to data URL with unskew regions highlighted
@@ -254,6 +305,8 @@ export async function drawRegionsOnImage(
 			for (const region of regions) {
 				if (region.imgHashSet && region.imgHashSet.length > 0) {
 					ctx.strokeStyle = REGION_COLOUR_IMAGE;
+				} else if (region.isolateText) {
+					ctx.strokeStyle = REGION_COLOUR_ISOLATED;
 				} else if (region.isItalic) {
 					ctx.strokeStyle = REGION_COLOUR_ITALIC;
 				} else {

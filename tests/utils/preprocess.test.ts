@@ -8,7 +8,16 @@ import {
 	partitionRegionGroups,
 	getRegionImageData,
 	getRegionDataURLs,
+	getIsolatedTextDataURLs,
 } from '#utils/preprocess';
+
+vi.mock('#utils/textCleanup', () => ({
+	isolateText: vi.fn(() => ({
+		width: 4,
+		height: 2,
+		data: new Uint8ClampedArray(8).fill(7),
+	})),
+}));
 
 const SCHEDULER_JOBS_MIN = 3;
 
@@ -55,6 +64,11 @@ const mockCanvasContext = {
 		height: 50,
 	})),
 	putImageData: vi.fn(),
+	createImageData: vi.fn((w: number, h: number) => ({
+		data: new Uint8ClampedArray(w * h * 4),
+		width: w,
+		height: h,
+	})),
 	fillRect: vi.fn(),
 	strokeRect: vi.fn(),
 	transform: vi.fn(),
@@ -448,6 +462,49 @@ describe('preprocess', () => {
 		});
 	});
 
+	describe('getIsolatedTextDataURLs', () => {
+		const isolatedRegions: TextRegion[] = [
+			{ ...testRegions[0], name: 'name_a', isolateText: true },
+			{ ...testRegions[0], name: 'name_b', isolateText: true },
+			{ ...testRegions[0], name: 'plain' },
+		];
+		const isolatedMap = new Map<string, ImageData>([
+			['name_a', mockImageData],
+			['name_b', mockImageData],
+			['plain', mockImageData],
+		]);
+
+		it('should only process regions flagged with isolateText', () => {
+			const result = getIsolatedTextDataURLs(isolatedMap, isolatedRegions);
+
+			expect([...result.keys()]).toEqual(['name_a', 'name_b']);
+			expect(result.get('name_a')).toBe('data:image/png;base64,mockImageData');
+		});
+
+		it('should skip flagged regions with no image data', () => {
+			const partial = new Map([['name_a', mockImageData]]);
+			const result = getIsolatedTextDataURLs(partial, isolatedRegions);
+
+			expect([...result.keys()]).toEqual(['name_a']);
+		});
+
+		it('should write gray pixels as opaque RGBA and resize the canvas once', () => {
+			getIsolatedTextDataURLs(isolatedMap, isolatedRegions);
+
+			const written = mockCanvasContext.putImageData.mock.calls[0][0] as ImageData;
+			expect(Array.from(written.data.slice(0, 4))).toEqual([7, 7, 7, 255]);
+			expect(mockCanvas.width).toBe(4);
+			expect(mockCanvas.height).toBe(2);
+			expect(mockCanvas.toDataURL).toHaveBeenCalledTimes(2);
+		});
+
+		it('should return an empty map when no canvas context is available', () => {
+			mockCanvas.getContext.mockReturnValueOnce(null as never);
+
+			expect(getIsolatedTextDataURLs(isolatedMap, isolatedRegions).size).toBe(0);
+		});
+	});
+
 	describe('drawRegionsOnImage', () => {
 		it('should return a data URL for valid image', async () => {
 			const mockImage = {
@@ -503,6 +560,35 @@ describe('preprocess', () => {
 
 			// Should draw stroke rectangles for regions
 			expect(mockCanvasContext.strokeRect).toHaveBeenCalledTimes(testRegions.length);
+		});
+
+		it('should use a distinct colour for isolateText regions before italic', async () => {
+			const mockImage = {
+				onload: null as (() => void) | null,
+				onerror: null as (() => void) | null,
+				src: '',
+				width: 800,
+				height: 600,
+			};
+
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
+				setTimeout(() => mockImage.onload?.(), 0);
+				return mockImage as unknown as HTMLImageElement;
+			});
+
+			const colours: string[] = [];
+			mockCanvasContext.strokeRect.mockImplementation(() => {
+				colours.push(mockCanvasContext.strokeStyle);
+			});
+
+			await drawRegionsOnImage('preprocessed.png', [
+				{ ...testRegions[1], isolateText: true },
+				testRegions[1],
+				testRegions[0],
+			]);
+			mockCanvasContext.strokeRect.mockReset();
+
+			expect(colours).toEqual(['#d63cf5', '#4caf50', '#ff0000']);
 		});
 	});
 

@@ -24,6 +24,7 @@ import {
 	groupRegionsByCharSet,
 	getRegionImageData,
 	getRegionDataURLs,
+	getIsolatedTextDataURLs,
 	loadImageDimensions,
 	partitionRegionGroups,
 } from '#utils/preprocess';
@@ -32,7 +33,8 @@ import { alignRegionsToImage } from '#utils/regionAlignment';
 import { extractGameStats, formatResults } from '#utils/postprocess';
 import { loadOverFastData } from '#utils/overfastApi';
 import { getHeroKey } from '#utils/gameData';
-import { saveGameRecord, updateGameRecord } from '#utils/storage';
+import { saveGameRecord, updateGameRecord, loadGameRecords } from '#utils/storage';
+import { buildNameLexicon } from '#utils/playerNames';
 import {
 	getActiveProfile,
 	getActiveProfileId,
@@ -64,6 +66,16 @@ interface HashCorrection extends LearnableHash {
 }
 
 const WORKER_COUNT = 2;
+
+/** Tesseract init-only parameters; dictionaries bias reads towards English words */
+const WORKER_INIT_CONFIG: Partial<Tesseract.InitOptions> = {
+	load_system_dawg: '0',
+	load_freq_dawg: '0',
+};
+
+/** Creates an English LSTM worker with dictionaries turned off */
+const createOCRWorker = (): Promise<Tesseract.Worker> =>
+	Tesseract.createWorker('eng', Tesseract.OEM.LSTM_ONLY, {}, WORKER_INIT_CONFIG);
 
 const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [isProcessing, setIsProcessing] = createSignal(false);
@@ -206,7 +218,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		const workerPromises = Array(WORKER_COUNT)
 			.fill(null)
 			.map(async () => {
-				const worker = await Tesseract.createWorker('eng');
+				const worker = await createOCRWorker();
 				const params: Partial<Tesseract.WorkerParams> = {
 					tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
 				};
@@ -223,7 +235,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 	/** Creates a standalone worker for processing small groups */
 	const createStandaloneWorker = async (): Promise<Tesseract.Worker> => {
-		const worker = await Tesseract.createWorker('eng');
+		const worker = await createOCRWorker();
 		activeWorkers.push(worker);
 		return worker;
 	};
@@ -473,6 +485,14 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			const ocrDataURLMap = await getRegionDataURLs(preprocessedImage, ocrRegions);
 
+			// These skip the global filter, which would invert them again
+			for (const [name, dataURL] of getIsolatedTextDataURLs(
+				preprocessedRegionMap,
+				ocrRegions
+			)) {
+				ocrDataURLMap.set(name, dataURL);
+			}
+
 			if (isProcessingCancelled) return;
 
 			const hashImageDataMap = new Map<string, ImageData>();
@@ -505,7 +525,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			setRawOcrText(ocrResults.ocrTextParts.join('\n'));
 
-			const stats = extractGameStats(ocrResults.regionResults, loadOverFastData());
+			const stats = extractGameStats(
+				ocrResults.regionResults,
+				loadOverFastData(),
+				buildNameLexicon(loadGameRecords())
+			);
 			setExtractedStats(stats);
 			recordId = saveGameRecord(stats.players, stats.matchInfo);
 
@@ -660,8 +684,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 						/>
 						<p>
 							Filtered for OCR clarity. Red boxes show text regions. Green boxes show
-							regions with transformed italic text. Blue boxes show image matching
-							regions.
+							regions with transformed italic text. Magenta boxes show regions cleaned up
+							on their own (enlarged and cropped to the text). Blue boxes show image
+							matching regions.
 						</p>
 					</div>
 				</Show>

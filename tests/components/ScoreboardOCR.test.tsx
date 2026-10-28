@@ -53,10 +53,12 @@ vi.mock('tesseract.js', () => {
 	return {
 		default: {
 			PSM: { SINGLE_LINE: 7 },
+			OEM: { LSTM_ONLY: 1 },
 			createScheduler: mockCreateScheduler,
 			createWorker: mockCreateWorker,
 		},
 		PSM: { SINGLE_LINE: 7 },
+		OEM: { LSTM_ONLY: 1 },
 		createScheduler: mockCreateScheduler,
 		createWorker: mockCreateWorker,
 	};
@@ -119,6 +121,15 @@ vi.mock('#utils/preprocess', () => ({
 			map.set(region.name, `data:image/png;base64,region_${region.name}`);
 		}
 		return Promise.resolve(map);
+	}),
+	getIsolatedTextDataURLs: vi.fn().mockImplementation((_map, regions) => {
+		const map = new Map();
+		for (const region of regions) {
+			if (region.isolateText) {
+				map.set(region.name, `data:image/png;base64,isolated_${region.name}`);
+			}
+		}
+		return map;
 	}),
 	getScoreboardRegions: vi
 		.fn()
@@ -223,6 +234,12 @@ vi.mock('#utils/gameStorage', () => ({
 	saveGameRecord: vi.fn().mockReturnValue('game_123'),
 	updateGameRecord: vi.fn().mockResolvedValue(undefined),
 }));
+
+// Mock storage so saved records can be stubbed per test
+vi.mock('#utils/storage', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('#utils/storage')>();
+	return { ...actual, loadGameRecords: vi.fn(actual.loadGameRecords) };
+});
 
 describe('ScoreboardOCR', () => {
 	it('should render the component', () => {
@@ -1226,6 +1243,90 @@ describe('ScoreboardOCR', () => {
 			await settle();
 
 			expect(screen.queryByRole('dialog')).toBeNull();
+		});
+	});
+
+	describe('name recognition accuracy', () => {
+		const renderWithImage = () =>
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage="data:image/png;base64,testdata"
+				/>
+			));
+
+		it('should create workers with dictionaries turned off', async () => {
+			const { createWorker } = await import('tesseract.js');
+			const mockCreateWorker = vi.mocked(createWorker);
+			mockCreateWorker.mockClear();
+
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			vi.mocked(getActiveProfile).mockReturnValue([
+				{ name: 'stat_1', x: 0, y: 0, width: 50, height: 30, charSet: '0123456789' },
+			]);
+
+			renderWithImage();
+
+			await waitFor(() => expect(mockCreateWorker).toHaveBeenCalled(), {
+				timeout: 1500,
+			});
+			expect(mockCreateWorker.mock.calls[0][3]).toMatchObject({
+				load_system_dawg: '0',
+				load_freq_dawg: '0',
+			});
+		});
+
+		it('should recognise isolateText regions from the cleaned-up image', async () => {
+			const { createWorker } = await import('tesseract.js');
+			const mockWorker = await vi.mocked(createWorker)();
+			const mockRecognize = vi.mocked(mockWorker.recognize);
+			mockRecognize.mockClear();
+
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			vi.mocked(getActiveProfile).mockReturnValue([
+				{ name: 'p1_name', x: 0, y: 0, width: 50, height: 30, isolateText: true },
+				{ name: 'p1_dmg', x: 60, y: 0, width: 50, height: 30 },
+			]);
+
+			renderWithImage();
+
+			await waitFor(
+				() => {
+					expect(mockRecognize).toHaveBeenCalledWith(
+						'data:image/png;base64,isolated_p1_name'
+					);
+				},
+				{ timeout: 1500 }
+			);
+			expect(mockRecognize).toHaveBeenCalledWith('data:image/png;base64,region_p1_dmg');
+			expect(mockRecognize).not.toHaveBeenCalledWith(
+				'data:image/png;base64,region_p1_name'
+			);
+		});
+
+		it('should correct names against a lexicon built from saved records', async () => {
+			const { loadGameRecords } = await import('#utils/storage');
+			const { extractGameStats } = await import('#utils/postprocess');
+			const makeRecord = (id: string) => ({
+				id,
+				players: [{ name: 'Qaeu' }],
+				matchInfo: {},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+			vi.mocked(loadGameRecords).mockReturnValue([
+				makeRecord('a'),
+				makeRecord('b'),
+			] as unknown as ReturnType<typeof loadGameRecords>);
+			vi.mocked(extractGameStats).mockClear();
+
+			renderWithImage();
+
+			await waitFor(() => expect(extractGameStats).toHaveBeenCalled(), {
+				timeout: 1500,
+			});
+			expect(vi.mocked(extractGameStats).mock.calls[0][2]).toEqual(['QAEU']);
 		});
 	});
 });

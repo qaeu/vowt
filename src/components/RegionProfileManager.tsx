@@ -29,6 +29,7 @@ import {
 const REGION_COLOUR_DEFAULT = '#ff0000';
 const REGION_COLOUR_ITALIC = '#4caf50';
 const REGION_COLOUR_IMAGE = '#3131da';
+const REGION_COLOUR_ISOLATED = '#d63cf5';
 const REGION_COLOUR_ANCHOR = '#ff9800';
 const REGION_COLOUR_ROWS = '#00bcd4';
 
@@ -137,6 +138,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			id: `${profileId}-${index}`,
 			colour:
 				r.imgHashSet && r.imgHashSet.length > 0 ? REGION_COLOUR_IMAGE
+				: r.isolateText ? REGION_COLOUR_ISOLATED
 				: r.isItalic ? REGION_COLOUR_ITALIC
 				: REGION_COLOUR_DEFAULT,
 		}));

@@ -23,6 +23,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "blue",
 				"row": 0
 			},
@@ -104,6 +105,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "blue",
 				"row": 1
 			},
@@ -185,6 +187,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "blue",
 				"row": 2
 			},
@@ -266,6 +269,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "blue",
 				"row": 3
 			},
@@ -347,6 +351,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "blue",
 				"row": 4
 			},
@@ -428,6 +433,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "red",
 				"row": 0
 			},
@@ -509,6 +515,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "red",
 				"row": 1
 			},
@@ -590,6 +597,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "red",
 				"row": 2
 			},
@@ -671,6 +679,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "red",
 				"row": 3
 			},
@@ -752,6 +761,7 @@
 				"height": 37,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"isItalic": true,
+				"isolateText": true,
 				"group": "red",
 				"row": 4
 			},
@@ -864,7 +874,7 @@
 		],
 		"hashSets": [],
 		"createdAt": "2025-11-28T00:00:00.000Z",
-		"updatedAt": "2026-10-28T00:00:00.000Z",
+		"updatedAt": "2026-10-28T12:00:00.000Z",
 		"alignment": [
 			{
 				"name": "blue",

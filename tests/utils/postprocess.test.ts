@@ -327,3 +327,36 @@ describe('extractGameStats', () => {
 		});
 	});
 });
+
+describe('extractGameStats knownNames', () => {
+	const regionResults = new Map<string, string>([
+		['blue_player1_name', 'PLAYER0NE'],
+		['blue_player2_name', 'STARK'],
+		['red_player1_name', 'ZZZZZZ'],
+	]);
+
+	describe('with known names', () => {
+		it('corrects look-alike player names', () => {
+			const result = extractGameStats(regionResults, null, ['PLAYERONE', 'STARK']);
+			expect(result.players[0].name).toBe('PLAYERONE');
+			expect(result.players[1].name).toBe('STARK');
+		});
+
+		it('leaves distant names unchanged', () => {
+			const result = extractGameStats(regionResults, null, ['PLAYERONE']);
+			expect(result.players[5].name).toBe('ZZZZZZ');
+		});
+	});
+
+	describe('without known names', () => {
+		it('keeps raw names when omitted', () => {
+			const result = extractGameStats(regionResults);
+			expect(result.players[0].name).toBe('PLAYER0NE');
+		});
+
+		it('keeps raw names when empty', () => {
+			const result = extractGameStats(regionResults, null, []);
+			expect(result.players[0].name).toBe('PLAYER0NE');
+		});
+	});
+});

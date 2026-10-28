@@ -23,6 +23,7 @@ const NAME_TAG: Omit<TextRegion, 'name' | 'y'> = {
 	height: 60,
 	charSet: A_TO_Z + ZERO_TO_NINE,
 	isItalic: true,
+	isolateText: true,
 };
 
 const EAD: Omit<TextRegion, 'name' | 'y'> = {

@@ -20,7 +20,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "blue_player1_e",
@@ -85,7 +86,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "blue_player2_e",
@@ -150,7 +152,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "blue_player3_e",
@@ -215,7 +218,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "blue_player4_e",
@@ -280,7 +284,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "blue_player5_e",
@@ -345,7 +350,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "red_player1_e",
@@ -410,7 +416,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "red_player2_e",
@@ -475,7 +482,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "red_player3_e",
@@ -540,7 +548,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "red_player4_e",
@@ -605,7 +614,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": true
 			},
 			{
 				"name": "red_player5_e",
@@ -666,7 +676,7 @@
 		],
 		"hashSets": [],
 		"createdAt": "2025-11-28T00:00:00.000Z",
-		"updatedAt": "2025-11-28T00:00:00.000Z"
+		"updatedAt": "2026-10-28T12:00:00.000Z"
 	},
 	"exportedAt": "2025-11-28T00:00:00.000Z"
 }

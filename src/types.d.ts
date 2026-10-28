@@ -101,6 +101,8 @@ export interface TextRegion {
 	height: number;
 	charSet?: string;
 	isItalic?: boolean;
+	/** Clean up the region on its own (enlarge, binarise, crop to text) instead of the global filter */
+	isolateText?: boolean;
 	imgHashSet?: string;
 	/** Alignment group that moves this region; see AlignmentGroup */
 	group?: string;
