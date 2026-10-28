@@ -1,19 +1,199 @@
 /**
- * Image recognition utilities for perceptual hashing and comparison
+ * Image recognition: matches image regions against known colour templates.
+ *
+ * A template is a small RGB thumbnail of the centre of a region, built by area
+ * averaging so it is stable against noise and resolution. Templates are compared
+ * with normalised cross-correlation, and the query is resampled at small offsets
+ * so a region that is a few pixels out of alignment still matches.
  */
 
 import type { ImageHashSet } from '#types';
 
-const DEFAULT_HASH_SIZE = 8;
-const DEFAULT_THRESHOLD = 0.4;
-// const BACKGROUND_RED_COLOUR = '#8a2130';
-// const BACKGROUND_BLUE_COLOUR = '#166b90';
+/** Width and height of a template thumbnail, in pixels */
+export const TEMPLATE_SIZE = 16;
 
 interface RecognitionResult {
 	name: string;
 	confidence: number;
-	/** dHash of the compared image, for saving as a new known hash */
+	/** Template of the compared image, for saving as a new known hash */
 	hash: string;
+}
+
+interface Rect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+/** Contributions of source pixels to one output pixel along an axis */
+interface AxisWeights {
+	pixels: number[];
+	weights: number[];
+}
+
+type RgbaImage = Pick<ImageData, 'width' | 'height' | 'data'>;
+
+/** Bytes in an encoded template (RGB per pixel) */
+const TEMPLATE_LENGTH = TEMPLATE_SIZE ** 2 * 3;
+/** Fraction trimmed from each edge so borders and team backgrounds matter less */
+const CROP_INSET = 0.15;
+/** Largest offset tried when matching, as a fraction of the region size */
+const MAX_SHIFT = 0.07;
+/** Minimum correlation (-1 to 1) with a known template for a match */
+const MIN_SIMILARITY = 0.85;
+/** Minimum lead in correlation over the best template of another name */
+const MIN_MARGIN = 0.15;
+/** Lead over the runner-up at which confidence reaches 100 */
+const FULL_CONFIDENCE_MARGIN = 0.3;
+
+/**
+ * Works out how source pixels along one axis cover each output pixel
+ * @param start - Start of the source span (may be fractional)
+ * @param length - Length of the source span
+ * @param size - Number of output pixels
+ * @param limit - Number of source pixels; out-of-range pixels clamp to the edge
+ */
+function _axisWeights(
+	start: number,
+	length: number,
+	size: number,
+	limit: number
+): AxisWeights[] {
+	const step = length / size;
+	const axis: AxisWeights[] = [];
+
+	for (let i = 0; i < size; i++) {
+		const from = start + i * step;
+		const to = from + step;
+		const pixels: number[] = [];
+		const weights: number[] = [];
+
+		for (let p = Math.floor(from); p < to; p++) {
+			const weight = (Math.min(p + 1, to) - Math.max(p, from)) / step;
+			if (weight <= 0) continue;
+			pixels.push(Math.min(limit - 1, Math.max(0, p)));
+			weights.push(weight);
+		}
+		axis.push({ pixels, weights });
+	}
+
+	return axis;
+}
+
+/**
+ * Resamples a rectangle of an image to a square RGB thumbnail by area averaging
+ * @returns RGB values, row by row
+ */
+function _resampleArea(image: RgbaImage, rect: Rect, size: number): Float32Array {
+	const columns = _axisWeights(rect.x, rect.width, size, image.width);
+	const rows = _axisWeights(rect.y, rect.height, size, image.height);
+	const output = new Float32Array(size * size * 3);
+
+	for (let oy = 0; oy < size; oy++) {
+		const row = rows[oy];
+		for (let ox = 0; ox < size; ox++) {
+			const column = columns[ox];
+			let r = 0;
+			let g = 0;
+			let b = 0;
+
+			for (let j = 0; j < row.pixels.length; j++) {
+				const rowOffset = row.pixels[j] * image.width;
+				for (let i = 0; i < column.pixels.length; i++) {
+					const weight = row.weights[j] * column.weights[i];
+					const index = (rowOffset + column.pixels[i]) * 4;
+					r += image.data[index] * weight;
+					g += image.data[index + 1] * weight;
+					b += image.data[index + 2] * weight;
+				}
+			}
+
+			const out = (oy * size + ox) * 3;
+			output[out] = r;
+			output[out + 1] = g;
+			output[out + 2] = b;
+		}
+	}
+
+	return output;
+}
+
+/**
+ * Trims CROP_INSET from each edge of a rectangle
+ */
+function _insetRect(rect: Rect): Rect {
+	const dx = rect.width * CROP_INSET;
+	const dy = rect.height * CROP_INSET;
+	return {
+		x: rect.x + dx,
+		y: rect.y + dy,
+		width: rect.width - 2 * dx,
+		height: rect.height - 2 * dy,
+	};
+}
+
+/**
+ * Scales values to zero mean and unit variance so that a dot product of two
+ * normalised vectors, divided by their length, is their correlation
+ */
+function _normalise(values: Float32Array): Float32Array {
+	let mean = 0;
+	for (const value of values) mean += value;
+	mean /= values.length;
+
+	let variance = 0;
+	for (const value of values) variance += (value - mean) ** 2;
+	const std = Math.sqrt(variance / values.length);
+
+	const normalised = new Float32Array(values.length);
+	if (std === 0) return normalised;
+	for (let i = 0; i < values.length; i++) {
+		normalised[i] = (values[i] - mean) / std;
+	}
+	return normalised;
+}
+
+/**
+ * Pearson correlation of two normalised vectors (-1 to 1)
+ */
+function _correlation(a: Float32Array, b: Float32Array): number {
+	let sum = 0;
+	for (let i = 0; i < a.length; i++) {
+		sum += a[i] * b[i];
+	}
+	return sum / a.length;
+}
+
+/**
+ * Serialises RGB values as a base64 template string
+ */
+function _encodeTemplate(values: Float32Array): string {
+	let binary = '';
+	for (const value of values) {
+		binary += String.fromCharCode(Math.min(255, Math.max(0, Math.round(value))));
+	}
+	return btoa(binary);
+}
+
+/**
+ * Deserialises a base64 template string
+ * @returns RGB values, or null if the string isn't a template (e.g. a legacy dHash)
+ */
+function _decodeTemplate(hash: string): Float32Array | null {
+	let binary: string;
+	try {
+		binary = atob(hash);
+	} catch {
+		return null;
+	}
+	if (binary.length !== TEMPLATE_LENGTH) return null;
+
+	const values = new Float32Array(TEMPLATE_LENGTH);
+	for (let i = 0; i < TEMPLATE_LENGTH; i++) {
+		values[i] = binary.charCodeAt(i);
+	}
+	return values;
 }
 
 /**
@@ -36,142 +216,83 @@ export function mergeHashSets(hashSets: ImageHashSet[]): ImageHashSet[] {
 }
 
 /**
- * Recognises an image by computing its dHash and comparing against a set of known hashes
+ * Creates a colour template of the centre of an image region
+ * @param image - Image to sample
+ * @param rect - Region of the image to sample (default: the whole image); may be fractional
+ * @returns Base64 template string, stored as the `hash` of a known image
+ */
+export function createTemplate(
+	image: RgbaImage,
+	rect: Rect = { x: 0, y: 0, width: image.width, height: image.height }
+): string {
+	return _encodeTemplate(_resampleArea(image, _insetRect(rect), TEMPLATE_SIZE));
+}
+
+/**
+ * Recognises an image by comparing its colour template against a set of known templates
+ * Entries that aren't templates (such as legacy dHashes) are ignored
  * @param imageData - Image data to compare
- * @param hashSet - Set of hashes to compare against
- * @param threshold - Minimum similarity score for a match (0-1, default: 0.85)
- * @returns Object with matched image ID (or empty string if no match), confidence (0-100)
- * and the computed hash
+ * @param hashSet - Set of known templates to compare against
+ * @returns Object with matched image name (or empty string if no confident match),
+ * confidence (0-100) and the image's template
  */
 export function recogniseImage(
-	imageData: ImageData,
-	hashSet: ImageHashSet,
-	threshold: number = DEFAULT_THRESHOLD
+	imageData: RgbaImage,
+	hashSet: ImageHashSet
 ): RecognitionResult {
-	const regionHash = dhash(imageData);
-	const hashBits = DEFAULT_HASH_SIZE ** 2;
+	const hash = createTemplate(imageData);
+	const known = hashSet.hashes.flatMap(({ name, hash: knownHash }) => {
+		const values = _decodeTemplate(knownHash);
+		return values ? [{ name, template: _normalise(values) }] : [];
+	});
 
-	// Find best match from provided hash set
-	let bestMatch = '';
-	let bestSimilarity = 0;
+	// Best correlation per name across all offsets
+	const scores = new Map<string, number>();
+	const inner = _insetRect({
+		x: 0,
+		y: 0,
+		width: imageData.width,
+		height: imageData.height,
+	});
+	const maxShift = Math.round(Math.min(imageData.width, imageData.height) * MAX_SHIFT);
 
-	for (const { name, hash } of hashSet.hashes) {
-		const distance = hamDist(regionHash, hash);
-		const similarity = 1 - distance / hashBits;
-		if (similarity > bestSimilarity) {
-			bestSimilarity = similarity;
-			bestMatch = name;
+	for (let dy = -maxShift; dy <= maxShift; dy++) {
+		for (let dx = -maxShift; dx <= maxShift; dx++) {
+			const query = _normalise(
+				_resampleArea(
+					imageData,
+					{ ...inner, x: inner.x + dx, y: inner.y + dy },
+					TEMPLATE_SIZE
+				)
+			);
+			for (const { name, template } of known) {
+				const score = _correlation(query, template);
+				if (score > (scores.get(name) ?? -Infinity)) {
+					scores.set(name, score);
+				}
+			}
 		}
 	}
 
-	// Scale confidence: 50% similarity (random chance) = 0%, 100% similarity = 100%
-	const confidence = Math.round(Math.max(0, bestSimilarity - 0.5) * 200);
-	// Return match only if within threshold
-	return {
-		name: confidence >= threshold * 100 ? bestMatch : '',
-		confidence,
-		hash: regionHash,
-	};
-}
-
-/**
- * Computes a difference hash (dHash) for an image
- * Creates a perceptual hash based on horizontal gradient patterns
- * @param imageData - Image data to hash
- * @param hashSize - Size of the hash grid (default: 8, produces 64-bit hash)
- * @returns Hexadecimal hash string
- */
-export function dhash(
-	imageData: ImageData,
-	hashSize: number = DEFAULT_HASH_SIZE
-): string {
-	const canvas = document.createElement('canvas');
-	const ctx = canvas.getContext('2d');
-
-	if (!ctx) {
-		return '0'.repeat(hashSize ** 2 / 4);
-	}
-
-	// Resize to (hashSize+1) x hashSize for horizontal comparisons
-	const hashWidth = hashSize + 1;
-	const hashHeight = hashSize;
-
-	canvas.width = hashWidth;
-	canvas.height = hashHeight;
-
-	// Create temporary canvas with original image
-	const tempCanvas = document.createElement('canvas');
-	const tempCtx = tempCanvas.getContext('2d');
-
-	if (!tempCtx) {
-		return '0'.repeat(hashSize ** 2 / 4);
-	}
-
-	tempCanvas.width = imageData.width;
-	tempCanvas.height = imageData.height;
-	tempCtx.putImageData(imageData, 0, 0);
-
-	// Draw resized image
-	ctx.drawImage(tempCanvas, 0, 0, hashWidth, hashHeight);
-
-	const resizedData = ctx.getImageData(0, 0, hashWidth, hashHeight);
-	const pixels = resizedData.data;
-
-	// Convert to grayscale values
-	const grayscale: number[] = [];
-	for (let i = 0; i < pixels.length; i += 4) {
-		// Luminance formula: 0.299R + 0.587G + 0.114B
-		const gray = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
-		grayscale.push(gray);
-	}
-
-	// Compute difference hash (compare left pixel to right pixel)
-	let hash = '';
-	for (let y = 0; y < hashSize; y++) {
-		for (let x = 0; x < hashSize; x++) {
-			const index = y * hashWidth + x;
-			const left = grayscale[index];
-			const right = grayscale[index + 1];
-			// 1 if left pixel is brighter than right pixel, 0 otherwise
-			hash += left > right ? '1' : '0';
+	// Map keeps insertion order, so earlier hash sets win ties
+	let bestName = '';
+	let bestScore = 0;
+	let runnerUpScore = 0;
+	for (const [name, score] of scores) {
+		if (score > bestScore) {
+			runnerUpScore = bestScore;
+			bestScore = score;
+			bestName = name;
+		} else if (score > runnerUpScore) {
+			runnerUpScore = score;
 		}
 	}
 
-	// Convert binary string to hex string
-	// Process in 4 bit chunks to avoid 53-bit positive integer precision limit
-	let hexHash = '';
-	for (let i = 0; i < hash.length; i += 4) {
-		hexHash += parseInt(hash.slice(i, i + 4), 2).toString(16);
-	}
+	const margin = bestScore - runnerUpScore;
+	const confidence = Math.round(
+		100 * bestScore * Math.min(1, margin / FULL_CONFIDENCE_MARGIN)
+	);
+	const isMatch = bestScore >= MIN_SIMILARITY && margin >= MIN_MARGIN;
 
-	return hexHash;
-}
-
-/**
- * Computes the Hamming distance between two hash strings
- * Counts the number of differing bits between two hashes
- * @param hashA - First hash string (hexadecimal)
- * @param hashB - Second hash string (hexadecimal)
- * @returns Number of differing bits (0 = identical, higher = more different)
- */
-export function hamDist(hashA: string, hashB: string): number {
-	if (hashA.length !== hashB.length) {
-		throw new Error('Hash strings must be the same length');
-	}
-
-	let distance = 0;
-
-	for (let i = 0; i < hashA.length; i++) {
-		const a = parseInt(hashA[i], 16);
-		const b = parseInt(hashB[i], 16);
-
-		// XOR to find differing bits, then count them
-		let xor = a ^ b;
-		while (xor > 0) {
-			distance += xor & 1;
-			xor >>= 1;
-		}
-	}
-
-	return distance;
+	return { name: isMatch ? bestName : '', confidence, hash };
 }

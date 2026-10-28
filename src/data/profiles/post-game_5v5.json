@@ -1,6 +1,6 @@
 {
 	"type": "vowt-region-profile",
-	"schemaVersion": 1,
+	"schemaVersion": 2,
 	"profile": {
 		"id": "Post-game_5v5",
 		"description": "Post-game F1 match info screen (5v5)",

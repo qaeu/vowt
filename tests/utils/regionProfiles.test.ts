@@ -25,7 +25,7 @@ vi.mock('#data/profiles', () => ({
 	DEFAULT_PROFILES: [
 		{
 			type: 'vowt-region-profile',
-			schemaVersion: 1,
+			schemaVersion: 2,
 			profile: {
 				id: 'mock_profile',
 				description: 'Built-in default profile',
@@ -127,7 +127,7 @@ describe('Region Profiles', () => {
 			const storageKey = 'vowt_region_profiles';
 			const stored = JSON.parse(localStorage.getItem(storageKey)!);
 
-			expect(stored.schemaVersion).toBe(1);
+			expect(stored.schemaVersion).toBe(2);
 			// Find our test profile (excluding the builtin default)
 			const testProfile = stored.profiles.find((p: { id: string }) => p.id === profileId);
 			expect(testProfile).toBeDefined();
@@ -458,7 +458,7 @@ describe('Region Profiles', () => {
 
 			const parsed = JSON.parse(exported!);
 			expect(parsed.type).toBe('vowt-region-profile');
-			expect(parsed.schemaVersion).toBe(1);
+			expect(parsed.schemaVersion).toBe(2);
 			expect(parsed.profile.id).toBe(profileId);
 			expect(parsed.profile.description).toBe('Test Profile');
 			expect(parsed.profile.regions).toEqual(mockRegions);
@@ -566,6 +566,21 @@ describe('Region Profiles', () => {
 			]);
 		});
 
+		it('should drop learned dHashes from a version 1 export', () => {
+			const profileId = saveProfile(mockRegions, { description: 'With hashes' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'new-hero', hash: 'abcdef1234567890' },
+			]);
+			const exported = JSON.parse(exportProfile(profileId)!);
+			exported.schemaVersion = 1;
+
+			localStorage.clear();
+			importProfile(JSON.stringify(exported));
+
+			expect(getProfileHashSets(profileId)).toEqual([]);
+			expect(getProfile(profileId)).toEqual(mockRegions);
+		});
+
 		it('should preserve original createdAt when updating via import', () => {
 			const profileId = saveProfile(mockRegions, {
 				id: 'custom_profile_id',
@@ -669,11 +684,11 @@ describe('Region Profiles', () => {
 	describe('default profiles', () => {
 		const storageKey = 'vowt_region_profiles';
 
-		const storeDefaultCopy = (updatedAt: string) => {
+		const storeDefaultCopy = (updatedAt: string, schemaVersion = 2) => {
 			localStorage.setItem(
 				storageKey,
 				JSON.stringify({
-					schemaVersion: 1,
+					schemaVersion,
 					activeProfileId: 'mock_profile',
 					profiles: [
 						{
@@ -720,6 +735,28 @@ describe('Region Profiles', () => {
 			expect(getProfileHashSets('mock_profile')![0].hashes).toEqual([
 				{ name: 'new-hero', hash: 'abcdef1234567890' },
 			]);
+		});
+
+		it('should drop learned dHashes from version 1 storage', () => {
+			storeDefaultCopy('2026-01-01T00:00:00.000Z', 1);
+			const stored = JSON.parse(localStorage.getItem(storageKey)!);
+			stored.profiles[0].hashSets = [
+				{
+					id: 'hero-portrait',
+					description: 'User-learned hashes',
+					hashes: [{ name: 'new-hero', hash: 'abcdef1234567890' }],
+					createdAt: '2025-11-01T00:00:00.000Z',
+					updatedAt: '2025-11-01T00:00:00.000Z',
+				},
+			];
+			localStorage.setItem(storageKey, JSON.stringify(stored));
+
+			expect(getProfileHashSets('mock_profile')).toEqual([]);
+			expect(listProfiles().find((p) => p.id === 'mock_profile')?.description).toBe(
+				'Stored copy'
+			);
+			expect(getProfile('mock_profile')).toEqual(mockRegions);
+			expect(JSON.parse(localStorage.getItem(storageKey)!).schemaVersion).toBe(2);
 		});
 
 		it('should keep a stored default edited after the bundled version', () => {

@@ -33,7 +33,9 @@ type ImportedProfile = Merge<
 >;
 
 const STORAGE_KEY = 'vowt_region_profiles';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+/** Schema versions before this stored dHashes, which can't be used as templates */
+const FIRST_TEMPLATE_SCHEMA_VERSION = 2;
 const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
 
 /**
@@ -113,7 +115,10 @@ function _loadStorage(): ProfileStore {
 		const stored: ProfileStore = JSON.parse(data, _reviver);
 
 		// Handle schema version for future migrations
-		if (stored.schemaVersion !== SCHEMA_VERSION) {
+		if (stored.schemaVersion < FIRST_TEMPLATE_SCHEMA_VERSION) {
+			const profiles = stored.profiles.map((profile) => ({ ...profile, hashSets: [] }));
+			return _saveProfiles(_ensureDefaultProfilesExist(profiles), stored.activeProfileId);
+		} else if (stored.schemaVersion !== SCHEMA_VERSION) {
 			console.warn(
 				`Profiles storage uses schema version ${stored.schemaVersion}, expected ${SCHEMA_VERSION}`
 			);
@@ -542,7 +547,10 @@ export function importProfile(jsonData: string): number | null {
 			id: importedProfile.id,
 			description: importedProfile.description,
 			alignment: importedProfile.alignment,
-			hashSets: importedProfile.hashSets ?? [],
+			hashSets:
+				parsed.schemaVersion < FIRST_TEMPLATE_SCHEMA_VERSION ?
+					[]
+				:	(importedProfile.hashSets ?? []),
 		});
 
 		const storage = _loadStorage();
