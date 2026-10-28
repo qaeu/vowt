@@ -1400,6 +1400,16 @@ describe('ScoreboardOCR', () => {
 				expect(vi.mocked(saveGameRecord).mock.calls[0][0][0].name).toBe('FIRST');
 			});
 
+			it('should label a duplicate screenshot "Already saved" in the queue', async () => {
+				await saveExistingRecord(images[0], 'EXISTING');
+				renderBatch();
+
+				await waitForStatuses(['duplicate', 'done']);
+				expect(queueItems()[0].querySelector('.queue-item__status')?.textContent).toBe(
+					'Already saved'
+				);
+			});
+
 			it('should skip recognition for a duplicate screenshot', async () => {
 				const { extractGameStats } = await import('#utils/postprocess');
 				const { loadImageDimensions } = await import('#utils/preprocess');
@@ -1552,6 +1562,16 @@ describe('ScoreboardOCR', () => {
 				const records = await savedRecords();
 				expect(records).toHaveLength(1);
 				expect(records[0].screenshotHashes).toHaveLength(2);
+			});
+
+			it('should label a merged screenshot "Merged into record" in the queue', async () => {
+				await mockScreenshotStats(gameStats(3), gameStats(9, true));
+				renderBatch();
+
+				await waitForStatuses(['done', 'merged']);
+				expect(queueItems()[1].querySelector('.queue-item__status')?.textContent).toBe(
+					'Merged into record'
+				);
 			});
 
 			it('should recognise a merged screenshot when uploaded again', async () => {
