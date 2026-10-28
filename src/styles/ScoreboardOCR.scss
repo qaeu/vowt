@@ -39,6 +39,56 @@
 			}
 		}
 
+		.screenshot-queue {
+			display: flex;
+			gap: 12px;
+			margin: 0 0 30px;
+			padding: 4px 4px 8px;
+			overflow-x: auto;
+			list-style: none;
+		}
+
+		.screenshot-queue-item {
+			@include shadow-short;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 6px;
+			padding: 6px;
+			background-color: $background;
+			border: 2px solid transparent;
+			border-radius: 6px;
+			cursor: pointer;
+
+			&.selected {
+				border-color: $primary;
+			}
+
+			img {
+				width: 128px;
+				height: 72px;
+				object-fit: cover;
+				border-radius: 4px;
+				display: block;
+			}
+
+			.screenshot-queue-status {
+				@include badge(get($neutrals, 'sep-dark'));
+			}
+
+			&[data-status='processing'] .screenshot-queue-status {
+				@include badge(get($warnings, 'base'));
+			}
+
+			&[data-status='done'] .screenshot-queue-status {
+				@include badge(get($successes, 'base'));
+			}
+
+			&[data-status='error'] .screenshot-queue-status {
+				@include badge(get($errors, 'base'));
+			}
+		}
+
 		.image-grid {
 			display: grid;
 			grid-template-columns: 1fr 1fr;

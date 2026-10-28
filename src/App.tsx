@@ -6,9 +6,10 @@ import { Sun, Moon } from 'lucide-solid';
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
+import type { UploadBatch } from '#c/ScoreboardOCR';
 import {
 	triggerUploadDialog,
-	handleFileUpload,
+	readImageFiles,
 	loadSettings,
 	saveSettings,
 } from '#utils/storage';
@@ -18,7 +19,7 @@ type ViewMode = 'ocr' | 'records' | 'regions';
 
 const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
-	const [uploadedImage, setUploadedImage] = createSignal<string | null>(null);
+	const [uploadBatch, setUploadBatch] = createSignal<UploadBatch | null>(null);
 	const [isDragging, setIsDragging] = createSignal(false);
 
 	const settings = loadSettings();
@@ -27,10 +28,8 @@ const App: Component = () => {
 	const handleDragOver = (e: DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		if (
-			e.dataTransfer?.items[0]?.kind === 'file'
-			&& e.dataTransfer.items[0].type.startsWith('image/')
-		) {
+		const items = Array.from(e.dataTransfer?.items ?? []);
+		if (items.some((item) => item.kind === 'file' && item.type.startsWith('image/'))) {
 			setIsDragging(true);
 		}
 	};
@@ -41,20 +40,20 @@ const App: Component = () => {
 		setIsDragging(false);
 	};
 
-	const handleDrop = (e: DragEvent) => {
+	const handleDrop = async (e: DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 		setIsDragging(false);
 
-		const file = e.dataTransfer?.files[0] as File;
 		const currentViewMode = viewMode();
-		handleFileUpload(file, (imageData) => {
-			setUploadedImage(imageData);
-			// If we're in regions view, stay in regions view; otherwise go to OCR
-			if (currentViewMode !== 'regions') {
-				setViewMode('ocr');
-			}
-		});
+		const images = await readImageFiles(e.dataTransfer?.files ?? []);
+		if (images.length === 0) return;
+
+		setUploadBatch({ images });
+		// If we're in regions view, stay in regions view; otherwise go to OCR
+		if (currentViewMode !== 'regions') {
+			setViewMode('ocr');
+		}
 	};
 
 	onMount(() => {
@@ -74,8 +73,8 @@ const App: Component = () => {
 	});
 
 	const handleUploadClick = () => {
-		triggerUploadDialog((imageData) => {
-			setUploadedImage(imageData);
+		triggerUploadDialog((images) => {
+			setUploadBatch({ images });
 			setViewMode('ocr');
 		});
 	};
@@ -97,7 +96,7 @@ const App: Component = () => {
 				<div class="drag-overlay">
 					<div class="drag-overlay-content">
 						<div class="drag-overlay-icon">📤</div>
-						<div class="drag-overlay-text">Drop image here to analyze</div>
+						<div class="drag-overlay-text">Drop images here to analyze</div>
 					</div>
 				</div>
 			)}
@@ -105,7 +104,7 @@ const App: Component = () => {
 				<Match when={viewMode() === 'ocr'}>
 					{viewMode() === 'ocr' && (
 						<ScoreboardOCR
-							uploadedImage={uploadedImage()}
+							uploadBatch={uploadBatch()}
 							onClose={handleCloseOCR}
 							onOpenRegionManager={() => setViewMode('regions')}
 						/>
@@ -116,7 +115,7 @@ const App: Component = () => {
 				</Match>
 				<Match when={viewMode() === 'regions'}>
 					<RegionProfileManager
-						previewImage={uploadedImage()}
+						previewImage={uploadBatch()?.images[0] ?? null}
 						onClose={() => setViewMode('ocr')}
 					/>
 				</Match>

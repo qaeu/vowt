@@ -11,7 +11,8 @@ import {
 	importGameRecords,
 	loadSettings,
 	saveSettings,
-	handleFileUpload,
+	readImageFiles,
+	triggerUploadDialog,
 } from '#utils/storage';
 
 describe('storage', () => {
@@ -275,38 +276,89 @@ describe('settings storage', () => {
 	});
 });
 
-describe('handleFileUpload', () => {
-	it('should call callback with data URL for a valid image file', async () => {
-		const fakeDataUrl = 'data:image/png;base64,cGl4ZWw=';
-		const mockFileReader = {
-			readAsDataURL: vi.fn(function (this: typeof mockFileReader) {
-				this.onload?.({
-					target: { result: fakeDataUrl },
-				} as unknown as ProgressEvent<FileReader>);
-			}),
-			onload: null as ((event: ProgressEvent<FileReader>) => void) | null,
-		};
-		vi.spyOn(globalThis, 'FileReader').mockImplementation(function () {
-			return mockFileReader as unknown as FileReader;
-		});
+describe('upload helpers', () => {
+	const png = (name: string, content = name) =>
+		new File([content], name, { type: 'image/png' });
+	const toDataURL = (content: string) =>
+		`data:image/png;base64,${Buffer.from(content).toString('base64')}`;
 
-		const callback = vi.fn();
-		const file = new File(['pixel'], 'test.png', { type: 'image/png' });
-
-		handleFileUpload(file, callback);
-
-		expect(callback).toHaveBeenCalledOnce();
-		expect(callback).toHaveBeenCalledWith(fakeDataUrl);
-
+	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
-	it('should not call callback for a non-image file', () => {
-		const callback = vi.fn();
-		const file = new File(['text'], 'document.txt', { type: 'text/plain' });
+	describe('readImageFiles', () => {
+		it('should read multiple images as data URLs in the given order', async () => {
+			const images = await readImageFiles([png('a.png'), png('b.png'), png('c.png')]);
+			expect(images).toEqual([
+				toDataURL('a.png'),
+				toDataURL('b.png'),
+				toDataURL('c.png'),
+			]);
+		});
 
-		handleFileUpload(file, callback);
+		it('should skip non-image files', async () => {
+			const text = new File(['text'], 'notes.txt', { type: 'text/plain' });
+			const images = await readImageFiles([text, png('a.png')]);
+			expect(images).toEqual([toDataURL('a.png')]);
+		});
 
-		expect(callback).not.toHaveBeenCalled();
+		it('should return an empty list when no files are given', async () => {
+			expect(await readImageFiles([])).toEqual([]);
+		});
+
+		it('should skip files that fail to read', async () => {
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			const OriginalFileReader = globalThis.FileReader;
+			let calls = 0;
+			vi.spyOn(globalThis, 'FileReader').mockImplementation(function () {
+				const reader = new OriginalFileReader();
+				if (calls++ === 0) {
+					reader.readAsDataURL = function () {
+						this.onerror?.(new ProgressEvent('error') as ProgressEvent<FileReader>);
+					};
+				}
+				return reader;
+			});
+
+			const images = await readImageFiles([png('broken.png'), png('b.png')]);
+
+			expect(images).toEqual([toDataURL('b.png')]);
+			expect(console.error).toHaveBeenCalled();
+		});
+	});
+
+	describe('triggerUploadDialog', () => {
+		const openDialog = (files: File[]) => {
+			const input = document.createElement('input');
+			vi.spyOn(document, 'createElement').mockReturnValue(input);
+			vi.spyOn(input, 'click').mockImplementation(() => {});
+			const callback = vi.fn();
+
+			triggerUploadDialog(callback);
+			Object.defineProperty(input, 'files', { value: files });
+			input.dispatchEvent(new Event('change'));
+
+			return { input, callback };
+		};
+
+		it('should allow selecting multiple images', () => {
+			const { input } = openDialog([]);
+			expect.soft(input.type).toBe('file');
+			expect.soft(input.accept).toBe('image/*');
+			expect.soft(input.multiple).toBe(true);
+		});
+
+		it('should pass all selected images to the callback', async () => {
+			const { callback } = openDialog([png('a.png'), png('b.png')]);
+			await vi.waitFor(() => expect(callback).toHaveBeenCalledOnce());
+			expect(callback).toHaveBeenCalledWith([toDataURL('a.png'), toDataURL('b.png')]);
+		});
+
+		it('should not call the callback when no images are selected', async () => {
+			const text = new File(['text'], 'notes.txt', { type: 'text/plain' });
+			const { callback } = openDialog([text]);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(callback).not.toHaveBeenCalled();
+		});
 	});
 });

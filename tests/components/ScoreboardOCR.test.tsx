@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createSignal } from 'solid-js';
 import { render, waitFor, screen, fireEvent } from '@solidjs/testing-library';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
@@ -238,7 +239,12 @@ vi.mock('#utils/gameStorage', () => ({
 // Mock storage so saved records can be stubbed per test
 vi.mock('#utils/storage', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('#utils/storage')>();
-	return { ...actual, loadGameRecords: vi.fn(actual.loadGameRecords) };
+	return {
+		...actual,
+		loadGameRecords: vi.fn(actual.loadGameRecords),
+		saveGameRecord: vi.fn(actual.saveGameRecord),
+		updateGameRecord: vi.fn(actual.updateGameRecord),
+	};
 });
 
 describe('ScoreboardOCR', () => {
@@ -276,14 +282,14 @@ describe('ScoreboardOCR', () => {
 		expect(mockOnOpenRegionManager).toHaveBeenCalledTimes(1);
 	});
 
-	describe('when uploadedImage is provided', () => {
+	describe('when an upload batch is provided', () => {
 		it('should render original image section', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { getByText, getByAltText } = render(() => (
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -291,13 +297,13 @@ describe('ScoreboardOCR', () => {
 			expect(getByAltText('Uploaded Image')).not.toBeNull();
 		});
 
-		it('should show processing indicator when uploadedImage is provided', async () => {
+		it('should show processing indicator when an upload batch is provided', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
 			const { queryByText } = render(() => (
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -312,7 +318,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -330,7 +336,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -348,7 +354,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -366,7 +372,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -385,7 +391,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -403,7 +409,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -421,7 +427,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -441,7 +447,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -460,7 +466,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -480,7 +486,7 @@ describe('ScoreboardOCR', () => {
 					<ScoreboardOCR
 						onClose={() => {}}
 						onOpenRegionManager={() => {}}
-						uploadedImage={testImageData}
+						uploadBatch={{ images: [testImageData] }}
 					/>
 				));
 
@@ -509,7 +515,7 @@ describe('ScoreboardOCR', () => {
 					<ScoreboardOCR
 						onClose={() => {}}
 						onOpenRegionManager={() => {}}
-						uploadedImage={testImageData}
+						uploadBatch={{ images: [testImageData] }}
 					/>
 				));
 
@@ -543,7 +549,7 @@ describe('ScoreboardOCR', () => {
 					<ScoreboardOCR
 						onClose={() => {}}
 						onOpenRegionManager={() => {}}
-						uploadedImage={testImageData}
+						uploadBatch={{ images: [testImageData] }}
 					/>
 				));
 
@@ -573,7 +579,7 @@ describe('ScoreboardOCR', () => {
 					<ScoreboardOCR
 						onClose={() => {}}
 						onOpenRegionManager={() => {}}
-						uploadedImage={testImageData}
+						uploadBatch={{ images: [testImageData] }}
 					/>
 				));
 
@@ -612,7 +618,7 @@ describe('ScoreboardOCR', () => {
 					<ScoreboardOCR
 						onClose={() => {}}
 						onOpenRegionManager={() => {}}
-						uploadedImage={testImageData}
+						uploadBatch={{ images: [testImageData] }}
 					/>
 				));
 
@@ -659,7 +665,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -699,7 +705,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -734,7 +740,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -772,7 +778,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -819,7 +825,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -858,7 +864,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -893,7 +899,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -928,7 +934,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -967,7 +973,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -1007,7 +1013,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -1038,7 +1044,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -1091,7 +1097,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage={testImageData}
+					uploadBatch={{ images: [testImageData] }}
 				/>
 			));
 
@@ -1147,7 +1153,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage="data:image/png;base64,testdata"
+					uploadBatch={{ images: ['data:image/png;base64,testdata'] }}
 				/>
 			));
 			const saveButton = await screen.findByTestId('save-button', undefined, {
@@ -1252,7 +1258,7 @@ describe('ScoreboardOCR', () => {
 				<ScoreboardOCR
 					onClose={() => {}}
 					onOpenRegionManager={() => {}}
-					uploadedImage="data:image/png;base64,testdata"
+					uploadBatch={{ images: ['data:image/png;base64,testdata'] }}
 				/>
 			));
 
@@ -1327,6 +1333,144 @@ describe('ScoreboardOCR', () => {
 				timeout: 1500,
 			});
 			expect(vi.mocked(extractGameStats).mock.calls[0][2]).toEqual(['QAEU']);
+		});
+	});
+
+	describe('multiple screenshots', () => {
+		const images = ['data:image/png;base64,one', 'data:image/png;base64,two'];
+		const statsFor = (name: string) => ({
+			players: [{ name, team: 'blue', e: 1, a: 1, d: 1, dmg: 1, h: 1, mit: 1 }],
+			matchInfo: { result: 'VICTORY', final_score: '3VS2', date: '', game_mode: '' },
+		});
+
+		const queueItems = () => screen.getAllByRole('button', { name: /^Screenshot \d/ });
+		const waitForStatuses = (statuses: string[]) =>
+			waitFor(
+				() =>
+					expect(queueItems().map((item) => item.getAttribute('data-status'))).toEqual(
+						statuses
+					),
+				{ timeout: 2000 }
+			);
+
+		beforeEach(async () => {
+			const { getActiveProfile } = await import('#utils/regionProfiles');
+			const { extractGameStats } = await import('#utils/postprocess');
+			const { saveGameRecord, updateGameRecord } = await import('#utils/storage');
+			vi.mocked(getActiveProfile).mockReturnValue([
+				{ name: 'region_0', x: 0, y: 0, width: 100, height: 100 },
+			]);
+			vi.mocked(extractGameStats)
+				.mockReturnValueOnce(statsFor('FIRST') as never)
+				.mockReturnValueOnce(statsFor('SECOND') as never)
+				.mockReturnValueOnce(statsFor('THIRD') as never);
+			vi.mocked(saveGameRecord).mockClear();
+			vi.mocked(updateGameRecord).mockClear();
+		});
+
+		afterEach(async () => {
+			const { extractGameStats } = await import('#utils/postprocess');
+			const { loadImageDimensions } = await import('#utils/preprocess');
+			vi.mocked(extractGameStats).mockReset();
+			vi.mocked(extractGameStats).mockReturnValue(statsFor('VEQ') as never);
+			vi.mocked(loadImageDimensions).mockResolvedValue({ width: 2560, height: 1440 });
+		});
+
+		const renderBatch = (batch: { images: string[] } | null = { images }) =>
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadBatch={batch}
+				/>
+			));
+
+		it('should not show the queue for a single screenshot', async () => {
+			renderBatch({ images: [images[0]] });
+			await screen.findByTestId('save-button', undefined, { timeout: 1500 });
+			expect(screen.queryByRole('list', { name: 'Uploaded screenshots' })).toBeNull();
+		});
+
+		it('should process every screenshot and save a record for each', async () => {
+			const { saveGameRecord } = await import('#utils/storage');
+			renderBatch();
+
+			await waitForStatuses(['done', 'done']);
+			expect(saveGameRecord).toHaveBeenCalledTimes(2);
+			expect(
+				vi.mocked(saveGameRecord).mock.calls.map(([players]) => players[0].name)
+			).toEqual(['FIRST', 'SECOND']);
+		});
+
+		it('should show the last processed screenshot by default', async () => {
+			renderBatch();
+			await waitForStatuses(['done', 'done']);
+			expect(screen.getByTestId('player-SECOND')).not.toBeNull();
+			expect(queueItems()[1].getAttribute('aria-current')).toBe('true');
+		});
+
+		it('should show a finished screenshot when its thumbnail is clicked', async () => {
+			renderBatch();
+			await waitForStatuses(['done', 'done']);
+
+			fireEvent.click(queueItems()[0]);
+
+			expect(screen.getByTestId('player-FIRST')).not.toBeNull();
+			expect(screen.queryByTestId('player-SECOND')).toBeNull();
+			expect(screen.getByAltText('Uploaded Image').getAttribute('src')).toBe(images[0]);
+		});
+
+		it('should save edits to the selected screenshot record', async () => {
+			const { saveGameRecord, updateGameRecord } = await import('#utils/storage');
+			renderBatch();
+			await waitForStatuses(['done', 'done']);
+			const firstRecordId = vi.mocked(saveGameRecord).mock.results[0].value;
+
+			fireEvent.click(queueItems()[0]);
+			fireEvent.click(screen.getByTestId('save-button'));
+
+			expect(updateGameRecord).toHaveBeenCalledWith(
+				firstRecordId,
+				expect.anything(),
+				expect.anything()
+			);
+		});
+
+		it('should keep processing after a screenshot fails', async () => {
+			const { saveGameRecord } = await import('#utils/storage');
+			const { loadImageDimensions } = await import('#utils/preprocess');
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			vi.mocked(loadImageDimensions).mockRejectedValueOnce(new Error('Bad image'));
+			renderBatch();
+
+			await waitForStatuses(['error', 'done']);
+			expect(saveGameRecord).toHaveBeenCalledOnce();
+
+			fireEvent.click(queueItems()[0]);
+			expect(screen.getByText('Bad image')).not.toBeNull();
+		});
+
+		it('should show progress for the screenshot being processed', async () => {
+			renderBatch();
+			expect(await screen.findByText(/Processing image 1 of 2/)).not.toBeNull();
+			await waitForStatuses(['done', 'done']);
+		});
+
+		it('should queue a new batch after the current one', async () => {
+			const { saveGameRecord } = await import('#utils/storage');
+			const [batch, setBatch] = createSignal<{ images: string[] } | null>({ images });
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadBatch={batch()}
+				/>
+			));
+
+			setBatch({ images: ['data:image/png;base64,three'] });
+
+			await waitForStatuses(['done', 'done', 'done']);
+			expect(saveGameRecord).toHaveBeenCalledTimes(3);
 		});
 	});
 });

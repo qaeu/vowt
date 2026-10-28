@@ -86,27 +86,46 @@ function _loadStorage(): GameStore {
 	}
 }
 
-export function triggerUploadDialog(callback: (imageData: string) => void) {
+/** Reads a file as a data URL, resolving null if it cannot be read */
+function _readFileAsDataURL(file: File): Promise<string | null> {
+	return new Promise((resolve) => {
+		const reader = new FileReader();
+		reader.onload = (event) => resolve((event.target?.result as string) ?? null);
+		reader.onerror = () => {
+			console.error(`Error reading file '${file.name}':`, reader.error);
+			resolve(null);
+		};
+		reader.readAsDataURL(file);
+	});
+}
+
+/**
+ * Opens a file picker for one or more images
+ * @param callback - Receives the selected images as data URLs, in selection order
+ */
+export function triggerUploadDialog(callback: (images: string[]) => void) {
 	const input = document.createElement('input');
 	input.type = 'file';
 	input.accept = 'image/*';
-	input.onchange = (event) => {
+	input.multiple = true;
+	input.onchange = async (event) => {
 		const input = event.target as HTMLInputElement;
-		const file = input.files?.[0] as File;
-
-		handleFileUpload(file, callback);
+		const images = await readImageFiles(input.files ?? []);
+		if (images.length > 0) {
+			callback(images);
+		}
 	};
 	input.click();
 }
 
-export function handleFileUpload(file: File, callback: (imageData: string) => void) {
-	if (file && file.type.startsWith('image/')) {
-		const reader = new FileReader();
-		reader.onload = (event) => {
-			callback(event.target?.result as string);
-		};
-		reader.readAsDataURL(file);
-	}
+/**
+ * Reads image files as data URLs, skipping non-images and files that fail to read
+ * @returns Data URLs in the order the files were given
+ */
+export async function readImageFiles(files: FileList | File[]): Promise<string[]> {
+	const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+	const images = await Promise.all(imageFiles.map(_readFileAsDataURL));
+	return images.filter((image): image is string => image !== null);
 }
 
 /**
