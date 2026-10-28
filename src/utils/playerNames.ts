@@ -83,6 +83,22 @@ export function confusionDistance(a: string, b: string): number {
 }
 
 /**
+ * Checks whether two reads are probably the same name, allowing for OCR errors
+ * @param a - First name
+ * @param b - Second name
+ * @returns False if either name is empty
+ */
+export function isSameName(a: string, b: string): boolean {
+	const [first, second] = [_normaliseName(a), _normaliseName(b)];
+	if (!first || !second) return false;
+	const limit = Math.max(
+		MIN_DISTANCE_LIMIT,
+		DISTANCE_LIMIT_RATIO * Math.max(first.length, second.length)
+	);
+	return confusionDistance(first, second) <= limit;
+}
+
+/**
  * Matches a raw OCR player name to a known name
  * @param raw - Raw player name
  * @param lexicon - Known names

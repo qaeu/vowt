@@ -13,6 +13,8 @@ import {
 	saveSettings,
 	readImageFiles,
 	triggerUploadDialog,
+	hashScreenshot,
+	findGameRecordByScreenshot,
 } from '#utils/storage';
 
 describe('storage', () => {
@@ -185,6 +187,84 @@ describe('storage', () => {
 		// Should return empty array without throwing
 		const records = loadGameRecords();
 		expect(records).toEqual([]);
+	});
+
+	describe('screenshot hashes', () => {
+		const image = 'data:image/png;base64,screenshot';
+
+		describe('hashScreenshot', () => {
+			it('should return a hex SHA-256 digest', async () => {
+				expect(await hashScreenshot(image)).toMatch(/^[0-9a-f]{64}$/);
+			});
+
+			it('should return the same hash for the same screenshot', async () => {
+				expect(await hashScreenshot(image)).toBe(await hashScreenshot(image));
+			});
+
+			it('should return different hashes for different screenshots', async () => {
+				expect(await hashScreenshot(image)).not.toBe(
+					await hashScreenshot('data:image/png;base64,other')
+				);
+			});
+
+			it('should return null when hashing fails', async () => {
+				vi.spyOn(console, 'error').mockImplementation(() => {});
+				vi.spyOn(crypto.subtle, 'digest').mockRejectedValueOnce(new Error('No crypto'));
+				expect(await hashScreenshot(image)).toBeNull();
+				vi.restoreAllMocks();
+			});
+		});
+
+		describe('findGameRecordByScreenshot', () => {
+			it('should find the record saved with a screenshot hash', () => {
+				saveGameRecord(mockPlayers, mockMatchInfo);
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+			});
+
+			it('should return undefined when no record matches', () => {
+				saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				expect(findGameRecordByScreenshot('def456')).toBeUndefined();
+			});
+
+			it('should not store a hash when none is given', () => {
+				saveGameRecord(mockPlayers, mockMatchInfo);
+				expect(loadGameRecords()[0]).not.toHaveProperty('screenshotHashes');
+			});
+
+			it('should keep the hash through export and import', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				const exported = exportGameRecords();
+				clearAllGameRecords();
+
+				importGameRecords(exported);
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+			});
+
+			it('should keep the hash when the record is updated', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				updateGameRecord(recordId, [], mockMatchInfo);
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+			});
+
+			it('should find a record by any of its screenshots', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				updateGameRecord(recordId, mockPlayers, mockMatchInfo, ['abc123', 'def456']);
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+				expect(findGameRecordByScreenshot('def456')?.id).toBe(recordId);
+			});
+
+			it('should replace the hashes when updating with new ones', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				updateGameRecord(recordId, mockPlayers, mockMatchInfo, []);
+
+				expect(findGameRecordByScreenshot('abc123')).toBeUndefined();
+			});
+		});
 	});
 });
 

@@ -42,8 +42,16 @@ import { alignRegionsToImage } from '#utils/regionAlignment';
 import { extractGameStats, formatResults } from '#utils/postprocess';
 import { loadOverFastData } from '#utils/overfastApi';
 import { getHeroKey } from '#utils/gameData';
-import { saveGameRecord, updateGameRecord, loadGameRecords } from '#utils/storage';
+import {
+	saveGameRecord,
+	updateGameRecord,
+	loadGameRecords,
+	hashScreenshot,
+	findGameRecordByScreenshot,
+} from '#utils/storage';
 import { buildNameLexicon } from '#utils/playerNames';
+import { findMatchingRecord, mergeGameStats } from '#utils/gameMatching';
+import type { GameStats } from '#utils/gameMatching';
 import {
 	getActiveProfile,
 	getActiveProfileId,
@@ -73,6 +81,19 @@ interface LearnableHash {
 	preview?: string;
 }
 
+/** Result of processing one screenshot */
+type ScreenshotOutcome = 'saved' | 'duplicate' | 'merged' | 'failed';
+
+/** What is needed to split a merged screenshot back out into its own record */
+interface MergeUndo {
+	/** The record as it was before the screenshot was merged into it */
+	previous: GameRecord;
+	/** When the merge was saved, to tell whether the record has changed since */
+	mergedAt: Date;
+	screenshotStats: GameStats;
+	screenshotHash?: string;
+}
+
 /** Hero correction that can be saved as a new portrait hash */
 interface HashCorrection extends LearnableHash {
 	name: string;
@@ -83,11 +104,14 @@ interface HashCorrection extends LearnableHash {
 interface ScreenshotJob {
 	id: string;
 	image: string;
-	status: 'queued' | 'processing' | 'done' | 'error';
+	status: 'queued' | 'processing' | 'done' | 'duplicate' | 'merged' | 'error';
 	error?: string;
+	/** When the existing record a duplicate or merged screenshot belongs to was created */
+	matchedRecordCreatedAt?: Date;
+	undoMerge?: MergeUndo;
 	preprocessedPreview?: string;
 	rawOcrText?: string;
-	stats?: Pick<GameRecord, 'players' | 'matchInfo'>;
+	stats?: GameStats;
 	recordId?: string;
 	/** Profile the screenshot was read with, so learned hashes go to the right place */
 	learnProfileId?: string;
@@ -100,6 +124,8 @@ const JOB_STATUS_LABELS: Record<ScreenshotJob['status'], string> = {
 	queued: 'Queued',
 	processing: 'Processing',
 	done: 'Done',
+	duplicate: 'Duplicate',
+	merged: 'Merged',
 	error: 'Failed',
 };
 
@@ -201,8 +227,12 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	/** Processes queued screenshots one at a time until none are left */
 	const runQueue = async () => {
 		isQueueRunning = true;
-		let saved = 0;
-		let failed = 0;
+		const counts: Record<ScreenshotOutcome, number> = {
+			saved: 0,
+			duplicate: 0,
+			merged: 0,
+			failed: 0,
+		};
 
 		try {
 			let job = jobs().find(({ status }) => status === 'queued');
@@ -211,8 +241,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 					setSelectedJobId(job.id);
 					setError('');
 				}
-				if (await processScreenshot(job)) saved++;
-				else failed++;
+				counts[await processScreenshot(job)]++;
 				job = jobs().find(({ status }) => status === 'queued');
 			}
 		} finally {
@@ -221,12 +250,22 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 		if (isProcessingCancelled) return;
 
-		if (saved + failed > 1) {
+		const { saved, duplicate, merged, failed } = counts;
+		if (saved + duplicate + merged + failed > 1) {
 			const plural = saved === 1 ? '' : 's';
+			const merges = merged > 0 ? `, ${merged} merged into existing records` : '';
+			const duplicates = duplicate > 0 ? `, ${duplicate} already saved` : '';
 			const failures = failed > 0 ? `, ${failed} failed` : '';
-			toast('Recognition Complete', `${saved} game record${plural} saved${failures}.`);
+			toast(
+				'Recognition Complete',
+				`${saved} game record${plural} saved${merges}${duplicates}${failures}.`
+			);
 		} else if (saved === 1) {
 			toast('Recognition Success', 'New game record saved.');
+		} else if (merged === 1) {
+			toast('Record Updated', 'Screenshot merged into an existing game record.');
+		} else if (duplicate === 1) {
+			toast('Already Saved', 'This screenshot already has a game record.');
 		}
 	};
 
@@ -525,10 +564,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	/**
-	 * Main image processing pipeline; saves a game record and stores results on the job
-	 * @returns Whether a game record was saved
+	 * Main image processing pipeline; saves a game record and stores results on the job.
+	 * A screenshot that already has a record shows that record instead of being read again,
+	 * and one of a game that already has a record is merged into it.
 	 */
-	const processScreenshot = async (job: ScreenshotJob): Promise<boolean> => {
+	const processScreenshot = async (job: ScreenshotJob): Promise<ScreenshotOutcome> => {
 		const imageToProcess = job.image;
 		const learnableHashes = new Map<string, LearnableHash>();
 		updateJob(job.id, {
@@ -539,6 +579,18 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		setProgress(0);
 
 		try {
+			const screenshotHash = await hashScreenshot(imageToProcess);
+			const existing = screenshotHash && findGameRecordByScreenshot(screenshotHash);
+			if (existing) {
+				updateJob(job.id, {
+					status: 'duplicate',
+					stats: { players: existing.players, matchInfo: existing.matchInfo },
+					recordId: existing.id,
+					matchedRecordCreatedAt: existing.createdAt,
+				});
+				return 'duplicate';
+			}
+
 			const { width, height } = await loadImageDimensions(imageToProcess);
 
 			const profileRegions = getActiveProfile(width, height);
@@ -555,7 +607,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				height
 			);
 
-			if (isProcessingCancelled) return false;
+			if (isProcessingCancelled) return 'failed';
 
 			// Partition regions by type
 			const { imageHashRegions = [], ocrRegions = [] } = Object.groupBy(
@@ -569,7 +621,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				scoreboardRegions
 			);
 
-			if (isProcessingCancelled) return false;
+			if (isProcessingCancelled) return 'failed';
 
 			// Preprocess OCR regions
 			const preprocessedRegionMap = preprocessRegionsForOCR(
@@ -583,7 +635,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				preprocessedRegionMap
 			);
 
-			if (isProcessingCancelled) return false;
+			if (isProcessingCancelled) return 'failed';
 
 			const ocrDataURLMap = await getRegionDataURLs(preprocessedImage, ocrRegions);
 
@@ -595,7 +647,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				ocrDataURLMap.set(name, dataURL);
 			}
 
-			if (isProcessingCancelled) return false;
+			if (isProcessingCancelled) return 'failed';
 
 			const hashImageDataMap = new Map<string, ImageData>();
 			for (const region of imageHashRegions) {
@@ -618,7 +670,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				learnableHashes
 			);
 
-			if (!ocrResults || isProcessingCancelled) return false;
+			if (!ocrResults || isProcessingCancelled) return 'failed';
 
 			// Thumbnails of hash regions for the learn-hash prompt
 			const hashPreviewMap = await getRegionDataURLs(imageToProcess, imageHashRegions);
@@ -626,26 +678,61 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				learnable.preview = hashPreviewMap.get(regionName);
 			}
 
+			const records = loadGameRecords();
 			const stats = extractGameStats(
 				ocrResults.regionResults,
 				loadOverFastData(),
-				buildNameLexicon(loadGameRecords())
+				buildNameLexicon(records)
 			);
-			const recordId = saveGameRecord(stats.players, stats.matchInfo);
-			updateJob(job.id, {
-				status: 'done',
-				rawOcrText: ocrResults.ocrTextParts.join('\n'),
-				stats,
-				recordId,
-			});
-			return true;
+			const rawOcrText = ocrResults.ocrTextParts.join('\n');
+
+			const match = findMatchingRecord(stats, records);
+			if (match) {
+				const { record } = match;
+				const merged = mergeGameStats(record, stats, match);
+				const screenshotHashes = [...(record.screenshotHashes ?? [])];
+				if (screenshotHash) screenshotHashes.push(screenshotHash);
+				const updated = updateGameRecord(
+					record.id,
+					merged.players,
+					merged.matchInfo,
+					screenshotHashes
+				);
+				if (updated) {
+					updateJob(job.id, {
+						status: 'merged',
+						rawOcrText,
+						stats: merged,
+						recordId: record.id,
+						matchedRecordCreatedAt: record.createdAt,
+						undoMerge: {
+							previous: record,
+							mergedAt: updated.updatedAt,
+							screenshotStats: stats,
+							screenshotHash: screenshotHash ?? undefined,
+						},
+						// Portraits are learned from screenshots with their own record, since
+						// merged heroes and player order may come from another screenshot
+						learnableHashes: new Map(),
+					});
+					return 'merged';
+				}
+			}
+
+			const recordId = saveGameRecord(
+				stats.players,
+				stats.matchInfo,
+				screenshotHash ?? undefined
+			);
+			updateJob(job.id, { status: 'done', rawOcrText, stats, recordId });
+			return 'saved';
 		} catch (err) {
 			updateJob(job.id, {
 				status: 'error',
 				error: err instanceof Error ? err.message : 'Unknown error occurred',
 			});
 			console.error('Processing error:', err);
-			return false;
+			return 'failed';
 		}
 	};
 
@@ -658,14 +745,54 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		if (!job?.recordId) return;
 		try {
 			updateGameRecord(job.recordId, players, matchInfo);
-			// Keep edits when switching between screenshots
-			updateJob(jobId, { stats: { players, matchInfo } });
+			// Keep edits when switching between screenshots; editing confirms a merge
+			updateJob(jobId, { stats: { players, matchInfo }, undoMerge: undefined });
 			toast('Save Success', 'Game record updated.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save game record');
 			return;
 		}
 		promptToLearnHashes(job, players);
+	};
+
+	/** Restores the record a screenshot was merged into and saves the screenshot on its own */
+	const handleSeparateRecord = (jobId: string) => {
+		const undo = jobs().find(({ id }) => id === jobId)?.undoMerge;
+		if (!undo) return;
+
+		const current = loadGameRecords().find(({ id }) => id === undo.previous.id);
+		if (current?.updatedAt.getTime() !== undo.mergedAt.getTime()) {
+			setError(
+				'The game record has changed since this screenshot was merged into it, so it can no longer be separated.'
+			);
+			return;
+		}
+
+		try {
+			const { previous, screenshotStats, screenshotHash } = undo;
+			updateGameRecord(
+				previous.id,
+				previous.players,
+				previous.matchInfo,
+				previous.screenshotHashes ?? []
+			);
+			const recordId = saveGameRecord(
+				screenshotStats.players,
+				screenshotStats.matchInfo,
+				screenshotHash
+			);
+			updateJob(jobId, {
+				status: 'done',
+				stats: screenshotStats,
+				recordId,
+				matchedRecordCreatedAt: undefined,
+				undoMerge: undefined,
+			});
+			setError('');
+			toast('Record Separated', 'Screenshot saved as a new game record.');
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Failed to save game record');
+		}
 	};
 
 	/** Finds saved heroes that differ from the hero recognised from their portrait */
@@ -756,6 +883,39 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				<div class="error-box">
 					<strong>Error:</strong> {errorMessage()}
 				</div>
+			</Show>
+
+			<Show when={selectedJob()?.matchedRecordCreatedAt}>
+				{(createdAt) => (
+					<div class="info-box matched-record">
+						<Show
+							when={selectedJob()?.status === 'merged'}
+							fallback={
+								<p>
+									This screenshot was already saved on {createdAt().toLocaleString()}.
+									Showing that game record instead of creating a duplicate.
+								</p>
+							}
+						>
+							<p>
+								This screenshot is from the same game as a record saved on{' '}
+								{createdAt().toLocaleString()}, so that record was updated instead of
+								creating a new one.
+							</p>
+						</Show>
+						<Show when={selectedJob()?.undoMerge && selectedJobId()} keyed>
+							{(jobId) => (
+								<button
+									type="button"
+									class="separate-record-button"
+									onClick={() => handleSeparateRecord(jobId)}
+								>
+									Save as Separate Record
+								</button>
+							)}
+						</Show>
+					</div>
+				)}
 			</Show>
 
 			<Show when={processingIndex() >= 0}>

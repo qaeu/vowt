@@ -16,6 +16,22 @@
 			@include info-box(get($primaries, 'bg-dark'), get($primaries, 'sep'));
 		}
 
+		.matched-record {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+
+			p {
+				margin: 0;
+			}
+		}
+
+		.separate-record-button {
+			@include button-small;
+		}
+
 		.error-box {
 			@include info-box(get($errors, 'bg-dark'), get($errors, 'sep'));
 
@@ -81,6 +97,14 @@
 			}
 
 			&[data-status='done'] .screenshot-queue-status {
+				@include badge(get($successes, 'base'));
+			}
+
+			&[data-status='duplicate'] .screenshot-queue-status {
+				@include badge(get($greys, 'base'));
+			}
+
+			&[data-status='merged'] .screenshot-queue-status {
 				@include badge(get($successes, 'base'));
 			}
 

@@ -82,6 +82,8 @@ export interface GameRecord {
 	id: string;
 	players: PlayerStats[];
 	matchInfo: MatchInfo;
+	/** SHA-256 of each screenshot the record was read from, used to spot re-uploads */
+	screenshotHashes?: string[];
 	createdAt: Date;
 	updatedAt: Date;
 }

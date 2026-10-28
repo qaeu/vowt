@@ -4,6 +4,11 @@ import { render, waitFor, screen, fireEvent } from '@solidjs/testing-library';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 
+// Records saved by one test would make the next test's screenshot a duplicate
+beforeEach(() => {
+	localStorage.clear();
+});
+
 // Mock Image constructor for image dimension detection
 beforeEach(() => {
 	class MockImage {
@@ -1471,6 +1476,282 @@ describe('ScoreboardOCR', () => {
 
 			await waitForStatuses(['done', 'done', 'done']);
 			expect(saveGameRecord).toHaveBeenCalledTimes(3);
+		});
+
+		describe('duplicate screenshots', () => {
+			/** Saves a record as if the screenshot had been processed before */
+			const saveExistingRecord = async (image: string, name: string) => {
+				const { saveGameRecord, hashScreenshot } = await import('#utils/storage');
+				const { players, matchInfo } = statsFor(name);
+				const id = saveGameRecord(
+					players as never,
+					matchInfo as never,
+					(await hashScreenshot(image)) ?? undefined
+				);
+				vi.mocked(saveGameRecord).mockClear();
+				return id;
+			};
+
+			it('should save the screenshot hash with a new record', async () => {
+				const { saveGameRecord, hashScreenshot } = await import('#utils/storage');
+				renderBatch({ images: [images[0]] });
+				await screen.findByTestId('save-button', undefined, { timeout: 1500 });
+
+				expect(vi.mocked(saveGameRecord).mock.calls[0][2]).toBe(
+					await hashScreenshot(images[0])
+				);
+			});
+
+			it('should not save a second record for a screenshot already saved', async () => {
+				const { saveGameRecord } = await import('#utils/storage');
+				await saveExistingRecord(images[0], 'EXISTING');
+				renderBatch();
+
+				await waitForStatuses(['duplicate', 'done']);
+				expect(saveGameRecord).toHaveBeenCalledOnce();
+				expect(vi.mocked(saveGameRecord).mock.calls[0][0][0].name).toBe('FIRST');
+			});
+
+			it('should skip recognition for a duplicate screenshot', async () => {
+				const { extractGameStats } = await import('#utils/postprocess');
+				const { loadImageDimensions } = await import('#utils/preprocess');
+				await saveExistingRecord(images[0], 'EXISTING');
+				vi.mocked(extractGameStats).mockClear();
+				vi.mocked(loadImageDimensions).mockClear();
+				renderBatch({ images: [images[0]] });
+
+				await screen.findByText(/already saved/, undefined, { timeout: 1500 });
+				expect(loadImageDimensions).not.toHaveBeenCalled();
+				expect(extractGameStats).not.toHaveBeenCalled();
+				expect(screen.queryByText('Pre-processed Image')).toBeNull();
+			});
+
+			it('should show the existing record for a duplicate screenshot', async () => {
+				await saveExistingRecord(images[0], 'EXISTING');
+				renderBatch({ images: [images[0]] });
+
+				expect(
+					await screen.findByTestId('player-EXISTING', undefined, { timeout: 1500 })
+				).not.toBeNull();
+				expect(screen.getByText(/instead of creating a duplicate/)).not.toBeNull();
+			});
+
+			it('should save edits to the existing record', async () => {
+				const { updateGameRecord } = await import('#utils/storage');
+				const existingId = await saveExistingRecord(images[0], 'EXISTING');
+				renderBatch({ images: [images[0]] });
+
+				fireEvent.click(
+					await screen.findByTestId('save-button', undefined, { timeout: 1500 })
+				);
+
+				expect(updateGameRecord).toHaveBeenCalledWith(
+					existingId,
+					expect.anything(),
+					expect.anything()
+				);
+			});
+
+			it('should detect a screenshot repeated within the same batch', async () => {
+				const { saveGameRecord } = await import('#utils/storage');
+				renderBatch({ images: [images[0], images[0]] });
+
+				await waitForStatuses(['done', 'duplicate']);
+				expect(saveGameRecord).toHaveBeenCalledOnce();
+			});
+
+			it('should process a screenshot again after its record is deleted', async () => {
+				const { saveGameRecord, deleteGameRecord } = await import('#utils/storage');
+				deleteGameRecord(await saveExistingRecord(images[0], 'EXISTING'));
+				renderBatch();
+
+				await waitForStatuses(['done', 'done']);
+				expect(saveGameRecord).toHaveBeenCalledTimes(2);
+			});
+		});
+
+		describe('screenshots of a game that already has a record', () => {
+			const BLUE = ['QAEU', 'TRACER0', 'MERCYMAIN', 'BIGTANK', 'ZENFAN'];
+			const RED = ['VEQ', 'SOJOURNER', 'LUCIOLIFE', 'WINSTONED', 'GENJIDASH'];
+
+			/** Full lobby whose stats grow with `progress`; post-game reads have a result */
+			const gameStats = (progress: number, isPostGame = false) => ({
+				players: [...BLUE, ...RED].map((name, i) => ({
+					name,
+					team: i < 5 ? 'blue' : 'red',
+					hero: '',
+					e: String(progress + i),
+					a: String(progress + i),
+					d: String(progress),
+					dmg: String(progress * 1000 + i),
+					h: String(progress * 500 + i),
+					mit: String(progress * 300 + i),
+				})),
+				matchInfo: {
+					result: isPostGame ? 'VICTORY' : '',
+					final_score: isPostGame ? { blue: '2', red: '1' } : { blue: '', red: '' },
+					date: isPostGame ? '09/15/25 - 02:49' : '',
+					game_mode: 'CONTROL',
+					game_length: isPostGame ? '12:34' : '',
+					map: isPostGame ? '' : "King's Row",
+				},
+			});
+
+			const saveExistingGame = async (stats: ReturnType<typeof gameStats>) => {
+				const { saveGameRecord } = await import('#utils/storage');
+				const id = saveGameRecord(stats.players as never, stats.matchInfo);
+				vi.mocked(saveGameRecord).mockClear();
+				return id;
+			};
+
+			const mockScreenshotStats = async (...stats: ReturnType<typeof gameStats>[]) => {
+				const { extractGameStats } = await import('#utils/postprocess');
+				vi.mocked(extractGameStats).mockReset();
+				for (const result of stats) {
+					vi.mocked(extractGameStats).mockReturnValueOnce(result as never);
+				}
+			};
+
+			const savedRecords = async () => (await import('#utils/storage')).loadGameRecords();
+
+			beforeEach(async () => {
+				// Use real saved records rather than an earlier test's stub
+				const { loadGameRecords } = await import('#utils/storage');
+				vi.mocked(loadGameRecords).mockReset();
+			});
+
+			it('should merge an in-game screenshot into the post-game record', async () => {
+				const { saveGameRecord, updateGameRecord } = await import('#utils/storage');
+				const existingId = await saveExistingGame(gameStats(9, true));
+				await mockScreenshotStats(gameStats(3));
+				renderBatch({ images: [images[0]] });
+
+				await screen.findByText(/same game as a record/, undefined, { timeout: 1500 });
+				expect(saveGameRecord).not.toHaveBeenCalled();
+				expect(updateGameRecord).toHaveBeenCalledWith(
+					existingId,
+					expect.anything(),
+					expect.anything(),
+					[expect.any(String)]
+				);
+
+				const records = await savedRecords();
+				expect(records).toHaveLength(1);
+				expect(records[0].matchInfo).toMatchObject({
+					result: 'VICTORY',
+					map: "King's Row",
+				});
+				expect(records[0].players[0].dmg).toBe('9000');
+			});
+
+			it('should show the merged record in the editor', async () => {
+				await saveExistingGame(gameStats(3));
+				await mockScreenshotStats(gameStats(9, true));
+				renderBatch({ images: [images[0]] });
+
+				await screen.findByText(/same game as a record/, undefined, { timeout: 1500 });
+				expect(screen.getByTestId('match-info-data').textContent).toBe('VICTORY');
+			});
+
+			it('should merge screenshots of one game uploaded together', async () => {
+				await mockScreenshotStats(gameStats(3), gameStats(9, true));
+				renderBatch();
+
+				await waitForStatuses(['done', 'merged']);
+				const records = await savedRecords();
+				expect(records).toHaveLength(1);
+				expect(records[0].screenshotHashes).toHaveLength(2);
+			});
+
+			it('should recognise a merged screenshot when uploaded again', async () => {
+				await mockScreenshotStats(gameStats(3), gameStats(9, true));
+				renderBatch({ images: [...images, images[1]] });
+
+				await waitForStatuses(['done', 'merged', 'duplicate']);
+				expect(await savedRecords()).toHaveLength(1);
+			});
+
+			it('should save a new record for a different game', async () => {
+				const { saveGameRecord } = await import('#utils/storage');
+				await saveExistingGame(gameStats(9, true));
+				const otherGame = gameStats(9, true);
+				otherGame.matchInfo.date = '09/15/25 - 03:20';
+				await mockScreenshotStats(otherGame);
+				renderBatch({ images: [images[0]] });
+
+				await screen.findByTestId('save-button', undefined, { timeout: 1500 });
+				expect(saveGameRecord).toHaveBeenCalledOnce();
+				expect(screen.queryByText(/same game as a record/)).toBeNull();
+			});
+
+			describe('saving as a separate record', () => {
+				it('should restore the existing record and save the screenshot', async () => {
+					const existing = gameStats(9, true);
+					const existingId = await saveExistingGame(existing);
+					await mockScreenshotStats(gameStats(3));
+					renderBatch({ images: [images[0]] });
+
+					fireEvent.click(
+						await screen.findByText('Save as Separate Record', undefined, {
+							timeout: 1500,
+						})
+					);
+
+					const records = await savedRecords();
+					expect(records).toHaveLength(2);
+					const restored = records.find(({ id }) => id === existingId);
+					expect(restored?.matchInfo).toEqual(existing.matchInfo);
+					expect(restored?.players).toEqual(existing.players);
+					expect(restored?.screenshotHashes).toEqual([]);
+					expect(records.find(({ id }) => id !== existingId)?.matchInfo.map).toBe(
+						"King's Row"
+					);
+					expect(screen.queryByText(/same game as a record/)).toBeNull();
+				});
+
+				it('should save edits to the new record afterwards', async () => {
+					const { updateGameRecord } = await import('#utils/storage');
+					const existingId = await saveExistingGame(gameStats(9, true));
+					await mockScreenshotStats(gameStats(3));
+					renderBatch({ images: [images[0]] });
+
+					fireEvent.click(
+						await screen.findByText('Save as Separate Record', undefined, {
+							timeout: 1500,
+						})
+					);
+					vi.mocked(updateGameRecord).mockClear();
+					fireEvent.click(screen.getByTestId('save-button'));
+
+					expect(vi.mocked(updateGameRecord).mock.calls[0][0]).not.toBe(existingId);
+				});
+
+				it('should not be offered once the merged record is edited', async () => {
+					await saveExistingGame(gameStats(9, true));
+					await mockScreenshotStats(gameStats(3));
+					renderBatch({ images: [images[0]] });
+
+					await screen.findByText('Save as Separate Record', undefined, {
+						timeout: 1500,
+					});
+					fireEvent.click(screen.getByTestId('save-button'));
+
+					expect(screen.queryByText('Save as Separate Record')).toBeNull();
+				});
+
+				it('should refuse once another screenshot has been merged in', async () => {
+					await saveExistingGame(gameStats(9, true));
+					await mockScreenshotStats(gameStats(3), gameStats(5));
+					renderBatch();
+					await waitForStatuses(['merged', 'merged']);
+
+					fireEvent.click(queueItems()[0]);
+					fireEvent.click(screen.getByText('Save as Separate Record'));
+
+					expect(screen.getByText(/can no longer be separated/)).not.toBeNull();
+					expect(await savedRecords()).toHaveLength(1);
+				});
+			});
 		});
 	});
 });

@@ -4,6 +4,7 @@ import {
 	buildNameLexicon,
 	confusionDistance,
 	correctPlayerNames,
+	isSameName,
 	matchPlayerName,
 } from '#utils/playerNames';
 import type { GameRecord, PlayerStats } from '#types';
@@ -72,6 +73,25 @@ describe('confusionDistance', () => {
 		expect(confusionDistance('ABC', 'ABCD')).toBe(1);
 		expect(confusionDistance('ABCD', 'ABC')).toBe(1);
 		expect(confusionDistance('', 'ABC')).toBe(3);
+	});
+});
+
+describe('isSameName', () => {
+	it('matches names that differ only in case and spacing', () => {
+		expect(isSameName(' qaeu ', 'QAEU')).toBe(true);
+	});
+
+	it('matches names with a look-alike misread', () => {
+		expect(isSameName('TRACER0', 'TRACERO')).toBe(true);
+	});
+
+	it('does not match different names', () => {
+		expect(isSameName('ALPHA', 'BRAVO')).toBe(false);
+	});
+
+	it('does not match empty names', () => {
+		expect(isSameName('', '')).toBe(false);
+		expect(isSameName('ALPHA', ' ')).toBe(false);
 	});
 });
 

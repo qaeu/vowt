@@ -145,15 +145,48 @@ function _saveGameRecords(storage: GameStore): void {
 }
 
 /**
+ * Hashes a screenshot so a re-upload of the same file can be recognised
+ * @param image - Screenshot as a data URL
+ * @returns Hex-encoded SHA-256 of the data URL, or null if hashing is unavailable
+ */
+export async function hashScreenshot(image: string): Promise<string | null> {
+	try {
+		const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(image));
+		return Array.from(new Uint8Array(digest), (byte) =>
+			byte.toString(16).padStart(2, '0')
+		).join('');
+	} catch (error) {
+		console.error('Error hashing screenshot:', error);
+		return null;
+	}
+}
+
+/**
+ * Finds the game record read from a screenshot
+ * @param screenshotHash - Hash from hashScreenshot
+ */
+export function findGameRecordByScreenshot(
+	screenshotHash: string
+): GameRecord | undefined {
+	return _loadStorage().records.find((r) => r.screenshotHashes?.includes(screenshotHash));
+}
+
+/**
  * Save a new game record to localStorage
+ * @param screenshotHash - Hash of the source screenshot, if known
  * @returns The saved GameRecord ID
  */
-export function saveGameRecord(players: PlayerStats[], matchInfo: MatchInfo): string {
+export function saveGameRecord(
+	players: PlayerStats[],
+	matchInfo: MatchInfo,
+	screenshotHash?: string
+): string {
 	const now = new Date();
 	const record: GameRecord = {
 		id: _generateGameId(),
 		players,
 		matchInfo,
+		...(screenshotHash && { screenshotHashes: [screenshotHash] }),
 		createdAt: now,
 		updatedAt: now,
 	};
@@ -172,11 +205,13 @@ export function saveGameRecord(players: PlayerStats[], matchInfo: MatchInfo): st
 
 /**
  * Update an existing game record
+ * @param screenshotHashes - Replaces the record's screenshot hashes, if given
  */
 export function updateGameRecord(
 	id: string,
 	players: PlayerStats[],
-	matchInfo: MatchInfo
+	matchInfo: MatchInfo,
+	screenshotHashes?: string[]
 ): GameRecord | null {
 	try {
 		const stored = _loadStorage();
@@ -191,6 +226,7 @@ export function updateGameRecord(
 			...stored.records[index],
 			players,
 			matchInfo,
+			...(screenshotHashes && { screenshotHashes }),
 			updatedAt: now,
 		};
 
