@@ -164,6 +164,70 @@ describe('GameRecordsTable', () => {
 		expect(rows.length).toBeGreaterThanOrEqual(3);
 	});
 
+	describe('insights', () => {
+		it('should call onInsightsClick from the Insights nav action', () => {
+			const onInsightsClick = vi.fn();
+			render(() => (
+				<GameRecordsTable
+					onUploadClick={mockOnUploadClick}
+					onInsightsClick={onInsightsClick}
+				/>
+			));
+
+			fireEvent.click(screen.getByRole('button', { name: /Insights/ }));
+
+			expect(onInsightsClick).toHaveBeenCalledTimes(1);
+		});
+
+		it('should not show the Insights nav action without a handler', () => {
+			render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
+
+			expect(screen.queryByRole('button', { name: /Insights/ })).toBeNull();
+		});
+
+		it('should expand the record given by initialExpandedId', async () => {
+			render(() => (
+				<GameRecordsTable onUploadClick={mockOnUploadClick} initialExpandedId="game_2" />
+			));
+
+			await waitFor(() => {
+				expect(screen.getAllByTestId('editable-game-data')).toHaveLength(1);
+			});
+			expect(
+				document.getElementById('record-game_2')?.classList.contains('expanded')
+			).toBe(true);
+			expect(
+				document.getElementById('record-game_1')?.classList.contains('expanded')
+			).toBe(false);
+		});
+
+		it('should scroll the initial record into view when supported', async () => {
+			const scrollIntoView = vi.fn();
+			Element.prototype.scrollIntoView = scrollIntoView;
+			try {
+				render(() => (
+					<GameRecordsTable
+						onUploadClick={mockOnUploadClick}
+						initialExpandedId="game_1"
+					/>
+				));
+
+				await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+			} finally {
+				// jsdom does not implement scrollIntoView
+				delete (Element.prototype as Partial<Element>).scrollIntoView;
+			}
+		});
+
+		it('should ignore an initialExpandedId that has no record', () => {
+			render(() => (
+				<GameRecordsTable onUploadClick={mockOnUploadClick} initialExpandedId="missing" />
+			));
+
+			expect(screen.queryByTestId('editable-game-data')).toBeNull();
+		});
+	});
+
 	it('should call onUploadClick when upload button is clicked', () => {
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 		const uploadButton = screen.getByText(/Upload Screenshot/);

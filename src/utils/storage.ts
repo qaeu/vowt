@@ -9,6 +9,8 @@ import type {
 	MatchInfo,
 	GameRecord,
 	ExportedGameRecords,
+	InsightsSummary,
+	ExportedInsightsSummary,
 } from '#types';
 
 interface SettingsStore extends Settings {
@@ -35,7 +37,10 @@ const SETTINGS_STORAGE_KEY = 'vowt_settings';
 const SETTINGS_SCHEMA_VERSION = 1;
 const DEFAULT_SETTINGS: Settings = {
 	darkMode: false,
+	trackedPlayer: null,
 };
+
+const INSIGHTS_SUMMARY_SCHEMA_VERSION = 1;
 
 export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
 	'e',
@@ -286,6 +291,21 @@ export function exportGameRecords(): string {
 }
 
 /**
+ * Export an insights summary as JSON string
+ * @param summary - Summary from buildInsightsSummary
+ */
+export function exportInsightsSummary(summary: InsightsSummary): string {
+	const exportData: ExportedInsightsSummary = {
+		type: 'vowt-insights-summary',
+		schemaVersion: INSIGHTS_SUMMARY_SCHEMA_VERSION,
+		exportedAt: new Date().toISOString(),
+		summary,
+	};
+
+	return JSON.stringify(exportData, null, 2);
+}
+
+/**
  * Import game records from JSON string
  */
 export function importGameRecords(jsonData: string): number {
@@ -331,6 +351,10 @@ function _sanitiseSettings(stored: unknown): Settings {
 	return {
 		darkMode:
 			typeof values.darkMode === 'boolean' ? values.darkMode : DEFAULT_SETTINGS.darkMode,
+		trackedPlayer:
+			typeof values.trackedPlayer === 'string' && values.trackedPlayer.trim() ?
+				values.trackedPlayer.trim()
+			:	DEFAULT_SETTINGS.trackedPlayer,
 	};
 }
 

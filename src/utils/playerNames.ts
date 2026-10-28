@@ -24,8 +24,11 @@ const CONFUSABLE_GROUP_BY_CHAR = new Map<string, string>(
 	CONFUSABLE_GROUPS.flatMap((group) => [...group].map((char) => [char, group] as const))
 );
 
-/** Trims and uppercases a name */
-function _normaliseName(name: string): string {
+/**
+ * Trims and uppercases a name
+ * @param name - Raw player name
+ */
+export function normaliseName(name: string): string {
 	return name.trim().toUpperCase();
 }
 
@@ -48,7 +51,7 @@ export function buildNameLexicon(records: GameRecord[], minRecords = 2): string[
 	const counts = new Map<string, number>();
 
 	for (const record of records) {
-		const names = new Set(record.players.map((p) => _normaliseName(p.name)));
+		const names = new Set(record.players.map((p) => normaliseName(p.name)));
 		names.delete('');
 		for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
 	}
@@ -89,7 +92,7 @@ export function confusionDistance(a: string, b: string): number {
  * @returns False if either name is empty
  */
 export function isSameName(a: string, b: string): boolean {
-	const [first, second] = [_normaliseName(a), _normaliseName(b)];
+	const [first, second] = [normaliseName(a), normaliseName(b)];
 	if (!first || !second) return false;
 	const limit = Math.max(
 		MIN_DISTANCE_LIMIT,
@@ -106,10 +109,10 @@ export function isSameName(a: string, b: string): boolean {
  */
 export function matchPlayerName(raw: string, lexicon: string[]): string {
 	const trimmed = raw.trim();
-	const normalised = _normaliseName(raw);
+	const normalised = normaliseName(raw);
 	if (!normalised || !lexicon.length) return trimmed;
 
-	const candidates = [...new Set(lexicon.map(_normaliseName))].filter(Boolean);
+	const candidates = [...new Set(lexicon.map(normaliseName))].filter(Boolean);
 	if (candidates.includes(normalised)) return trimmed;
 
 	let best: { name: string; distance: number } | null = null;
@@ -142,12 +145,12 @@ export function correctPlayerNames(
 	players: PlayerStats[],
 	lexicon: string[]
 ): PlayerStats[] {
-	const exactReads = new Set(players.map((p) => _normaliseName(p.name)));
-	const available = new Set(lexicon.map(_normaliseName).filter(Boolean));
+	const exactReads = new Set(players.map((p) => normaliseName(p.name)));
+	const available = new Set(lexicon.map(normaliseName).filter(Boolean));
 	for (const read of exactReads) available.delete(read);
 
 	return players.map((player) => {
-		const normalised = _normaliseName(player.name);
+		const normalised = normaliseName(player.name);
 		if (!normalised) {
 			return { ...player };
 		}

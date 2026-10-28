@@ -1,6 +1,6 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, For, Show, batch } from 'solid-js';
-import { X } from 'lucide-solid';
+import { ChartLine, X } from 'lucide-solid';
 
 import type {
 	ScreenAction,
@@ -18,6 +18,10 @@ import { updateOverFastData } from '#utils/overfastApi';
 
 interface GameRecordsTableProps {
 	onUploadClick: () => void;
+	/** Called to open the Insights screen; the nav action is hidden without it */
+	onInsightsClick?: () => void;
+	/** Record to expand and scroll into view when the table first renders */
+	initialExpandedId?: string | null;
 }
 
 const RECORD_TOGGLE_ANIM_DUR_MS = 240;
@@ -38,6 +42,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [isUpdatingGameData, setIsUpdatingGameData] = createSignal(false);
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
+
+	const navActions: ScreenAction[] = [
+		{
+			id: 'insights-button',
+			text: 'Insights',
+			class: 'highlight',
+			icon: ChartLine,
+			onClick: () => props.onInsightsClick?.(),
+		},
+	];
 
 	const screenActions: ScreenAction[] = [
 		{
@@ -80,6 +94,19 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 	onMount(() => {
 		loadRecords();
+
+		const initialId = props.initialExpandedId;
+		if (initialId && records().some((r) => r.id === initialId)) {
+			setExpandedRecordId(initialId);
+			// Wait for the rows to render before scrolling
+			setTimeout(
+				() =>
+					document
+						.getElementById(`record-${initialId}`)
+						?.scrollIntoView?.({ block: 'center' }),
+				0
+			);
+		}
 	});
 
 	const loadRecords = () => {
@@ -216,6 +243,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		<Screen
 			id="game-records-screen"
 			title="Game History"
+			navActions={() => (props.onInsightsClick ? navActions : [])}
 			screenActions={() => screenActions}
 		>
 			<Show when={!records() || records().length === 0}>
@@ -239,6 +267,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 						<For each={records()}>
 							{(record) => (
 								<div
+									id={`record-${record.id}`}
 									class={`record-group${expandedRecordId() === record.id ? ' expanded' : ''}`}
 								>
 									<div

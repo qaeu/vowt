@@ -6,6 +6,7 @@ import { Sun, Moon } from 'lucide-solid';
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
+import Insights from '#c/Insights';
 import type { UploadBatch } from '#c/ScoreboardOCR';
 import {
 	triggerUploadDialog,
@@ -15,12 +16,13 @@ import {
 } from '#utils/storage';
 import '#styles/App';
 
-type ViewMode = 'ocr' | 'records' | 'regions';
+type ViewMode = 'ocr' | 'records' | 'regions' | 'insights';
 
 const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
 	const [uploadBatch, setUploadBatch] = createSignal<UploadBatch | null>(null);
 	const [isDragging, setIsDragging] = createSignal(false);
+	const [openRecordId, setOpenRecordId] = createSignal<string | null>(null);
 
 	const settings = loadSettings();
 	const [isDarkMode, setIsDarkMode] = createSignal(settings.darkMode);
@@ -79,6 +81,11 @@ const App: Component = () => {
 		});
 	};
 
+	const handleOpenRecord = (recordId: string) => {
+		setOpenRecordId(recordId);
+		setViewMode('records');
+	};
+
 	const handleCloseOCR = () => {
 		setViewMode('records');
 	};
@@ -86,7 +93,7 @@ const App: Component = () => {
 	const handleDarkMode = () => {
 		const currentDarkMode = isDarkMode();
 		setIsDarkMode(!currentDarkMode);
-		saveSettings({ ...settings, darkMode: !currentDarkMode });
+		saveSettings({ ...loadSettings(), darkMode: !currentDarkMode });
 		document.querySelector('body')?.classList.toggle('dark-theme');
 	};
 
@@ -111,7 +118,20 @@ const App: Component = () => {
 					)}{' '}
 				</Match>
 				<Match when={viewMode() === 'records'}>
-					<GameRecordsTable onUploadClick={handleUploadClick} />
+					<GameRecordsTable
+						onUploadClick={handleUploadClick}
+						onInsightsClick={() => setViewMode('insights')}
+						initialExpandedId={openRecordId()}
+					/>
+				</Match>
+				<Match when={viewMode() === 'insights'}>
+					<Insights
+						onRecordsClick={() => {
+							setOpenRecordId(null);
+							setViewMode('records');
+						}}
+						onOpenRecord={handleOpenRecord}
+					/>
 				</Match>
 				<Match when={viewMode() === 'regions'}>
 					<RegionProfileManager

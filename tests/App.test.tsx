@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 import App from '#App';
+import { loadSettings, saveSettings } from '#utils/storage';
 
 // Mock the ScoreboardOCR component
 vi.mock(import('#c/ScoreboardOCR'), () => ({
@@ -24,6 +25,10 @@ vi.mock(import('#c/GameRecordsTable'), () => ({
 			{props.onUploadClick && (
 				<button onClick={props.onUploadClick}>📤 Upload Image</button>
 			)}
+			{props.onInsightsClick && (
+				<button onClick={props.onInsightsClick}>Open Insights</button>
+			)}
+			<span data-testid="initial-expanded">{props.initialExpandedId ?? ''}</span>
 		</div>
 	),
 }));
@@ -39,7 +44,23 @@ vi.mock(import('#c/RegionProfileManager'), () => ({
 	),
 }));
 
+// Mock the Insights component
+vi.mock(import('#c/Insights'), () => ({
+	default: (props) => (
+		<div>
+			Mocked Insights
+			<button onClick={() => props.onRecordsClick()}>Back to Records</button>
+			<button onClick={() => props.onOpenRecord('rec_7')}>Open Record</button>
+		</div>
+	),
+}));
+
 describe('App', () => {
+	beforeEach(() => {
+		localStorage.clear();
+		document.body.classList.remove('dark-theme');
+	});
+
 	it('should render the component', () => {
 		render(() => <App />);
 		expect(screen.getByText('Mocked GameRecordsTable')).toBeDefined();
@@ -64,6 +85,51 @@ describe('App', () => {
 
 		// Component should render successfully with event listeners
 		expect(screen.getByText('Mocked GameRecordsTable')).toBeDefined();
+	});
+
+	describe('insights view', () => {
+		it('should open Insights from records and go back', async () => {
+			render(() => <App />);
+
+			fireEvent.click(screen.getByText('Open Insights'));
+			expect(await screen.findByText('Mocked Insights')).toBeDefined();
+			expect(screen.queryByText('Mocked GameRecordsTable')).toBeNull();
+
+			fireEvent.click(screen.getByText('Back to Records'));
+			expect(await screen.findByText('Mocked GameRecordsTable')).toBeDefined();
+			expect(screen.getByTestId('initial-expanded').textContent).toBe('');
+		});
+
+		it('should show the chosen record expanded in the records view', async () => {
+			render(() => <App />);
+			fireEvent.click(screen.getByText('Open Insights'));
+
+			fireEvent.click(await screen.findByText('Open Record'));
+
+			expect(await screen.findByText('Mocked GameRecordsTable')).toBeDefined();
+			expect(screen.getByTestId('initial-expanded').textContent).toBe('rec_7');
+		});
+	});
+
+	describe('dark mode', () => {
+		it('should save the setting without losing the tracked player', () => {
+			saveSettings({ darkMode: false, trackedPlayer: 'ALICE' });
+			render(() => <App />);
+
+			fireEvent.click(screen.getByLabelText('Toggle dark mode'));
+
+			expect(loadSettings()).toEqual({ darkMode: true, trackedPlayer: 'ALICE' });
+			expect(document.body.classList.contains('dark-theme')).toBe(true);
+		});
+
+		it('should keep a tracked player chosen after the app started', () => {
+			render(() => <App />);
+			saveSettings({ ...loadSettings(), trackedPlayer: 'BOB' });
+
+			fireEvent.click(screen.getByLabelText('Toggle dark mode'));
+
+			expect(loadSettings().trackedPlayer).toBe('BOB');
+		});
 	});
 
 	describe('dropping screenshots', () => {

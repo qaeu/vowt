@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import type { PlayerStats, MatchInfo } from '#types';
+import type { PlayerStats, MatchInfo, InsightsSummary } from '#types';
 import {
 	loadGameRecords,
 	saveGameRecord,
@@ -15,6 +15,7 @@ import {
 	triggerUploadDialog,
 	hashScreenshot,
 	findGameRecordByScreenshot,
+	exportInsightsSummary,
 } from '#utils/storage';
 
 describe('storage', () => {
@@ -275,32 +276,78 @@ describe('settings storage', () => {
 
 	it('should return default settings when none are stored', () => {
 		const settings = loadSettings();
-		expect(settings).toEqual({ darkMode: false });
+		expect(settings).toEqual({ darkMode: false, trackedPlayer: null });
 	});
 
 	it('should save and load settings', () => {
-		saveSettings({ darkMode: true });
+		saveSettings({ darkMode: true, trackedPlayer: null });
 		const settings = loadSettings();
 		expect(settings.darkMode).toBe(true);
 	});
 
 	it('should overwrite previously saved settings', () => {
-		saveSettings({ darkMode: true });
-		saveSettings({ darkMode: false });
+		saveSettings({ darkMode: true, trackedPlayer: null });
+		saveSettings({ darkMode: false, trackedPlayer: null });
 		const settings = loadSettings();
 		expect(settings.darkMode).toBe(false);
 	});
 
 	it('should store a schema version with the settings', () => {
-		saveSettings({ darkMode: true });
+		saveSettings({ darkMode: true, trackedPlayer: null });
 		const stored = JSON.parse(localStorage.getItem('vowt_settings')!);
-		expect(stored).toEqual({ schemaVersion: 1, darkMode: true });
+		expect(stored).toEqual({ schemaVersion: 1, darkMode: true, trackedPlayer: null });
 	});
 
 	it('should return a fresh copy of the defaults', () => {
 		const settings = loadSettings();
 		settings.darkMode = true;
 		expect(loadSettings().darkMode).toBe(false);
+	});
+
+	describe('trackedPlayer', () => {
+		beforeEach(() => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('should default to null', () => {
+			expect(loadSettings().trackedPlayer).toBeNull();
+		});
+
+		it('should save and load a tracked player', () => {
+			saveSettings({ darkMode: false, trackedPlayer: 'ALICE' });
+			expect(loadSettings().trackedPlayer).toBe('ALICE');
+			const stored = JSON.parse(localStorage.getItem('vowt_settings')!);
+			expect(stored.schemaVersion).toBe(1);
+		});
+
+		it('should keep the tracked player when dark mode changes', () => {
+			saveSettings({ darkMode: false, trackedPlayer: 'ALICE' });
+			saveSettings({ ...loadSettings(), darkMode: true });
+			expect(loadSettings()).toEqual({ darkMode: true, trackedPlayer: 'ALICE' });
+		});
+
+		it('should trim the stored name', () => {
+			localStorage.setItem('vowt_settings', '{"trackedPlayer":"  Bob "}');
+			expect(loadSettings().trackedPlayer).toBe('Bob');
+		});
+
+		it.each([['""'], ['"   "'], ['5'], ['true'], ['{}'], ['null']])(
+			'should fall back to null for %s',
+			(value) => {
+				localStorage.setItem('vowt_settings', `{"trackedPlayer":${value}}`);
+				expect(loadSettings().trackedPlayer).toBeNull();
+			}
+		);
+
+		it('should load settings saved before trackedPlayer existed', () => {
+			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":true}');
+			expect(loadSettings()).toEqual({ darkMode: true, trackedPlayer: null });
+			expect(console.warn).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('invalid stored settings', () => {
@@ -315,34 +362,34 @@ describe('settings storage', () => {
 
 		it('should return defaults for corrupt JSON', () => {
 			localStorage.setItem('vowt_settings', '{not json');
-			expect(loadSettings()).toEqual({ darkMode: false });
+			expect(loadSettings()).toEqual({ darkMode: false, trackedPlayer: null });
 			expect(console.error).toHaveBeenCalled();
 		});
 
 		it('should return defaults for a non-object value', () => {
 			localStorage.setItem('vowt_settings', 'null');
-			expect(loadSettings()).toEqual({ darkMode: false });
+			expect(loadSettings()).toEqual({ darkMode: false, trackedPlayer: null });
 		});
 
 		it('should use defaults for fields with the wrong type', () => {
 			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":"yes"}');
-			expect(loadSettings()).toEqual({ darkMode: false });
+			expect(loadSettings()).toEqual({ darkMode: false, trackedPlayer: null });
 		});
 
 		it('should ignore unknown fields', () => {
 			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":true,"x":1}');
-			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(loadSettings()).toEqual({ darkMode: true, trackedPlayer: null });
 		});
 
 		it('should load unversioned settings', () => {
 			localStorage.setItem('vowt_settings', '{"darkMode":true}');
-			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(loadSettings()).toEqual({ darkMode: true, trackedPlayer: null });
 			expect(console.warn).not.toHaveBeenCalled();
 		});
 
 		it('should warn about an unexpected schema version', () => {
 			localStorage.setItem('vowt_settings', '{"schemaVersion":99,"darkMode":true}');
-			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(loadSettings()).toEqual({ darkMode: true, trackedPlayer: null });
 			expect(console.warn).toHaveBeenCalled();
 		});
 
@@ -350,9 +397,44 @@ describe('settings storage', () => {
 			vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
 				throw new Error('QuotaExceededError');
 			});
-			expect(() => saveSettings({ darkMode: true })).not.toThrow();
+			expect(() => saveSettings({ darkMode: true, trackedPlayer: null })).not.toThrow();
 			expect(console.error).toHaveBeenCalled();
 		});
+	});
+});
+
+describe('exportInsightsSummary', () => {
+	const summary = {
+		filters: {
+			player: 'ALICE',
+			period: 'all',
+			compare: 'none',
+			role: 'all',
+			mode: 'all',
+		},
+		generatedAt: new Date('2025-03-01T00:00:00.000Z'),
+		totalGames: 0,
+	} as unknown as InsightsSummary;
+
+	it('should wrap the summary with type, schema version and timestamp', () => {
+		const parsed = JSON.parse(exportInsightsSummary(summary));
+		expect(parsed.type).toBe('vowt-insights-summary');
+		expect(parsed.schemaVersion).toBe(1);
+		expect(parsed.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+		expect(parsed.summary.filters.player).toBe('ALICE');
+		expect(parsed.summary.generatedAt).toBe('2025-03-01T00:00:00.000Z');
+	});
+
+	it('should use the current time for exportedAt', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2025-06-01T12:00:00.000Z'));
+		try {
+			expect(JSON.parse(exportInsightsSummary(summary)).exportedAt).toBe(
+				'2025-06-01T12:00:00.000Z'
+			);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
 
