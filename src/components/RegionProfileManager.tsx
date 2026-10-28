@@ -1,5 +1,22 @@
+/**
+ * Region profiles screen: pick a profile, edit its regions on the preview image,
+ * set up alignment groups and manage learned portrait hashes
+ */
+
 import type { Component } from 'solid-js';
-import { createSignal, createMemo, batch, For, Show, onMount } from 'solid-js';
+import {
+	createSignal,
+	createMemo,
+	createEffect,
+	batch,
+	For,
+	Show,
+	onMount,
+} from 'solid-js';
+import { Portal } from 'solid-js/web';
+import { Menu } from '@ark-ui/solid/menu';
+import { Tabs } from '@ark-ui/solid/tabs';
+import { Check, Ellipsis, MousePointer2, SquareDashed } from 'lucide-solid';
 
 import type {
 	TextRegion,
@@ -9,13 +26,14 @@ import type {
 	AlignmentDrawTarget,
 	GrayImage,
 } from '#types';
+import type { RegionEditorMode } from '#utils/regionEditor';
 import Screen from '#c/ui/Screen';
 import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
-import * as Profiles from '#utils/regionProfiles';
-import { startRegionEditor, drawRegions } from '#utils/regionEditor';
-import EditableRegionsData from '#c/ui/EditableRegionsData';
+import RegionInspector from '#c/ui/RegionInspector';
 import AlignmentGroupsEditor from '#c/ui/AlignmentGroupsEditor';
+import * as Profiles from '#utils/regionProfiles';
+import { startRegionEditor, drawRegions, isSameRegion } from '#utils/regionEditor';
 import {
 	ALIGN_SCALE,
 	createAnchor,
@@ -23,6 +41,14 @@ import {
 	findAnchorOffset,
 	loadReferenceGrayscale,
 } from '#utils/regionAlignment';
+
+interface RegionProfileManagerProps {
+	previewImage: string | null;
+}
+
+type ProfileTab = 'regions' | 'alignment' | 'portraits';
+
+type MenuAction = 'clear-regions' | 'clear-hashes' | 'delete-profile';
 
 const REGION_COLOUR_DEFAULT = '#ff0000';
 const REGION_COLOUR_ITALIC = '#4caf50';
@@ -36,28 +62,60 @@ const ANCHOR_SEARCH_X = 48;
 const ANCHOR_SEARCH_Y = 160;
 const ROWS_COUNT_DEFAULT = 5;
 
-interface RegionProfileManagerProps {
-	previewImage: string | null;
-}
+const SUBTITLE =
+	'A profile maps where each value sits on a scoreboard screenshot. The active profile reads new uploads.';
+
+/** Counts groups added, removed or changed between two alignment lists */
+const countAlignmentChanges = (current: AlignmentGroup[], saved: AlignmentGroup[]) => {
+	const savedByName = new Map(saved.map((g) => [g.name, JSON.stringify(g)] as const));
+	let count = 0;
+	for (const group of current) {
+		if (savedByName.get(group.name) !== JSON.stringify(group)) count++;
+		savedByName.delete(group.name);
+	}
+	return count + savedByName.size;
+};
+
+/** Counts regions added, removed or changed between two region lists */
+const countRegionChanges = (current: DrawnRegion[], saved: DrawnRegion[]) => {
+	const savedById = new Map(saved.map((r) => [r.id, r] as const));
+	let count = 0;
+	for (const region of current) {
+		const savedRegion = savedById.get(region.id);
+		if (!savedRegion || !isSameRegion(region, savedRegion)) count++;
+		savedById.delete(region.id);
+	}
+	return count + savedById.size;
+};
+
+const plural = (count: number, word: string, suffix = 's') =>
+	`${count} ${word}${count === 1 ? '' : suffix}`;
 
 const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const initialProfileList = Profiles.listProfiles();
 	const { id: initialActiveProfileId, description: initialActiveProfileDesc } =
 		Profiles.getActiveProfileDetails();
+	const initialAlignment = Profiles.getActiveProfileAlignment();
 
 	const [savedRegions, setSavedRegions] = createSignal<DrawnRegion[]>([]);
 	const [editingRegions, setEditingRegions] = createSignal<DrawnRegion[]>([]);
 	const [profileList, setProfileList] = createSignal(initialProfileList);
 	const [activeProfileId, setActiveProfileId] =
 		createSignal<string>(initialActiveProfileId);
+	// The stored profile the editing state started from; '' for a new profile
+	const [loadedProfileId, setLoadedProfileId] = createSignal(initialActiveProfileId);
 	const [editingProfileId, setEditingProfileId] = createSignal(initialActiveProfileId);
 	const [editingProfileDesc, setEditingProfileDesc] = createSignal(
 		initialActiveProfileDesc
 	);
-	const [alignment, setAlignment] = createSignal<AlignmentGroup[]>(
-		Profiles.getActiveProfileAlignment()
-	);
+	const [savedAlignment, setSavedAlignment] =
+		createSignal<AlignmentGroup[]>(initialAlignment);
+	const [alignment, setAlignment] = createSignal<AlignmentGroup[]>(initialAlignment);
 	const [drawTarget, setDrawTarget] = createSignal<AlignmentDrawTarget | null>(null);
+	const [selectedRegionId, setSelectedRegionId] = createSignal<string | null>(null);
+	const [canvasMode, setCanvasMode] = createSignal<RegionEditorMode>('select');
+	const [activeTab, setActiveTab] = createSignal<ProfileTab>('regions');
+	const [editorReady, setEditorReady] = createSignal(false);
 	// Bumped when stored hashes change, since they're read from storage
 	const [hashesVersion, setHashesVersion] = createSignal(0);
 
@@ -74,9 +132,26 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		return counts;
 	});
 
+	const isProfileStored = () => profileList().some((p) => p.id === editingProfileId());
+
+	const savedProfileDesc = () =>
+		profileList().find((p) => p.id === loadedProfileId())?.description ?? '';
+
+	const unsavedChangeCount = createMemo(() => {
+		let count = 0;
+		if (editingProfileId() !== loadedProfileId()) count++;
+		if (editingProfileDesc() !== savedProfileDesc()) count++;
+		count += countRegionChanges(editingRegions(), savedRegions());
+		count += countAlignmentChanges(alignment(), savedAlignment());
+		return count;
+	});
+
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 	let canvasRef: HTMLCanvasElement | undefined;
 	let referenceGray: { src: string; image: GrayImage } | null = null;
+	let modeBeforeAlignmentDraw: RegionEditorMode = 'select';
+	// Profile to return to when discarding a new, unsaved profile
+	let profileBeforeNew = initialActiveProfileId;
 
 	onMount(async () => {
 		if (!canvasRef) return;
@@ -104,25 +179,36 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			setEditingRegions(drawnRegions);
 		});
 
-		try {
-			await startRegionEditor(canvasRef, imageSource, handleRegionComplete, [
-				...drawnRegions,
-				...alignmentOverlays(),
-			]);
-		} catch (err) {
-			console.error('Region editor error:', err);
-		}
+		startRegionEditor(canvasRef, imageSource, handleRegionComplete, {
+			initialRegions: [...drawnRegions, ...alignmentOverlays()],
+			mode: canvasMode,
+			getRegions: editingRegions,
+			onRegionSelect: handleCanvasSelect,
+		}).catch((err) => console.error('Region editor error:', err));
+
+		setEditorReady(true);
+	});
+
+	// Redraw the canvas whenever regions, overlays or the selection change
+	createEffect(() => {
+		const regions = [...editingRegions(), ...alignmentOverlays()];
+		const selectedId = selectedRegionId();
+		const imageSource = getImageSource();
+		if (!editorReady() || !canvasRef || !imageSource) return;
+
+		drawRegions(canvasRef, regions, imageSource, selectedId);
 	});
 
 	const getImageSource = () => props.previewImage;
 
 	const makeDrawnRegions = (
-		textRegions: TextRegion[],
+		textRegions: (TextRegion & Partial<Pick<DrawnRegion, 'id'>>)[],
 		profileId: string
 	): DrawnRegion[] => {
 		return textRegions.map((r, index) => ({
 			...r,
-			id: `${profileId}-${index}`,
+			// Keep existing IDs so edits and selection survive deletions
+			id: r.id ?? `${profileId}-${index}`,
 			colour:
 				r.imgHashSet && r.imgHashSet.length > 0 ? REGION_COLOUR_IMAGE
 				: r.isolateText ? REGION_COLOUR_ISOLATED
@@ -206,16 +292,6 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 	};
 
-	const redrawRegions = () => {
-		if (canvasRef && getImageSource()) {
-			drawRegions(
-				canvasRef,
-				[...editingRegions(), ...alignmentOverlays()],
-				getImageSource() as string
-			);
-		}
-	};
-
 	/** Loads the preview image at reference resolution, reusing the last result */
 	const getReferenceGray = async (src: string): Promise<GrayImage> => {
 		if (referenceGray?.src !== src) {
@@ -286,35 +362,67 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		}
 
 		setAlignment((prev) => prev.map((g) => (g.name === group.name ? updated : g)));
-		redrawRegions();
 		toast(
 			'Alignment Updated',
 			`${target.kind === 'anchor' ? 'Anchor' : 'Rows'} set for group '${group.name}'.`
 		);
 	};
 
+	const handleCanvasModeChange = (mode: RegionEditorMode) => {
+		// Leaving draw mode abandons any pending anchor or rows rectangle
+		if (mode === 'select') setDrawTarget(null);
+		setCanvasMode(mode);
+	};
+
+	const handleRequestAlignmentDraw = (target: AlignmentDrawTarget) => {
+		if (!drawTarget()) modeBeforeAlignmentDraw = canvasMode();
+		batch(() => {
+			setDrawTarget(target);
+			setCanvasMode('draw');
+		});
+	};
+
+	const endAlignmentDraw = () => {
+		batch(() => {
+			setDrawTarget(null);
+			setCanvasMode(modeBeforeAlignmentDraw);
+		});
+	};
+
+	const handleCanvasSelect = (id: string | null) => {
+		batch(() => {
+			setSelectedRegionId(id);
+			if (id) setActiveTab('regions');
+		});
+	};
+
 	const handleRegionComplete = (region: DrawnRegion) => {
 		const target = drawTarget();
 		if (target) {
-			setDrawTarget(null);
+			endAlignmentDraw();
 			void applyAlignmentRect(target, region);
 			return;
 		}
 
-		setEditingRegions((prev) => [...prev, region]);
-		redrawRegions();
+		batch(() => {
+			setEditingRegions((prev) => [...prev, region]);
+			setSelectedRegionId(region.id);
+		});
 	};
 
 	const handleClearRegions = () => {
-		setEditingRegions([]);
-		redrawRegions();
+		batch(() => {
+			setEditingRegions([]);
+			setSelectedRegionId(null);
+		});
+	};
+
+	const handleRegionChange = (regions: DrawnRegion[]) => {
+		setEditingRegions(makeDrawnRegions(regions, editingProfileId()));
 	};
 
 	const handleAlignmentChange = (groups: AlignmentGroup[]) => {
-		const applyChange = () => {
-			setAlignment(groups);
-			redrawRegions();
-		};
+		const applyChange = () => setAlignment(groups);
 
 		// Regions keep their group name, so warn before orphaning them
 		const counts = regionCounts();
@@ -404,6 +512,28 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		input.click();
 	};
 
+	/** Starts an empty, unsaved profile with an unused ID */
+	const handleNewProfile = () => {
+		const ids = new Set(profileList().map((p) => p.id));
+		let n = profileList().length + 1;
+		while (ids.has(`profile-${n}`)) n++;
+
+		if (loadedProfileId()) profileBeforeNew = loadedProfileId();
+
+		batch(() => {
+			setLoadedProfileId('');
+			setEditingProfileId(`profile-${n}`);
+			setEditingProfileDesc('');
+			setSavedRegions([]);
+			setEditingRegions([]);
+			setSavedAlignment([]);
+			setAlignment([]);
+			setSelectedRegionId(null);
+			setDrawTarget(null);
+			setActiveTab('regions');
+		});
+	};
+
 	const handleSaveProfile = () => {
 		if (!editingProfileId()) {
 			openDialog?.({
@@ -413,8 +543,6 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			});
 			return;
 		}
-
-		setSavedRegions(editingRegions());
 
 		if (canvasRef) {
 			Profiles.saveProfile(
@@ -429,10 +557,33 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			);
 		}
 
-		// Refresh profile list
-		setProfileList(Profiles.listProfiles());
+		batch(() => {
+			setSavedRegions(editingRegions());
+			setSavedAlignment(alignment());
+			setLoadedProfileId(editingProfileId());
+			setProfileList(Profiles.listProfiles());
+		});
 
 		toast('Save Success', `Profile '${editingProfileId()}' saved.`);
+	};
+
+	/** Puts the editing state back to the last saved version of the profile */
+	const handleDiscardChanges = () => {
+		if (!loadedProfileId()) {
+			loadProfile(profileBeforeNew);
+			return;
+		}
+
+		batch(() => {
+			setEditingProfileId(loadedProfileId());
+			setEditingProfileDesc(savedProfileDesc());
+			setEditingRegions(savedRegions());
+			setAlignment(savedAlignment());
+			setDrawTarget(null);
+			if (!savedRegions().some((r) => r.id === selectedRegionId())) {
+				setSelectedRegionId(null);
+			}
+		});
 	};
 
 	const handleActivateProfile = (profileId: string) => {
@@ -443,14 +594,15 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		);
 	};
 
-	const handleEditProfile = (profileId: string) => {
+	/** Loads a stored profile into the editor; returns false if it couldn't be read */
+	const loadProfile = (profileId: string): boolean => {
 		if (!canvasRef) {
 			openDialog?.({
 				title: 'Edit Error',
 				description: 'Canvas not ready',
 				actionText: 'OK',
 			});
-			return;
+			return false;
 		}
 
 		const profileRegions = Profiles.getProfile(
@@ -464,25 +616,32 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 				description: `Error loading region data for profile '${profileId}'`,
 				actionText: 'OK',
 			});
-			return;
+			return false;
 		}
 
 		batch(() => {
 			const drawnRegions = makeDrawnRegions(profileRegions, profileId);
+			const profileAlignment = Profiles.getProfileAlignment(profileId);
 			setSavedRegions(drawnRegions);
 			setEditingRegions(drawnRegions);
-			setAlignment(Profiles.getProfileAlignment(profileId));
+			setSavedAlignment(profileAlignment);
+			setAlignment(profileAlignment);
 			setDrawTarget(null);
+			setSelectedRegionId(null);
+			setLoadedProfileId(profileId);
 
 			const profileDetails = profileList().find((p) => p.id === profileId);
-			if (profileDetails) {
-				setEditingProfileId(profileDetails.id);
-				setEditingProfileDesc(profileDetails.description);
-			}
+			setEditingProfileId(profileId);
+			setEditingProfileDesc(profileDetails?.description ?? '');
 		});
 
-		redrawRegions();
-		toast('Edit Profile', `Now editing profile '${profileId}'.`);
+		return true;
+	};
+
+	const handleEditProfile = (profileId: string) => {
+		if (loadProfile(profileId)) {
+			toast('Edit Profile', `Now editing profile '${profileId}'.`);
+		}
 	};
 
 	const handleDeleteProfile = (profileId: string) => {
@@ -501,16 +660,17 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 			onConfirm: () => {
 				if (activeProfileId() === profileId) {
 					// There must always be an active profile, so activate another
-					activateProfile(profileList()[0].id);
+					const next = profileList().find((p) => p.id !== profileId);
+					if (next) activateProfile(next.id);
 				}
+
+				Profiles.deleteProfile(profileId);
+				setProfileList(Profiles.listProfiles());
 
 				if (editingProfileId() === profileId) {
 					handleEditProfile(activeProfileId());
 				}
-				Profiles.deleteProfile(profileId);
 
-				// Refresh profile list
-				setProfileList(Profiles.listProfiles());
 				toast('Delete Success', `Profile '${profileId}' deleted.`);
 			},
 		});
@@ -528,145 +688,267 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 	};
 
-	const handleRegionChange = (regions: TextRegion[]) => {
-		const drawnRegions = makeDrawnRegions(regions, editingProfileId());
-		setEditingRegions(drawnRegions);
-		redrawRegions();
+	const handleMenuSelect = (action: MenuAction) => {
+		switch (action) {
+			case 'clear-regions':
+				handleClearRegions();
+				break;
+			case 'clear-hashes':
+				handleClearHashes(editingProfileId());
+				break;
+			case 'delete-profile':
+				handleDeleteProfile(editingProfileId());
+				break;
+		}
+	};
+
+	const canvasHint = () => {
+		const target = drawTarget();
+		if (target) {
+			return `Drawing ${target.kind === 'anchor' ? 'the anchor' : 'rows'} for '${target.group}'.`;
+		}
+		return canvasMode() === 'draw' ?
+				'Drag on the image to draw a new region.'
+			:	'Click a region on the image to inspect it.';
 	};
 
 	return (
-		<Screen id="region-profile-manager-screen" title="Image Region Profiles">
-			<div class="info-box">
-				<p>
-					Create and manage region profiles for different scoreboard types. Profiles are
-					saved locally and can be activated for OCR processing.
-				</p>
-			</div>
-
+		<Screen
+			id="region-profile-manager-screen"
+			title="Region profiles"
+			subtitle={SUBTITLE}
+			screenActions={() => [
+				{ id: 'import-profile', text: 'Import Profile', onClick: handleImportProfile },
+				{ id: 'new-profile', text: 'New Profile', onClick: handleNewProfile },
+			]}
+		>
 			<div class="manager-layout">
-				<div class="section">
-					<h2>Saved Profiles</h2>
-
+				<aside class="profiles-sidebar" aria-label="Profiles">
+					<h2 class="profiles-sidebar__title">Profiles</h2>
 					<Show
 						when={profileList().length > 0}
 						fallback={<p class="empty-state">No profiles yet</p>}
 					>
-						<div class="profiles-list">
+						<ul class="profiles-sidebar__list">
 							<For each={profileList()}>
 								{(profile) => (
-									<div
-										class={`profile-card ${editingProfileId() === profile.id ? 'active' : ''}`}
-									>
-										<div class="profile-header">
-											<h3>{profile.id}</h3>
-										</div>
-										<p class="profile-description">{profile.description}</p>
-
-										<div class="button-group">
-											<button
-												onClick={() => handleActivateProfile(profile.id)}
-												class={`action-btn activate highlight ${activeProfileId() === profile.id ? 'active' : ''}`}
-											>
-												{activeProfileId() === profile.id ? '✓ Active' : 'Set Active'}
-											</button>
-											<button
-												onClick={() => handleEditProfile(profile.id)}
-												class="action-btn edit"
-											>
-												Edit
-											</button>
-											<button
-												onClick={() => handleDeleteProfile(profile.id)}
-												class="action-btn delete highlight"
-											>
-												Delete
-											</button>
-										</div>
-									</div>
+									<li>
+										<button
+											class="profile-item"
+											aria-pressed={editingProfileId() === profile.id}
+											onClick={() => handleEditProfile(profile.id)}
+										>
+											<span class="profile-item__heading">
+												<span class="profile-item__id">{profile.id}</span>
+												<Show when={activeProfileId() === profile.id}>
+													<span class="profile-item__badge">
+														<Check size={12} />
+														Active
+													</span>
+												</Show>
+											</span>
+											<Show when={profile.description}>
+												<span class="profile-item__description">
+													{profile.description}
+												</span>
+											</Show>
+										</button>
+									</li>
 								)}
 							</For>
-						</div>
+						</ul>
 					</Show>
-				</div>
+				</aside>
 
-				<div class="section profile-actions">
-					<h2>Profile Details</h2>
-
-					<div>
-						<label class="input-label">Profile ID</label>
-						<input
-							type="text"
-							value={editingProfileId()}
-							onInput={(e) => setEditingProfileId(e.target.value)}
-							class="profile-input"
-						/>
-
-						<label class="input-label">Description</label>
-						<textarea
-							value={editingProfileDesc()}
-							onInput={(e) => setEditingProfileDesc(e.target.value)}
-							class="profile-textarea"
-							placeholder="Profile description (optional)"
-						/>
-
-						<div class="button-group">
-							<button onClick={handleSaveProfile} class="save-profile highlight">
-								Save Profile
-							</button>
+				<div class="profile-editor">
+					<section class="profile-card" aria-label="Profile details">
+						<div class="profile-card__fields">
+							<div class="profile-card__field">
+								<label for="profile-id-input">Profile ID</label>
+								<input
+									id="profile-id-input"
+									type="text"
+									value={editingProfileId()}
+									onInput={(e) => setEditingProfileId(e.currentTarget.value)}
+									class="profile-input"
+								/>
+							</div>
+							<div class="profile-card__field profile-card__field--wide">
+								<label for="profile-desc-input">Description</label>
+								<textarea
+									id="profile-desc-input"
+									value={editingProfileDesc()}
+									onInput={(e) => setEditingProfileDesc(e.currentTarget.value)}
+									class="profile-textarea"
+									placeholder="Profile description (optional)"
+								/>
+							</div>
 						</div>
 
-						<label class="input-label">Learned Image Hashes</label>
-						<p class="learned-hashes">
-							{learnedHashCount()} learned hash{learnedHashCount() === 1 ? '' : 'es'}.
-							Correct a hero after recognition to teach new portraits.
-						</p>
-						<div class="button-group">
-							<button
-								onClick={() => handleClearHashes(editingProfileId())}
-								class="clear-hashes highlight"
-								disabled={learnedHashCount() === 0}
+						<div class="profile-card__actions">
+							<Show
+								when={activeProfileId() === editingProfileId()}
+								fallback={
+									<button
+										onClick={() => handleActivateProfile(editingProfileId())}
+										disabled={!isProfileStored()}
+									>
+										Set Active
+									</button>
+								}
 							>
-								Clear Learned Hashes
-							</button>
+								<button class="profile-card__active" disabled>
+									<Check size={14} />
+									Active
+								</button>
+							</Show>
+							<button onClick={handleExportProfile}>Export</button>
+
+							<Menu.Root
+								onSelect={(details) => handleMenuSelect(details.value as MenuAction)}
+							>
+								<Menu.Trigger
+									class="profile-card__more"
+									aria-label="More profile actions"
+								>
+									<Ellipsis size={16} />
+								</Menu.Trigger>
+								<Portal>
+									<Menu.Positioner>
+										<Menu.Content class="profile-menu">
+											<Menu.Item
+												value="clear-regions"
+												disabled={editingRegions().length === 0}
+											>
+												Clear all regions
+											</Menu.Item>
+											<Menu.Item value="clear-hashes" disabled={learnedHashCount() === 0}>
+												Clear learned hashes
+											</Menu.Item>
+											<Menu.Separator />
+											<Menu.Item
+												value="delete-profile"
+												class="profile-menu__item--danger"
+												disabled={!isProfileStored()}
+											>
+												Delete profile
+											</Menu.Item>
+										</Menu.Content>
+									</Menu.Positioner>
+								</Portal>
+							</Menu.Root>
 						</div>
-					</div>
-				</div>
+					</section>
 
-				<div class="section">
-					<h2>Region Editor</h2>
-					<div class="button-group">
-						<button onClick={handleExportProfile}>Export</button>
-						<button onClick={handleImportProfile}>Import</button>
-						<button
-							onClick={handleClearRegions}
-							class="clear-regions highlight"
-							disabled={editingRegions().length === 0}
+					<Tabs.Root
+						class="profile-tabs"
+						value={activeTab()}
+						onValueChange={(details) => setActiveTab(details.value as ProfileTab)}
+						lazyMount={false}
+						unmountOnExit={false}
+					>
+						<Tabs.List class="profile-tabs__list">
+							<Tabs.Trigger value="regions">
+								Regions ({editingRegions().length})
+							</Tabs.Trigger>
+							<Tabs.Trigger value="alignment">
+								Alignment groups ({alignment().length})
+							</Tabs.Trigger>
+							<Tabs.Trigger value="portraits">
+								Learned portraits ({learnedHashCount()})
+							</Tabs.Trigger>
+						</Tabs.List>
+
+						{/* Kept outside the tab panels so the canvas and its editor stay mounted */}
+						<div
+							class="canvas-card"
+							classList={{ 'canvas-card--hidden': activeTab() === 'portraits' }}
 						>
-							Clear All
-						</button>
-					</div>
+							<div class="canvas-card__toolbar">
+								<div class="canvas-card__modes" role="group" aria-label="Canvas mode">
+									<button
+										aria-pressed={canvasMode() === 'select'}
+										onClick={() => handleCanvasModeChange('select')}
+									>
+										<MousePointer2 size={14} />
+										Select
+									</button>
+									<button
+										aria-pressed={canvasMode() === 'draw'}
+										onClick={() => handleCanvasModeChange('draw')}
+									>
+										<SquareDashed size={14} />
+										Draw Region
+									</button>
+								</div>
+								<span class="canvas-card__hint">{canvasHint()}</span>
+							</div>
 
-					<div class="canvas-wrapper">
-						<canvas ref={canvasRef} />
-					</div>
+							<div class="canvas-wrapper">
+								<canvas ref={canvasRef} data-mode={canvasMode()} />
+							</div>
+						</div>
 
-					<EditableRegionsData
-						profileId={editingProfileId()}
-						currentRegions={editingRegions()}
-						savedRegions={savedRegions()}
-						onChange={handleRegionChange}
-					/>
+						<Tabs.Content value="regions" class="profile-tabs__panel">
+							<RegionInspector
+								profileId={editingProfileId()}
+								currentRegions={editingRegions()}
+								savedRegions={savedRegions()}
+								selectedId={selectedRegionId()}
+								groupNames={alignment().map((g) => g.name)}
+								onSelect={setSelectedRegionId}
+								onChange={handleRegionChange}
+							/>
+						</Tabs.Content>
 
-					<AlignmentGroupsEditor
-						groups={alignment()}
-						regionCounts={regionCounts()}
-						drawTarget={drawTarget()}
-						onChange={handleAlignmentChange}
-						onRequestDraw={setDrawTarget}
-						onCancelDraw={() => setDrawTarget(null)}
-					/>
+						<Tabs.Content value="alignment" class="profile-tabs__panel">
+							<AlignmentGroupsEditor
+								groups={alignment()}
+								regionCounts={regionCounts()}
+								drawTarget={drawTarget()}
+								onChange={handleAlignmentChange}
+								onRequestDraw={handleRequestAlignmentDraw}
+								onCancelDraw={endAlignmentDraw}
+							/>
+						</Tabs.Content>
+
+						<Tabs.Content value="portraits" class="profile-tabs__panel">
+							<div class="learned-portraits">
+								<p class="learned-portraits__count">
+									{plural(learnedHashCount(), 'learned hash', 'es')}.
+								</p>
+								<p class="learned-portraits__help">
+									When you correct a hero after recognition, the portrait is learned for
+									this profile so it's recognised next time. Bundled hashes are not
+									affected by clearing.
+								</p>
+								<button
+									class="danger"
+									onClick={() => handleClearHashes(editingProfileId())}
+									disabled={learnedHashCount() === 0}
+								>
+									Clear Learned Hashes
+								</button>
+							</div>
+						</Tabs.Content>
+					</Tabs.Root>
 				</div>
 			</div>
+
+			<Show when={unsavedChangeCount() > 0}>
+				<div class="unsaved-footer" role="status">
+					<span class="unsaved-footer__text">
+						{plural(unsavedChangeCount(), 'unsaved change')} to{' '}
+						<strong>{editingProfileId() || 'this profile'}</strong>
+					</span>
+					<div class="unsaved-footer__actions">
+						<button onClick={handleDiscardChanges}>Discard</button>
+						<button class="primary" onClick={handleSaveProfile}>
+							Save Profile
+						</button>
+					</div>
+				</div>
+			</Show>
 
 			<Toaster />
 			<AlertDialog openDialog={(fn) => (openDialog = fn)} />
