@@ -100,6 +100,63 @@ export interface TextRegion {
 	charSet?: string;
 	isItalic?: boolean;
 	imgHashSet?: string;
+	/** Alignment group that moves this region; see AlignmentGroup */
+	group?: string;
+	/** Row index within the group's RowBands */
+	row?: number;
+}
+
+/** 8-bit single-channel image */
+export interface GrayImage {
+	width: number;
+	height: number;
+	data: Uint8ClampedArray;
+}
+
+/** Grayscale image patch, stored downscaled by ALIGN_SCALE */
+export interface AnchorTemplate {
+	width: number;
+	height: number;
+	/** Base64-encoded 8-bit pixels, row-major */
+	data: string;
+}
+
+/** Static landmark located by template matching to find a group's offset */
+export interface RegionAnchor {
+	/** Expected top-left of the template at reference resolution */
+	x: number;
+	y: number;
+	/** Maximum offsets to search, in reference pixels */
+	searchX: number;
+	searchY: number;
+	/** Minimum correlation score (0-1) to accept a match */
+	minScore?: number;
+	template: AnchorTemplate;
+}
+
+/** Table rows separated by darker lines; rows may differ in height */
+export interface RowBands {
+	/** Horizontal sample strip at reference resolution; should avoid text-heavy columns */
+	x: number;
+	width: number;
+	/** Top of the first row at reference resolution */
+	y: number;
+	/** Nominal row pitch; region y values assume rows at y + row * rowHeight */
+	rowHeight: number;
+	count: number;
+}
+
+/** Set of regions that move together to follow layout changes */
+export interface AlignmentGroup {
+	name: string;
+	anchor?: RegionAnchor;
+	rows?: RowBands;
+}
+
+/** Alignment feature the region editor's next drawn rectangle defines */
+export interface AlignmentDrawTarget {
+	group: string;
+	kind: 'anchor' | 'rows';
 }
 
 export type DrawnRegion = TextRegion & {
@@ -115,6 +172,7 @@ export interface ProfileDetails {
 export interface RegionProfile extends ProfileDetails {
 	regions: TextRegion[];
 	hashSets: ImageHashSet[];
+	alignment?: AlignmentGroup[];
 	createdAt: Date;
 	updatedAt: Date;
 }

@@ -188,6 +188,13 @@ vi.mock('#utils/regionProfiles', () => ({
 		{ name: 'region_1', x: 100, y: 0, width: 100, height: 100 },
 	]),
 	getActiveProfileHashSets: vi.fn().mockReturnValue([]),
+	getActiveProfileAlignment: vi.fn().mockReturnValue([]),
+}));
+
+vi.mock('#utils/regionAlignment', () => ({
+	alignRegionsToImage: vi
+		.fn()
+		.mockImplementation((_src, regions) => Promise.resolve(regions)),
 }));
 
 vi.mock('#utils/imageRecognition', () => ({
@@ -608,6 +615,45 @@ describe('ScoreboardOCR', () => {
 		});
 	});
 
+	describe('region alignment', () => {
+		it('should align profile regions before extracting them', async () => {
+			const { getActiveProfile, getActiveProfileAlignment } =
+				await import('#utils/regionProfiles');
+			const { alignRegionsToImage } = await import('#utils/regionAlignment');
+			const { getRegionImageData } = await import('#utils/preprocess');
+
+			const profileRegions = [
+				{ name: 'player_name', x: 10, y: 20, width: 100, height: 30, group: 'table' },
+			];
+			const alignedRegions = [{ ...profileRegions[0], x: 15, y: 40 }];
+			const alignment = [{ name: 'table' }];
+
+			vi.mocked(getActiveProfile).mockReturnValue(profileRegions);
+			vi.mocked(getActiveProfileAlignment).mockReturnValue(alignment);
+			vi.mocked(alignRegionsToImage).mockResolvedValueOnce(alignedRegions);
+
+			const testImageData = 'data:image/png;base64,testdata';
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage={testImageData}
+				/>
+			));
+
+			await waitFor(() => {
+				expect(alignRegionsToImage).toHaveBeenCalledWith(
+					testImageData,
+					profileRegions,
+					alignment,
+					expect.any(Number),
+					expect.any(Number)
+				);
+				expect(getRegionImageData).toHaveBeenCalledWith(testImageData, alignedRegions);
+			});
+		});
+	});
+
 	describe('image recognition integration', () => {
 		it('should use image recognition for regions with imgHashSet', async () => {
 			const { getActiveProfile } = await import('#utils/regionProfiles');
@@ -718,9 +764,8 @@ describe('ScoreboardOCR', () => {
 		});
 
 		it('should merge hash sets from profile and defaults', async () => {
-			const { getActiveProfile, getActiveProfileHashSets } = await import(
-				'#utils/regionProfiles'
-			);
+			const { getActiveProfile, getActiveProfileHashSets } =
+				await import('#utils/regionProfiles');
 			const mockGetActiveProfile = vi.mocked(getActiveProfile);
 			const mockGetActiveProfileHashSets = vi.mocked(getActiveProfileHashSets);
 

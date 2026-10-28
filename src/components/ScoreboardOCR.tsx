@@ -25,10 +25,15 @@ import {
 	partitionRegionGroups,
 } from '#utils/preprocess';
 import { recogniseImage } from '#utils/imageRecognition';
+import { alignRegionsToImage } from '#utils/regionAlignment';
 import { extractGameStats, formatResults } from '#utils/postprocess';
 import { loadOverFastData } from '#utils/overfastApi';
 import { saveGameRecord, updateGameRecord } from '#utils/storage';
-import { getActiveProfile, getActiveProfileHashSets } from '#utils/regionProfiles';
+import {
+	getActiveProfile,
+	getActiveProfileAlignment,
+	getActiveProfileHashSets,
+} from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
 
 interface ScoreboardOCRProps {
@@ -391,11 +396,22 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 
 			const { width, height } = await loadImageDimensions(imageToProcess);
 
-			const scoreboardRegions = getActiveProfile(width, height);
-			if (!scoreboardRegions || scoreboardRegions.length === 0) {
+			const profileRegions = getActiveProfile(width, height);
+			if (!profileRegions || profileRegions.length === 0) {
 				setError('No scoreboard regions defined in the active profile.');
 				return;
 			}
+
+			// Shift regions to follow minor layout changes in this screenshot
+			const scoreboardRegions = await alignRegionsToImage(
+				imageToProcess,
+				profileRegions,
+				getActiveProfileAlignment(),
+				width,
+				height
+			);
+
+			if (isProcessingCancelled) return;
 
 			// Partition regions by type
 			const { imageHashRegions = [], ocrRegions = [] } = Object.groupBy(

@@ -1,4 +1,4 @@
-import type { TextRegion, ExportedProfile, ImageHashSet } from '#types';
+import type { TextRegion, ExportedProfile, ImageHashSet, AlignmentGroup } from '#types';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
 	saveProfile,
@@ -10,6 +10,8 @@ import {
 	getActiveProfile,
 	getProfileHashSets,
 	getActiveProfileHashSets,
+	getProfileAlignment,
+	getActiveProfileAlignment,
 	exportProfile,
 	importProfile,
 } from '#utils/regionProfiles';
@@ -564,6 +566,127 @@ describe('Region Profiles', () => {
 				(p: { id: string }) => p.id === profileId
 			);
 			expect(importedProfile.createdAt).toBe(exportedProfile.createdAt);
+		});
+	});
+
+	describe('alignment', () => {
+		const mockAlignment: AlignmentGroup[] = [
+			{
+				name: 'table',
+				anchor: {
+					x: 10,
+					y: 20,
+					searchX: 30,
+					searchY: 40,
+					template: { width: 1, height: 1, data: 'AA==' },
+				},
+				rows: { x: 0, width: 100, y: 50, rowHeight: 40, count: 5 },
+			},
+		];
+
+		it('should return an empty array for a profile without alignment', () => {
+			const profileId = saveProfile(mockRegions, { description: 'No alignment' });
+
+			expect(getProfileAlignment(profileId)).toEqual([]);
+		});
+
+		it('should return an empty array for a non-existent profile', () => {
+			expect(getProfileAlignment('non_existent_id')).toEqual([]);
+		});
+
+		it('should save and load alignment groups', () => {
+			const profileId = saveProfile(mockRegions, {
+				description: 'With alignment',
+				alignment: mockAlignment,
+			});
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should keep existing alignment when saving without it', () => {
+			const profileId = saveProfile(mockRegions, { alignment: mockAlignment });
+			saveProfile(mockRegions, { id: profileId, description: 'Edited regions' });
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should not normalise alignment coordinates when saving', () => {
+			const profileId = saveProfile(
+				mockRegions,
+				{ alignment: mockAlignment },
+				1920,
+				1080
+			);
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should return the active profile alignment', () => {
+			const profileId = saveProfile(mockRegions, { alignment: mockAlignment });
+			setActiveProfile(profileId);
+
+			expect(getActiveProfileAlignment()).toEqual(mockAlignment);
+		});
+
+		it('should export and import alignment groups', () => {
+			const profileId = saveProfile(mockRegions, { alignment: mockAlignment });
+			const exported = exportProfile(profileId)!;
+			deleteProfile(profileId);
+
+			importProfile(exported);
+
+			expect(getProfileAlignment(profileId)).toEqual(mockAlignment);
+		});
+
+		it('should preserve region group and row fields', () => {
+			const grouped: TextRegion[] = [{ ...mockRegion, group: 'table', row: 2 }];
+			const profileId = saveProfile(grouped, {}, 1280, 720);
+
+			expect(getProfile(profileId)![0]).toMatchObject({ group: 'table', row: 2 });
+		});
+	});
+
+	describe('default profiles', () => {
+		const storageKey = 'vowt_region_profiles';
+
+		const storeDefaultCopy = (updatedAt: string) => {
+			localStorage.setItem(
+				storageKey,
+				JSON.stringify({
+					schemaVersion: 1,
+					activeProfileId: 'mock_profile',
+					profiles: [
+						{
+							id: 'mock_profile',
+							description: 'Stored copy',
+							regions: mockRegions,
+							hashSets: [],
+							createdAt: '2025-11-11T00:00:00.000Z',
+							updatedAt,
+						},
+					],
+				})
+			);
+		};
+
+		it('should replace a stored default older than the bundled version', () => {
+			storeDefaultCopy('2025-11-01T00:00:00.000Z');
+
+			const profile = listProfiles().find((p) => p.id === 'mock_profile');
+
+			expect(profile?.description).toBe('Built-in default profile');
+			expect(getProfile('mock_profile')).toEqual([]);
+			const stored = JSON.parse(localStorage.getItem(storageKey)!);
+			expect(stored.profiles[0].description).toBe('Built-in default profile');
+		});
+
+		it('should keep a stored default edited after the bundled version', () => {
+			storeDefaultCopy('2026-01-01T00:00:00.000Z');
+
+			const profile = listProfiles().find((p) => p.id === 'mock_profile');
+
+			expect(profile?.description).toBe('Stored copy');
+			expect(getProfile('mock_profile')).toEqual(mockRegions);
 		});
 	});
 
