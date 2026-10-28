@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { createSignal, onMount } from 'solid-js';
+import { createSignal, onMount, Show } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { Dialog } from '@ark-ui/solid/dialog';
 import { X } from 'lucide-solid';
@@ -53,6 +53,9 @@ const AlertDialog: Component<AlertDialogProps> = (props) => {
 							{options().title}
 						</Dialog.Title>
 						<Dialog.Description>{options().description}</Dialog.Description>
+						<Show when={options().content}>
+							{(content) => <div class="dialog-content">{content()()}</div>}
+						</Show>
 						<Dialog.CloseTrigger>
 							<X size={18} />
 						</Dialog.CloseTrigger>

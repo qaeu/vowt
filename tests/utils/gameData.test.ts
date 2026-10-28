@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	HERO_KEY_ALIASES,
 	getHeroDisplayName,
+	getHeroKey,
 	matchMapName,
 	getHeroNames,
 	getMapNames,
@@ -61,6 +62,30 @@ describe('gameData', () => {
 		it('passes through unknown and empty values', () => {
 			expect(getHeroDisplayName('nobody', HEROES)).toBe('nobody');
 			expect(getHeroDisplayName('', HEROES)).toBe('');
+		});
+	});
+
+	describe('getHeroKey', () => {
+		it('resolves display names and keys to the key', () => {
+			expect(getHeroKey('Ana', HEROES)).toBe('ana');
+			expect(getHeroKey('D.Va', HEROES)).toBe('dva');
+			expect(getHeroKey('lucio', HEROES)).toBe('lucio');
+		});
+
+		it('uses the alias as the hash-set name', () => {
+			expect(getHeroKey('Soldier: 76', HEROES)).toBe('soldier');
+			expect(getHeroKey('soldier', HEROES)).toBe('soldier');
+		});
+
+		it('falls back to an OverFast-style key for unknown heroes', () => {
+			expect(getHeroKey('Brand New Hero', HEROES)).toBe('brand-new-hero');
+			expect(getHeroKey('Ana', [])).toBe('ana');
+			expect(getHeroKey('Lúcio', [])).toBe('lucio');
+		});
+
+		it('returns an empty string for empty input', () => {
+			expect(getHeroKey('', HEROES)).toBe('');
+			expect(getHeroKey('  ', HEROES)).toBe('');
 		});
 	});
 

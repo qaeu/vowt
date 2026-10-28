@@ -60,6 +60,13 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		Profiles.getActiveProfileAlignment()
 	);
 	const [drawTarget, setDrawTarget] = createSignal<AlignmentDrawTarget | null>(null);
+	// Bumped when stored hashes change, since they're read from storage
+	const [hashesVersion, setHashesVersion] = createSignal(0);
+
+	const learnedHashCount = createMemo(() => {
+		hashesVersion();
+		return Profiles.countProfileHashes(editingProfileId());
+	});
 
 	const regionCounts = createMemo(() => {
 		const counts: Record<string, number> = {};
@@ -371,6 +378,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						}
 						toast('Import Success', 'Region profile imported');
 						setProfileList(Profiles.listProfiles());
+						setHashesVersion((v) => v + 1);
 					} catch (error) {
 						openDialog?.({
 							title: 'Import Error',
@@ -498,6 +506,18 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 	};
 
+	const handleClearHashes = (profileId: string) => {
+		openDialog?.({
+			title: 'Clear Learned Hashes',
+			description: `Are you sure you want to remove all learned image hashes from profile '${profileId}'? Bundled hashes are not affected.`,
+			onConfirm: () => {
+				Profiles.clearProfileHashes(profileId);
+				setHashesVersion((v) => v + 1);
+				toast('Clear Success', `Learned hashes removed from profile '${profileId}'.`);
+			},
+		});
+	};
+
 	const handleRegionChange = (regions: TextRegion[]) => {
 		const drawnRegions = makeDrawnRegions(regions, editingProfileId());
 		setEditingRegions(drawnRegions);
@@ -586,6 +606,21 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 						<div class="button-group">
 							<button onClick={handleSaveProfile} class="save-profile highlight">
 								Save Profile
+							</button>
+						</div>
+
+						<label class="input-label">Learned Image Hashes</label>
+						<p class="learned-hashes">
+							{learnedHashCount()} learned hash{learnedHashCount() === 1 ? '' : 'es'}.
+							Correct a hero after recognition to teach new portraits.
+						</p>
+						<div class="button-group">
+							<button
+								onClick={() => handleClearHashes(editingProfileId())}
+								class="clear-hashes highlight"
+								disabled={learnedHashCount() === 0}
+							>
+								Clear Learned Hashes
 							</button>
 						</div>
 					</div>

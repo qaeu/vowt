@@ -23,6 +23,8 @@ vi.mock('#utils/regionProfiles', () => ({
 	importProfile: vi.fn(),
 	getActiveProfileAlignment: vi.fn(),
 	getProfileAlignment: vi.fn(),
+	countProfileHashes: vi.fn(),
+	clearProfileHashes: vi.fn(),
 	REFERENCE_WIDTH: 2560,
 	REFERENCE_HEIGHT: 1440,
 }));
@@ -60,6 +62,7 @@ describe('RegionProfileManager', () => {
 		vi.mocked(regionEditor.startRegionEditor).mockResolvedValue(undefined);
 		vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([]);
 		vi.mocked(regionProfiles.getProfileAlignment).mockReturnValue([]);
+		vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
 	});
 
 	afterEach(() => {
@@ -81,6 +84,37 @@ describe('RegionProfileManager', () => {
 		it('should render instructions text', () => {
 			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
 			expect(screen.getByText(/Create and manage region profiles/i)).toBeDefined();
+		});
+	});
+
+	describe('Learned Image Hashes', () => {
+		it('should show the learned hash count for the editing profile', () => {
+			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(3);
+			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+
+			expect(screen.getByText(/3 learned hashes/)).toBeDefined();
+			expect(regionProfiles.countProfileHashes).toHaveBeenCalledWith(mockProfiles[1].id);
+		});
+
+		it('should disable Clear Learned Hashes when there are none', () => {
+			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+			const button = screen.getByRole('button', {
+				name: /Clear Learned Hashes/i,
+			}) as HTMLButtonElement;
+
+			expect(button.disabled).toBe(true);
+		});
+
+		it('should clear learned hashes after confirming', async () => {
+			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(2);
+			render(() => <RegionProfileManager previewImage={null} onClose={mockOnClose} />);
+
+			fireEvent.click(screen.getByRole('button', { name: /Clear Learned Hashes/i }));
+			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
+			fireEvent.click(await screen.findByText('Confirm'));
+
+			expect(regionProfiles.clearProfileHashes).toHaveBeenCalledWith(mockProfiles[1].id);
+			await waitFor(() => expect(screen.getByText(/0 learned hashes/)).toBeDefined());
 		});
 	});
 

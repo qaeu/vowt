@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { dhash, hamDist, recogniseImage } from '#utils/imageRecognition';
+import { dhash, hamDist, recogniseImage, mergeHashSets } from '#utils/imageRecognition';
 import type { ImageHashSet } from '#types';
 
 // Helper to create ImageData-like objects for testing
@@ -317,6 +317,58 @@ describe('imageRecognition', () => {
 
 			expect(result.name).toBe('');
 			expect(result.confidence).toBe(0);
+		});
+
+		it('should return the computed hash of the image', () => {
+			const data = new Uint8ClampedArray(100 * 100 * 4).fill(128);
+			const imageData = createImageData(data, 100, 100);
+
+			const result = recogniseImage(imageData, mockHashSet);
+
+			expect(result.hash).toBe(dhash(imageData));
+		});
+	});
+
+	describe('mergeHashSets', () => {
+		const makeHashSet = (id: string, names: string[]): ImageHashSet => ({
+			id,
+			description: id,
+			hashes: names.map((name, i) => ({ name, hash: `${i}`.padStart(16, '0') })),
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		});
+
+		it('should combine hashes of sets sharing an ID, keeping input order', () => {
+			const learned = makeHashSet('hero-portrait', ['new-hero']);
+			const bundled = makeHashSet('hero-portrait', ['ana', 'ashe']);
+
+			const merged = mergeHashSets([learned, bundled]);
+
+			expect(merged).toHaveLength(1);
+			expect(merged[0].hashes.map((h) => h.name)).toEqual(['new-hero', 'ana', 'ashe']);
+		});
+
+		it('should keep sets with different IDs separate', () => {
+			const merged = mergeHashSets([
+				makeHashSet('hero-portrait', ['ana']),
+				makeHashSet('rank-icons', ['gold']),
+			]);
+
+			expect(merged.map((hs) => hs.id)).toEqual(['hero-portrait', 'rank-icons']);
+		});
+
+		it('should not mutate the input sets', () => {
+			const learned = makeHashSet('hero-portrait', ['new-hero']);
+			const bundled = makeHashSet('hero-portrait', ['ana']);
+
+			mergeHashSets([learned, bundled]);
+
+			expect(learned.hashes).toHaveLength(1);
+			expect(bundled.hashes).toHaveLength(1);
+		});
+
+		it('should return an empty array for no sets', () => {
+			expect(mergeHashSets([])).toEqual([]);
 		});
 	});
 });

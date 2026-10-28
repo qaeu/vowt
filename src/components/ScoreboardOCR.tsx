@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
+import { createSignal, onMount, onCleanup, createEffect, For, Show } from 'solid-js';
 import Tesseract from 'tesseract.js';
 import { X } from 'lucide-solid';
 
@@ -8,10 +8,13 @@ import type {
 	MatchInfo,
 	GameRecord,
 	TextRegion,
+	ImageHash,
 	ImageHashSet,
 	RecognitionResult,
+	AlertDialogOptions,
 } from '#types';
 import Screen from '#c/ui/Screen';
+import AlertDialog from '#c/ui/AlertDialog';
 import EditableGameData from '#c/ui/EditableGameData';
 import Toaster, { toast } from '#c/ui/Toaster';
 import {
@@ -24,15 +27,18 @@ import {
 	loadImageDimensions,
 	partitionRegionGroups,
 } from '#utils/preprocess';
-import { recogniseImage } from '#utils/imageRecognition';
+import { recogniseImage, mergeHashSets } from '#utils/imageRecognition';
 import { alignRegionsToImage } from '#utils/regionAlignment';
 import { extractGameStats, formatResults } from '#utils/postprocess';
 import { loadOverFastData } from '#utils/overfastApi';
+import { getHeroKey } from '#utils/gameData';
 import { saveGameRecord, updateGameRecord } from '#utils/storage';
 import {
 	getActiveProfile,
+	getActiveProfileId,
 	getActiveProfileAlignment,
 	getActiveProfileHashSets,
+	addProfileHashes,
 } from '#utils/regionProfiles';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
 
@@ -40,6 +46,21 @@ interface ScoreboardOCRProps {
 	uploadedImage?: string | null;
 	onClose: () => void;
 	onOpenRegionManager: () => void;
+}
+
+/** Hash computed for an image region, kept so user corrections can be learned */
+interface LearnableHash {
+	hashSetId: string;
+	hash: string;
+	/** Hash-set name recognised for the region, or empty if unrecognised */
+	recognised: string;
+	preview?: string;
+}
+
+/** Hero correction that can be saved as a new portrait hash */
+interface HashCorrection extends LearnableHash {
+	name: string;
+	displayName: string;
 }
 
 const WORKER_COUNT = 2;
@@ -75,6 +96,9 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	];
 
 	let recordId: string;
+	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
+	let learnProfileId = '';
+	let learnableHashes = new Map<string, LearnableHash>();
 	let activeSchedulers: Tesseract.Scheduler[] = [];
 	let activeWorkers: Tesseract.Worker[] = [];
 	let isProcessingCancelled = false;
@@ -155,6 +179,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				results.push({ name: region.name, value: '', confidence: 0 });
 			} else {
 				const result = recogniseImage(imageData, hashSet);
+				learnableHashes.set(region.name, {
+					hashSetId: hashSet.id,
+					hash: result.hash,
+					recognised: result.name,
+				});
 				results.push({
 					name: region.name,
 					value: result.name,
@@ -389,10 +418,12 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const processScreenshot = async (imagePath?: string) => {
 		const imageToProcess = (imagePath || currentScreenshot()) as string;
 		isProcessingCancelled = false;
+		learnableHashes = new Map();
 
 		try {
 			setIsProcessing(true);
 			setError('');
+			learnProfileId = getActiveProfileId();
 
 			const { width, height } = await loadImageDimensions(imageToProcess);
 
@@ -452,7 +483,11 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 				}
 			}
 
-			const allHashSets = [...getActiveProfileHashSets(), ...DEFAULT_HASH_SETS];
+			// Learned profile hashes extend the bundled sets with the same ID
+			const allHashSets = mergeHashSets([
+				...getActiveProfileHashSets(),
+				...DEFAULT_HASH_SETS,
+			]);
 			const ocrResults = await processRegions(
 				scoreboardRegions,
 				ocrDataURLMap,
@@ -461,6 +496,12 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			);
 
 			if (!ocrResults || isProcessingCancelled) return;
+
+			// Thumbnails of hash regions for the learn-hash prompt
+			const hashPreviewMap = await getRegionDataURLs(imageToProcess, imageHashRegions);
+			for (const [regionName, learnable] of learnableHashes) {
+				learnable.preview = hashPreviewMap.get(regionName);
+			}
 
 			setRawOcrText(ocrResults.ocrTextParts.join('\n'));
 
@@ -483,6 +524,83 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			toast('Save Success', 'Game record updated.');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save game record');
+			return;
+		}
+		promptToLearnHashes(players);
+	};
+
+	/** Finds saved heroes that differ from the hero recognised from their portrait */
+	const findHashCorrections = (players: PlayerStats[]): HashCorrection[] => {
+		const heroes = loadOverFastData()?.heroes ?? [];
+		const teamCounts: Partial<Record<PlayerStats['team'], number>> = {};
+		const corrections: HashCorrection[] = [];
+
+		// Players are ordered by team, matching the `${team}_player${n}_hero` regions
+		for (const player of players) {
+			const playerNumber = (teamCounts[player.team] ?? 0) + 1;
+			teamCounts[player.team] = playerNumber;
+
+			const learnable = learnableHashes.get(`${player.team}_player${playerNumber}_hero`);
+			if (!learnable || !player.hero?.trim()) continue;
+
+			const name = getHeroKey(player.hero, heroes);
+			if (name && name !== getHeroKey(learnable.recognised, heroes)) {
+				corrections.push({ ...learnable, name, displayName: player.hero.trim() });
+				// Only prompt once per correction, whether or not it is saved
+				learnable.recognised = name;
+			}
+		}
+
+		return corrections;
+	};
+
+	/** Asks whether corrected hero portraits should be saved as new hashes */
+	const promptToLearnHashes = (players: PlayerStats[]) => {
+		const corrections = findHashCorrections(players);
+		if (corrections.length === 0) return;
+
+		const plural = corrections.length === 1 ? '' : 's';
+		openDialog?.({
+			title: 'Remember Hero Portraits?',
+			description: `Save ${corrections.length} corrected hero portrait${plural} so they are recognised in future screenshots.`,
+			content: () => (
+				<ul class="learn-hash-list">
+					<For each={corrections}>
+						{(correction) => (
+							<li class="learn-hash-item">
+								<Show when={correction.preview}>
+									{(preview) => <img src={preview()} alt={correction.displayName} />}
+								</Show>
+								<span>{correction.displayName}</span>
+							</li>
+						)}
+					</For>
+				</ul>
+			),
+			actionText: 'Remember',
+			onConfirm: () => saveHashCorrections(corrections),
+		});
+	};
+
+	/** Saves hero corrections to the active profile's hash sets */
+	const saveHashCorrections = (corrections: HashCorrection[]) => {
+		try {
+			const hashesBySet = Map.groupBy(corrections, ({ hashSetId }) => hashSetId);
+			let saved = 0;
+			for (const [hashSetId, setCorrections] of hashesBySet) {
+				const hashes: ImageHash[] = setCorrections.map(({ name, hash }) => ({
+					name,
+					hash,
+				}));
+				saved += addProfileHashes(learnProfileId, hashSetId, hashes);
+			}
+			const plural = saved === 1 ? '' : 's';
+			toast('Portraits Saved', `${saved} hero portrait${plural} learned.`);
+		} catch (err) {
+			console.error('Error saving hero portrait hashes:', err);
+			setError(
+				'Could not save hero portraits. Check that the active region profile still exists.'
+			);
 		}
 	};
 
@@ -590,6 +708,7 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 			</div>
 
 			<Toaster />
+			<AlertDialog openDialog={(fn) => (openDialog = fn)} />
 		</Screen>
 	);
 };

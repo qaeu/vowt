@@ -150,4 +150,31 @@
 			}
 		}
 	}
+
+	// Learn-hash prompt renders in a dialog portal, outside the screen element
+	.learn-hash-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+		gap: 12px;
+		margin: 0 0 20px;
+		padding: 0;
+		list-style: none;
+	}
+
+	.learn-hash-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		color: get($neutrals, 'fg-light');
+
+		img {
+			width: 64px;
+			height: 64px;
+			object-fit: contain;
+			border: 1px solid get($neutrals, 'sep');
+			border-radius: 4px;
+		}
+	}
 }

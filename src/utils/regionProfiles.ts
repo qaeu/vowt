@@ -5,6 +5,7 @@ import type {
 	ProfileDetails,
 	RegionProfile,
 	ExportedProfile,
+	ImageHash,
 	ImageHashSet,
 } from '#types';
 import { DEFAULT_PROFILES } from '#data/profiles';
@@ -151,6 +152,7 @@ function _convertExportedProfile(profile: ExportedProfile): RegionProfile {
 /**
  * Ensures all default profiles exist in storage; adds missing ones and replaces stored
  * copies older than the bundled version (a stored copy edited by the user is newer)
+ * Replaced copies keep their stored hash sets so learned hashes survive app updates
  * @returns The input array if nothing changed, otherwise a new array
  */
 function _ensureDefaultProfilesExist(
@@ -167,7 +169,14 @@ function _ensureDefaultProfilesExist(
 		} else if (
 			new Date(profiles[index].updatedAt).getTime() < defaultProfile.updatedAt.getTime()
 		) {
-			profiles = profiles.with(index, defaultProfile);
+			const storedHashSets = profiles[index].hashSets || [];
+			const hashSets = [
+				...storedHashSets,
+				...(defaultProfile.hashSets || []).filter(
+					(hs) => !storedHashSets.some((stored) => stored.id === hs.id)
+				),
+			];
+			profiles = profiles.with(index, { ...defaultProfile, hashSets });
 		}
 	}
 
@@ -200,11 +209,17 @@ function _saveProfiles(profiles: RegionProfile[], activeProfileId: string): Prof
  * @param id - Optional profile ID; if provided, updates existing profile
  * @param description - Optional profile description
  * @param alignment - Optional alignment groups; existing groups are kept if omitted
+ * @param hashSets - Optional image hash sets; existing sets are kept if omitted
  * @returns The profile ID
  */
 export function saveProfile(
 	regions: TextRegion[],
-	options?: { id?: string; description?: string; alignment?: AlignmentGroup[] },
+	options?: {
+		id?: string;
+		description?: string;
+		alignment?: AlignmentGroup[];
+		hashSets?: ImageHashSet[];
+	},
 	imgWidth?: number,
 	imgHeight?: number
 ): string {
@@ -224,7 +239,9 @@ export function saveProfile(
 			id: profileId,
 			description: profileDesc,
 			regions,
-			hashSets: existingIndex >= 0 ? stored.profiles[existingIndex].hashSets : [],
+			hashSets:
+				options?.hashSets
+				?? (existingIndex >= 0 ? stored.profiles[existingIndex].hashSets : []),
 			alignment:
 				options?.alignment
 				?? (existingIndex >= 0 ? stored.profiles[existingIndex].alignment : undefined),
@@ -278,6 +295,83 @@ export function getProfileHashSets(profileId: string): ImageHashSet[] | null {
 	const profile = _loadProfile(profileId);
 	if (!profile) return null;
 	return profile.hashSets || [];
+}
+
+/**
+ * Adds learned hashes to one of a profile's hash sets, creating the set if needed
+ * A hash already stored under another name is renamed, so corrections take priority
+ * @param profileId - The profile ID
+ * @param hashSetId - The hash set ID to add to
+ * @param hashes - Hashes to add
+ * @returns The number of hashes added or renamed
+ */
+export function addProfileHashes(
+	profileId: string,
+	hashSetId: string,
+	hashes: ImageHash[]
+): number {
+	const stored = _loadStorage();
+	const profile = stored.profiles.find((p) => p.id === profileId);
+	if (!profile) {
+		throw new Error(`Profile '${profileId}' not found`);
+	}
+
+	const now = new Date();
+	profile.hashSets = profile.hashSets || [];
+	let hashSet = profile.hashSets.find((hs) => hs.id === hashSetId);
+	if (!hashSet) {
+		hashSet = {
+			id: hashSetId,
+			description: 'User-learned hashes',
+			hashes: [],
+			createdAt: now,
+			updatedAt: now,
+		};
+		profile.hashSets.push(hashSet);
+	}
+
+	let changed = 0;
+	for (const { name, hash } of hashes) {
+		const existing = hashSet.hashes.find((h) => h.hash === hash);
+		if (!existing) {
+			hashSet.hashes.push({ name, hash });
+			changed++;
+		} else if (existing.name !== name) {
+			existing.name = name;
+			changed++;
+		}
+	}
+
+	if (changed > 0) {
+		hashSet.updatedAt = now;
+		_saveProfiles(stored.profiles, stored.activeProfileId);
+	}
+	return changed;
+}
+
+/**
+ * Counts the hashes stored across a profile's hash sets
+ * @param profileId - The profile ID
+ * @returns Total number of stored hashes, 0 if the profile doesn't exist
+ */
+export function countProfileHashes(profileId: string): number {
+	return (getProfileHashSets(profileId) || []).reduce(
+		(total, hs) => total + hs.hashes.length,
+		0
+	);
+}
+
+/**
+ * Removes all hash sets from a profile
+ * @param profileId - The profile ID
+ */
+export function clearProfileHashes(profileId: string): void {
+	const stored = _loadStorage();
+	const profile = stored.profiles.find((p) => p.id === profileId);
+	if (!profile) return;
+
+	profile.hashSets = [];
+	_saveProfiles(stored.profiles, stored.activeProfileId);
 }
 
 /**
@@ -448,6 +542,7 @@ export function importProfile(jsonData: string): number | null {
 			id: importedProfile.id,
 			description: importedProfile.description,
 			alignment: importedProfile.alignment,
+			hashSets: importedProfile.hashSets ?? [],
 		});
 
 		const storage = _loadStorage();

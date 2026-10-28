@@ -251,6 +251,29 @@ describe('AlertDialog', () => {
 		});
 	});
 
+	describe('Extra Content', () => {
+		it('should render extra content below the description', async () => {
+			render(() => <AlertDialog openDialog={captureOpenDialog} />);
+
+			openDialogFn?.({
+				title: 'With Content',
+				description: 'Test',
+				content: () => <p data-testid="extra-content">Extra</p>,
+			});
+
+			expect(await screen.findByTestId('extra-content')).toBeDefined();
+		});
+
+		it('should not render a content wrapper without content', async () => {
+			render(() => <AlertDialog openDialog={captureOpenDialog} />);
+
+			openDialogFn?.({ title: 'No Content', description: 'Test' });
+
+			await screen.findByText('No Content');
+			expect(document.querySelector('.dialog-content')).toBeNull();
+		});
+	});
+
 	describe('Optional Callbacks', () => {
 		it('should handle missing onConfirm callback gracefully', async () => {
 			render(() => <AlertDialog openDialog={captureOpenDialog} />);

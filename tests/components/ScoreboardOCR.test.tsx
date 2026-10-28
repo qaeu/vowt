@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@solidjs/testing-library';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, waitFor, screen, fireEvent } from '@solidjs/testing-library';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 
@@ -187,8 +187,10 @@ vi.mock('#utils/regionProfiles', () => ({
 		{ name: 'region_0', x: 0, y: 0, width: 100, height: 100 },
 		{ name: 'region_1', x: 100, y: 0, width: 100, height: 100 },
 	]),
+	getActiveProfileId: vi.fn().mockReturnValue('test_profile'),
 	getActiveProfileHashSets: vi.fn().mockReturnValue([]),
 	getActiveProfileAlignment: vi.fn().mockReturnValue([]),
+	addProfileHashes: vi.fn().mockReturnValue(1),
 }));
 
 vi.mock('#utils/regionAlignment', () => ({
@@ -198,7 +200,10 @@ vi.mock('#utils/regionAlignment', () => ({
 }));
 
 vi.mock('#utils/imageRecognition', () => ({
-	recogniseImage: vi.fn().mockReturnValue({ name: 'ana', confidence: 85 }),
+	recogniseImage: vi
+		.fn()
+		.mockReturnValue({ name: 'ana', confidence: 85, hash: '6b2b17451147b400' }),
+	mergeHashSets: vi.fn((hashSets) => hashSets),
 }));
 
 vi.mock('#data/hashSets', () => ({
@@ -1081,6 +1086,146 @@ describe('ScoreboardOCR', () => {
 				},
 				{ timeout: 1500 }
 			);
+		});
+	});
+
+	describe('hero portrait learning', () => {
+		const heroRegion = {
+			name: 'blue_player1_hero',
+			x: 0,
+			y: 0,
+			width: 64,
+			height: 64,
+			imgHashSet: 'hero-portraits',
+		};
+		const recognisedHash = '6b2b17451147b400';
+
+		const makeStats = (hero: string) => ({
+			players: [
+				{
+					name: 'VEQ',
+					hero,
+					team: 'blue',
+					e: 10,
+					a: 4,
+					d: 3,
+					dmg: 15542,
+					h: 12345,
+					mit: 500,
+				},
+			],
+			matchInfo: {
+				result: 'VICTORY',
+				final_score: '3VS2',
+				date: '09/15/25 - 02:49',
+				game_mode: 'ESCORT',
+			},
+		});
+
+		// Lets a dialog that would open after saving render
+		const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+		const renderAndSave = async () => {
+			render(() => (
+				<ScoreboardOCR
+					onClose={() => {}}
+					onOpenRegionManager={() => {}}
+					uploadedImage="data:image/png;base64,testdata"
+				/>
+			));
+			const saveButton = await screen.findByTestId('save-button', undefined, {
+				timeout: 1500,
+			});
+			fireEvent.click(saveButton);
+		};
+
+		beforeEach(async () => {
+			const { getActiveProfile, getActiveProfileHashSets, addProfileHashes } =
+				await import('#utils/regionProfiles');
+			const { recogniseImage } = await import('#utils/imageRecognition');
+			vi.mocked(getActiveProfile).mockReturnValue([heroRegion]);
+			vi.mocked(getActiveProfileHashSets).mockReturnValue([]);
+			vi.mocked(addProfileHashes).mockClear();
+			vi.mocked(recogniseImage).mockReturnValue({
+				name: 'ana',
+				confidence: 85,
+				hash: recognisedHash,
+			});
+		});
+
+		afterEach(async () => {
+			const { extractGameStats } = await import('#utils/postprocess');
+			vi.mocked(extractGameStats).mockReturnValue(
+				makeStats('') as unknown as ReturnType<typeof extractGameStats>
+			);
+		});
+
+		const mockStats = async (hero: string) => {
+			const { extractGameStats } = await import('#utils/postprocess');
+			vi.mocked(extractGameStats).mockReturnValue(
+				makeStats(hero) as unknown as ReturnType<typeof extractGameStats>
+			);
+		};
+
+		it('should prompt to remember a corrected hero portrait on save', async () => {
+			await mockStats('Kiriko');
+			await renderAndSave();
+
+			expect(await screen.findByText('Remember Hero Portraits?')).toBeDefined();
+			expect(screen.getByText(/Save 1 corrected hero portrait so/)).toBeDefined();
+			expect(screen.getByAltText('Kiriko')).toBeDefined();
+		});
+
+		it('should save the portrait hash to the active profile on confirm', async () => {
+			const { addProfileHashes } = await import('#utils/regionProfiles');
+			await mockStats('Kiriko');
+			await renderAndSave();
+
+			fireEvent.click(await screen.findByText('Remember'));
+
+			expect(addProfileHashes).toHaveBeenCalledWith('test_profile', 'hero-portraits', [
+				{ name: 'kiriko', hash: recognisedHash },
+			]);
+		});
+
+		it('should not save anything when the prompt is dismissed', async () => {
+			const { addProfileHashes } = await import('#utils/regionProfiles');
+			await mockStats('Kiriko');
+			await renderAndSave();
+
+			await screen.findByText('Remember Hero Portraits?');
+			fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+
+			await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+			expect(addProfileHashes).not.toHaveBeenCalled();
+		});
+
+		it('should not prompt when the hero matches the recognised portrait', async () => {
+			await mockStats('Ana');
+			await renderAndSave();
+			await settle();
+
+			expect(screen.queryByRole('dialog')).toBeNull();
+		});
+
+		it('should not prompt when the hero is left empty', async () => {
+			await mockStats('');
+			await renderAndSave();
+			await settle();
+
+			expect(screen.queryByRole('dialog')).toBeNull();
+		});
+
+		it('should only prompt once for the same correction', async () => {
+			await mockStats('Kiriko');
+			await renderAndSave();
+			fireEvent.click(await screen.findByText('Remember'));
+			await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+			fireEvent.click(screen.getByTestId('save-button'));
+			await settle();
+
+			expect(screen.queryByRole('dialog')).toBeNull();
 		});
 	});
 });

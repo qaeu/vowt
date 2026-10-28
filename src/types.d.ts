@@ -1,4 +1,4 @@
-import type { Component } from 'solid-js';
+import type { Component, JSX } from 'solid-js';
 
 /**
  * Centralized type definitions for VOWT
@@ -40,6 +40,8 @@ export interface ScreenAction {
 export interface AlertDialogOptions {
 	title: string;
 	description: string;
+	/** Extra content rendered below the description */
+	content?: () => JSX.Element;
 	actionText?: string;
 	onConfirm?: () => void;
 }

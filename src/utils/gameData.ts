@@ -36,6 +36,16 @@ function _levenshtein(a: string, b: string): number {
 	return prev[b.length];
 }
 
+/** Converts a name to an OverFast-style key, e.g. "Junker Queen" to "junker-queen" */
+function _slugify(s: string): string {
+	return s
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-|-$/g, '');
+}
+
 /** Sorted, de-duplicated list of non-empty names */
 function _uniqueSorted(names: string[]): string[] {
 	return [...new Set(names.filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -66,6 +76,24 @@ export function getHeroDisplayName(raw: string, heroes: OverFastHero[]): string 
 		(h) => _normaliseText(h.name) === normalised || _normaliseText(h.key) === normalised
 	);
 	return byName ? byName.name : raw;
+}
+
+/**
+ * Resolves a hero display name (or raw identifier) to its hash-set name
+ * Hash-set names are OverFast keys, except where HERO_KEY_ALIASES gives a shorter name
+ * @param raw - Hero display name, OverFast key or hash-set name
+ * @param heroes - OverFast heroes
+ * @returns Hash-set hero name, or the input as an OverFast-style key if no hero matches
+ */
+export function getHeroKey(raw: string, heroes: OverFastHero[]): string {
+	const displayName = getHeroDisplayName(raw, heroes);
+	const hero = heroes.find((h) => h.name === displayName);
+	if (!hero) return _slugify(raw);
+
+	const alias = Object.keys(HERO_KEY_ALIASES).find(
+		(name) => HERO_KEY_ALIASES[name] === hero.key
+	);
+	return alias ?? hero.key;
 }
 
 /**

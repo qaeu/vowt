@@ -12,6 +12,27 @@ const DEFAULT_THRESHOLD = 0.4;
 interface RecognitionResult {
 	name: string;
 	confidence: number;
+	/** dHash of the compared image, for saving as a new known hash */
+	hash: string;
+}
+
+/**
+ * Combines hash sets that share an ID so that later sets extend earlier ones
+ * Hashes keep their input order, so earlier sets win ties during recognition
+ * @param hashSets - Hash sets to combine, highest priority first
+ * @returns One hash set per unique ID
+ */
+export function mergeHashSets(hashSets: ImageHashSet[]): ImageHashSet[] {
+	const merged = new Map<string, ImageHashSet>();
+	for (const hashSet of hashSets) {
+		const existing = merged.get(hashSet.id);
+		if (existing) {
+			existing.hashes.push(...hashSet.hashes);
+		} else {
+			merged.set(hashSet.id, { ...hashSet, hashes: [...hashSet.hashes] });
+		}
+	}
+	return [...merged.values()];
 }
 
 /**
@@ -19,7 +40,8 @@ interface RecognitionResult {
  * @param imageData - Image data to compare
  * @param hashSet - Set of hashes to compare against
  * @param threshold - Minimum similarity score for a match (0-1, default: 0.85)
- * @returns Object with matched image ID (or empty string if no match) and confidence (0-100)
+ * @returns Object with matched image ID (or empty string if no match), confidence (0-100)
+ * and the computed hash
  */
 export function recogniseImage(
 	imageData: ImageData,
@@ -48,6 +70,7 @@ export function recogniseImage(
 	return {
 		name: confidence >= threshold * 100 ? bestMatch : '',
 		confidence,
+		hash: regionHash,
 	};
 }
 
