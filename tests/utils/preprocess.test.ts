@@ -464,8 +464,8 @@ describe('preprocess', () => {
 
 	describe('getIsolatedTextDataURLs', () => {
 		const isolatedRegions: TextRegion[] = [
-			{ ...testRegions[0], name: 'name_a', isolateText: true },
-			{ ...testRegions[0], name: 'name_b', isolateText: true },
+			{ ...testRegions[0], name: 'name_a', isolateText: 'name' },
+			{ ...testRegions[0], name: 'name_b', isolateText: 'name' },
 			{ ...testRegions[0], name: 'plain' },
 		];
 		const isolatedMap = new Map<string, ImageData>([
@@ -479,6 +479,22 @@ describe('preprocess', () => {
 
 			expect([...result.keys()]).toEqual(['name_a', 'name_b']);
 			expect(result.get('name_a')).toBe('data:image/png;base64,mockImageData');
+		});
+
+		it("should pass each region's clean-up mode", async () => {
+			const { isolateText } = await import('#utils/textCleanup');
+			vi.mocked(isolateText).mockClear();
+			const regions: TextRegion[] = [
+				{ ...testRegions[0], name: 'name_a', isolateText: 'name' },
+				{ ...testRegions[0], name: 'plain', isolateText: 'number' },
+			];
+
+			getIsolatedTextDataURLs(isolatedMap, regions);
+
+			expect(vi.mocked(isolateText).mock.calls.map((call) => call[2])).toEqual([
+				'name',
+				'number',
+			]);
 		});
 
 		it('should skip flagged regions with no image data', () => {
@@ -582,7 +598,7 @@ describe('preprocess', () => {
 			});
 
 			await drawRegionsOnImage('preprocessed.png', [
-				{ ...testRegions[1], isolateText: true },
+				{ ...testRegions[1], isolateText: 'name' },
 				testRegions[1],
 				testRegions[0],
 			]);

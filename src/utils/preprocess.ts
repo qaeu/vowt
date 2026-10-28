@@ -224,7 +224,7 @@ export const getRegionDataURLs = (
 
 /**
  * Cleans up flagged regions on their own and converts them to data URLs
- * Regions with `isolateText` are enlarged, binarised and cropped to the text
+ * Regions with `isolateText` are enlarged, binarised and cropped according to its mode
  * Reuses a single canvas for efficiency
  * @param preprocessedRegionMap - Map of region name to preprocessed (unskewed) ImageData
  * @param regions - Array of region definitions
@@ -246,7 +246,7 @@ export const getIsolatedTextDataURLs = (
 		const imageData = preprocessedRegionMap.get(region.name);
 		if (!imageData) continue;
 
-		const gray = isolateText(imageData);
+		const gray = isolateText(imageData, undefined, region.isolateText);
 
 		// Resize canvas only when needed
 		if (canvas.width !== gray.width || canvas.height !== gray.height) {

@@ -6,6 +6,7 @@ import {
 	binarise,
 	findComponents,
 	cropToText,
+	cropToBounds,
 	pad,
 	isolateText,
 } from '#utils/textCleanup';
@@ -198,6 +199,41 @@ describe('textCleanup', () => {
 		});
 	});
 
+	describe('cropToBounds', () => {
+		it('keeps digits touching the top and bottom edges', () => {
+			const image = makeImage(40, 12);
+			for (const x of [4, 13, 22]) fillRect(image, x, 0, 6, 12, TEXT);
+			const result = cropToBounds(image);
+			expect(result.width).toBe(24);
+			expect(result.height).toBe(12);
+			expect(countValue(result, TEXT)).toBe(3 * 72);
+		});
+
+		it('keeps shapes separated by a wide gap, such as a comma', () => {
+			const image = makeImage(80, 20);
+			fillRect(image, 2, 4, 6, 10, TEXT);
+			fillRect(image, 30, 12, 4, 6, TEXT); // comma
+			fillRect(image, 60, 4, 6, 10, TEXT);
+			const result = cropToBounds(image);
+			expect(result.width).toBe(64);
+			expect(countValue(result, TEXT)).toBe(60 + 24 + 60);
+		});
+
+		it('drops tiny specks', () => {
+			const image = makeImage(40, 20);
+			fillRect(image, 10, 4, 6, 10, TEXT);
+			fillRect(image, 35, 1, 2, 2, TEXT);
+			const result = cropToBounds(image);
+			expect(result.width).toBe(6);
+			expect(countValue(result, TEXT)).toBe(60);
+		});
+
+		it('returns the input unchanged when there is no text', () => {
+			const blank = makeImage(20, 10);
+			expect(cropToBounds(blank)).toBe(blank);
+		});
+	});
+
 	describe('pad', () => {
 		it('adds the margin on every side', () => {
 			const result = pad(makeImage(4, 2, TEXT), 3);
@@ -268,6 +304,20 @@ describe('textCleanup', () => {
 					}
 				}
 			}
+		});
+
+		it('keeps digits touching the edges in number mode', () => {
+			const { rect, ...imageData } = makeRgba(40, 12, 20);
+			for (const x of [4, 13, 22]) rect(x, 0, 6, 12, 230);
+
+			const named = isolateText(imageData, 2, 'name');
+			const numbered = isolateText(imageData, 2, 'number');
+
+			// Name mode drops edge-touching shapes, leaving nothing to crop to
+			expect(named.width).toBe(40 * 2 + 20);
+			expect(numbered.width).toBe(24 * 2 + 20);
+			expect(numbered.height).toBe(12 * 2 + 20);
+			expect(countValue(numbered, TEXT)).toBe(3 * 72 * 4);
 		});
 
 		it('also handles dark text on a light background', () => {

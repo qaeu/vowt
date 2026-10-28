@@ -3,7 +3,7 @@
  * binarising and cropping away icons, banner edges and noise
  */
 
-import type { GrayImage } from '#types';
+import type { GrayImage, TextCleanupMode } from '#types';
 import { toGrayscale } from '#utils/regionAlignment';
 
 /** Bounding box and pixel count of a connected group of text pixels */
@@ -26,6 +26,35 @@ const PADDING = 10;
 
 const TEXT = 0;
 const BACKGROUND = 255;
+
+/**
+ * Crops to the union of the given components, copying only their pixels so stray
+ * pixels inside the crop are dropped
+ * @param binary - Binary image from binarise()
+ * @param components - Non-empty list of components to keep
+ * @returns Cropped image
+ */
+function _cropToComponents(binary: GrayImage, components: Component[]): GrayImage {
+	const left = Math.min(...components.map(({ x }) => x));
+	const top = Math.min(...components.map(({ y }) => y));
+	const right = Math.max(...components.map(({ x, width }) => x + width));
+	const bottom = Math.max(...components.map(({ y, height }) => y + height));
+
+	const width = right - left;
+	const height = bottom - top;
+	const data = new Uint8ClampedArray(width * height).fill(BACKGROUND);
+	for (const component of components) {
+		for (let y = component.y; y < component.y + component.height; y++) {
+			for (let x = component.x; x < component.x + component.width; x++) {
+				if (binary.data[y * binary.width + x] === TEXT) {
+					data[(y - top) * width + (x - left)] = TEXT;
+				}
+			}
+		}
+	}
+
+	return { width, height, data };
+}
 
 /**
  * Enlarges a grayscale image with bilinear interpolation
@@ -225,26 +254,20 @@ export function cropToText(binary: GrayImage): GrayImage {
 		:	best
 	);
 
-	const left = Math.min(...text.map(({ x }) => x));
-	const top = Math.min(...text.map(({ y }) => y));
-	const right = Math.max(...text.map(({ x, width }) => x + width));
-	const bottom = Math.max(...text.map(({ y, height }) => y + height));
+	return _cropToComponents(binary, text);
+}
 
-	// Copy only the kept glyphs' bounding boxes so stray pixels inside the crop are dropped
-	const width = right - left;
-	const height = bottom - top;
-	const data = new Uint8ClampedArray(width * height).fill(BACKGROUND);
-	for (const glyph of text) {
-		for (let y = glyph.y; y < glyph.y + glyph.height; y++) {
-			for (let x = glyph.x; x < glyph.x + glyph.width; x++) {
-				if (binary.data[y * binary.width + x] === TEXT) {
-					data[(y - top) * width + (x - left)] = TEXT;
-				}
-			}
-		}
-	}
+/**
+ * Crops a binary image to all of its non-noise shapes; unlike cropToText, keeps shapes
+ * touching the edges and does not drop separated ones (e.g. commas in numbers)
+ * @param binary - Binary image from binarise()
+ * @returns Cropped image, or the input if no text is found
+ */
+export function cropToBounds(binary: GrayImage): GrayImage {
+	const glyphs = findComponents(binary).filter(({ area }) => area >= MIN_COMPONENT_AREA);
+	if (glyphs.length === 0) return binary;
 
-	return { width, height, data };
+	return _cropToComponents(binary, glyphs);
 }
 
 /**
@@ -272,13 +295,17 @@ export function pad(image: GrayImage, margin: number): GrayImage {
  * Isolates a line of text for OCR: grayscale, enlarge, binarise, crop and pad
  * @param imageData - Region pixels
  * @param scale - Enlargement factor
+ * @param mode - 'name' crops to the main run of glyphs (dropping icons and edge
+ * shapes); 'number' only drops specks so digits near the edges and commas are kept
  * @returns Black-on-white image of the text
  */
 export function isolateText(
 	imageData: Pick<ImageData, 'width' | 'height' | 'data'>,
-	scale: number = UPSCALE_FACTOR
+	scale: number = UPSCALE_FACTOR,
+	mode: TextCleanupMode = 'name'
 ): GrayImage {
 	const enlarged = upscale(toGrayscale(imageData), scale);
 	const binary = binarise(enlarged, otsuThreshold(enlarged));
-	return pad(cropToText(binary), PADDING);
+	const cropped = mode === 'number' ? cropToBounds(binary) : cropToText(binary);
+	return pad(cropped, PADDING);
 }

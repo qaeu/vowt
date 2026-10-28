@@ -1285,7 +1285,7 @@ describe('ScoreboardOCR', () => {
 
 			const { getActiveProfile } = await import('#utils/regionProfiles');
 			vi.mocked(getActiveProfile).mockReturnValue([
-				{ name: 'p1_name', x: 0, y: 0, width: 50, height: 30, isolateText: true },
+				{ name: 'p1_name', x: 0, y: 0, width: 50, height: 30, isolateText: 'name' },
 				{ name: 'p1_dmg', x: 60, y: 0, width: 50, height: 30 },
 			]);
 

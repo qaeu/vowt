@@ -93,6 +93,12 @@ export interface ExportedGameRecords extends ExportFileBase {
 
 // OCR Region Profiles
 
+/**
+ * Per-region text clean-up: 'name' crops to the main run of glyphs, dropping icons and
+ * shapes touching the edges; 'number' keeps every non-noise shape
+ */
+export type TextCleanupMode = 'name' | 'number';
+
 export interface TextRegion {
 	name: string;
 	x: number;
@@ -102,7 +108,7 @@ export interface TextRegion {
 	charSet?: string;
 	isItalic?: boolean;
 	/** Clean up the region on its own (enlarge, binarise, crop to text) instead of the global filter */
-	isolateText?: boolean;
+	isolateText?: TextCleanupMode;
 	imgHashSet?: string;
 	/** Alignment group that moves this region; see AlignmentGroup */
 	group?: string;
