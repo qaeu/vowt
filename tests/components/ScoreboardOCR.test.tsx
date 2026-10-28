@@ -71,29 +71,54 @@ vi.mock('tesseract.js', () => {
 });
 
 // Mock EditableGameData component
-vi.mock('#c/ui/EditableGameData', () => ({
-	default: (props: {
-		initialPlayers?: Array<{ name: string }>;
-		initialMatchInfo: { result: string };
-		onSave: (players: Array<{ name: string }>, matchInfo: { result: string }) => void;
-	}) => (
-		<div data-testid="editable-game-data">
-			<div data-testid="players-data">
-				{props.initialPlayers
-					&& props.initialPlayers.map((p: { name: string }) => (
-						<div data-testid={`player-${p.name}`}>{p.name}</div>
-					))}
-			</div>
-			<div data-testid="match-info-data">{props.initialMatchInfo.result}</div>
-			<button
-				onClick={() => props.onSave(props.initialPlayers || [], props.initialMatchInfo)}
-				data-testid="save-button"
-			>
-				Save
-			</button>
-		</div>
-	),
-}));
+vi.mock('#c/ui/EditableGameData', async () => {
+	const { createSignal } = await import('solid-js');
+	return {
+		default: (props: {
+			initialPlayers?: Array<{ name: string }>;
+			initialMatchInfo: { result: string };
+			onDirtyChange?: (dirty: boolean) => void;
+			registerActions?: (actions: { save: () => void; reset: () => void }) => void;
+			onSave: (players: Array<{ name: string }>, matchInfo: { result: string }) => void;
+		}) => {
+			const [resets, setResets] = createSignal(0);
+			props.onDirtyChange?.(false);
+			props.registerActions?.({
+				save: () => {
+					props.onSave(props.initialPlayers || [], props.initialMatchInfo);
+					props.onDirtyChange?.(false);
+				},
+				reset: () => {
+					setResets(resets() + 1);
+					props.onDirtyChange?.(false);
+				},
+			});
+			return (
+				<div data-testid="editable-game-data">
+					<button data-testid="make-dirty" onClick={() => props.onDirtyChange?.(true)}>
+						Edit
+					</button>
+					<span data-testid="reset-count">{resets()}</span>
+					<div data-testid="players-data">
+						{props.initialPlayers
+							&& props.initialPlayers.map((p: { name: string }) => (
+								<div data-testid={`player-${p.name}`}>{p.name}</div>
+							))}
+					</div>
+					<div data-testid="match-info-data">{props.initialMatchInfo.result}</div>
+					<button
+						onClick={() =>
+							props.onSave(props.initialPlayers || [], props.initialMatchInfo)
+						}
+						data-testid="save-button"
+					>
+						Save
+					</button>
+				</div>
+			);
+		},
+	};
+});
 
 // Mock the image preprocessing module
 vi.mock('#utils/preprocess', () => ({
@@ -267,11 +292,10 @@ describe('ScoreboardOCR', () => {
 	describe('when an upload batch is provided', () => {
 		it('should render original image section', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
-			const { getByText, getByAltText } = render(() => (
+			const { getByAltText } = render(() => (
 				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
 			));
 
-			expect(getByText('Uploaded Image')).not.toBeNull();
 			expect(getByAltText('Uploaded Image')).not.toBeNull();
 		});
 
@@ -282,19 +306,20 @@ describe('ScoreboardOCR', () => {
 			));
 
 			// Check for processing text (may be brief)
-			const processingText = queryByText(/Processing image/);
+			const processingText = queryByText(/Reading screenshot/);
 			expect(processingText).not.toBeNull();
 		});
 
 		it('should display preprocessed image after processing uploaded image', async () => {
 			const testImageData = 'data:image/png;base64,testdata';
-			const { getByText } = render(() => (
-				<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
-			));
+			render(() => <ScoreboardOCR uploadBatch={{ images: [testImageData] }} />);
 
 			await waitFor(
 				() => {
-					expect(getByText('Pre-processed Image')).not.toBeNull();
+					expect(screen.getByRole('button', { name: 'Processed' })).toHaveProperty(
+						'disabled',
+						false
+					);
 				},
 				{ timeout: 1500 }
 			);
@@ -417,146 +442,150 @@ describe('ScoreboardOCR', () => {
 			);
 		});
 
-		describe('click-to-zoom functionality', () => {
-			it('should add expanded class to uploaded image container when clicked', async () => {
-				const testImageData = 'data:image/png;base64,testdata';
-				const { container, getByText } = render(() => (
-					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
-				));
+		const renderSingle = () =>
+			render(() => (
+				<ScoreboardOCR uploadBatch={{ images: ['data:image/png;base64,testdata'] }} />
+			));
 
-				await waitFor(
-					() => {
-						expect(getByText('Pre-processed Image')).not.toBeNull();
-					},
-					{ timeout: 1500 }
-				);
+		describe('image viewer', () => {
+			const processedButton = () =>
+				screen.getByRole('button', { name: 'Processed' }) as HTMLButtonElement;
+			const originalButton = () =>
+				screen.getByRole('button', { name: 'Original' }) as HTMLButtonElement;
 
-				const uploadedContainer = container.querySelector(
-					'.image-container:not(.expanded)'
-				);
-				expect(uploadedContainer).not.toBeNull();
-				uploadedContainer!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+			it('should show the original image first', async () => {
+				renderSingle();
+				expect(screen.getByAltText('Uploaded Image')).not.toBeNull();
+				expect(originalButton().getAttribute('aria-pressed')).toBe('true');
+				expect(processedButton().getAttribute('aria-pressed')).toBe('false');
+			});
 
-				await waitFor(() => {
-					const expandedContainer = container.querySelector('.image-container.expanded');
-					expect(expandedContainer).not.toBeNull();
+			it('should disable the processed view until it is ready', async () => {
+				renderSingle();
+				expect(processedButton().disabled).toBe(true);
+				await waitFor(() => expect(processedButton().disabled).toBe(false), {
+					timeout: 1500,
 				});
 			});
 
-			it('should remove expanded class when clicking expanded image again', async () => {
-				const testImageData = 'data:image/png;base64,testdata';
-				const { container, getByText } = render(() => (
-					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
-				));
-
-				await waitFor(
-					() => {
-						expect(getByText('Pre-processed Image')).not.toBeNull();
-					},
-					{ timeout: 1500 }
-				);
-
-				// Click to expand
-				const imageContainers = container.querySelectorAll('.image-container');
-				const uploadedContainer = imageContainers[0];
-				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-				await waitFor(() => {
-					expect(uploadedContainer.classList.contains('expanded')).toBe(true);
+			it('should switch between the original and processed images', async () => {
+				renderSingle();
+				await waitFor(() => expect(processedButton().disabled).toBe(false), {
+					timeout: 1500,
 				});
 
-				// Click again to collapse
-				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+				fireEvent.click(processedButton());
+				expect(processedButton().getAttribute('aria-pressed')).toBe('true');
+				expect(originalButton().getAttribute('aria-pressed')).toBe('false');
+				expect(screen.getByAltText(/Pre-processed scoreboard/)).not.toBeNull();
+				expect(screen.queryByAltText('Uploaded Image')).toBeNull();
+				expect(screen.getByRole('list', { name: 'Region colours' })).not.toBeNull();
 
-				await waitFor(() => {
-					expect(uploadedContainer.classList.contains('expanded')).toBe(false);
-				});
+				fireEvent.click(originalButton());
+				expect(screen.getByAltText('Uploaded Image')).not.toBeNull();
+				expect(screen.queryByRole('list', { name: 'Region colours' })).toBeNull();
 			});
 
-			it('should hide other image container when one is expanded', async () => {
-				const testImageData = 'data:image/png;base64,testdata';
-				const { container, getByText } = render(() => (
-					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
-				));
+			it('should toggle the full size view', async () => {
+				const { container } = renderSingle();
+				const button = screen.getByRole('button', { name: 'View full size' });
+				expect(container.querySelector('.image-viewer--full')).toBeNull();
 
-				await waitFor(
-					() => {
-						expect(getByText('Pre-processed Image')).not.toBeNull();
-					},
-					{ timeout: 1500 }
-				);
+				fireEvent.click(button);
+				expect(container.querySelector('.image-viewer--full')).not.toBeNull();
+				expect(button.getAttribute('aria-pressed')).toBe('true');
 
-				// Click uploaded image to expand it
-				const imageContainers = container.querySelectorAll('.image-container');
-				const uploadedContainer = imageContainers[0];
-				const preprocessedContainer = imageContainers[1];
+				fireEvent.click(button);
+				expect(container.querySelector('.image-viewer--full')).toBeNull();
+			});
+		});
 
-				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		describe('developer output', () => {
+			it('should be collapsed by default', async () => {
+				const { container } = renderSingle();
+				await screen.findByText('Raw OCR Text Output', undefined, { timeout: 1500 });
 
-				await waitFor(() => {
-					expect(uploadedContainer.classList.contains('expanded')).toBe(true);
-					expect(preprocessedContainer.classList.contains('hidden')).toBe(true);
-				});
+				const details = container.querySelector('details.developer-output');
+				expect(details).not.toBeNull();
+				expect(details?.hasAttribute('open')).toBe(false);
+				expect(details?.querySelector('summary')?.textContent).toBe('Developer output');
 			});
 
-			it('should show both images when collapsing from expanded state', async () => {
-				const testImageData = 'data:image/png;base64,testdata';
-				const { container, getByText } = render(() => (
-					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
-				));
+			it('should hold the JSON and raw text boxes', async () => {
+				const { container } = renderSingle();
+				await screen.findByText('Raw OCR Text Output', undefined, { timeout: 1500 });
 
-				await waitFor(
-					() => {
-						expect(getByText('Pre-processed Image')).not.toBeNull();
-					},
-					{ timeout: 1500 }
-				);
+				const details = container.querySelector('details.developer-output');
+				expect(details?.textContent).toContain('Extracted Game Stats (JSON)');
+				expect(details?.textContent).toContain('Raw OCR Text Output');
+			});
+		});
 
-				const imageContainers = container.querySelectorAll('.image-container');
-				const uploadedContainer = imageContainers[0];
-				const preprocessedContainer = imageContainers[1];
+		describe('review footer', () => {
+			const waitForFooter = () =>
+				screen.findByText('Saved to records', undefined, { timeout: 1500 });
 
-				// Click to expand
-				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+			it('should show a saved status with disabled edit buttons when clean', async () => {
+				renderSingle();
+				await waitForFooter();
 
-				await waitFor(() => {
-					expect(uploadedContainer.classList.contains('expanded')).toBe(true);
-				});
-
-				// Click to collapse
-				uploadedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-				await waitFor(() => {
-					expect(uploadedContainer.classList.contains('expanded')).toBe(false);
-					expect(uploadedContainer.classList.contains('hidden')).toBe(false);
-					expect(preprocessedContainer.classList.contains('expanded')).toBe(false);
-					expect(preprocessedContainer.classList.contains('hidden')).toBe(false);
-				});
+				expect(
+					(screen.getByRole('button', { name: /Save Changes/ }) as HTMLButtonElement)
+						.disabled
+				).toBe(true);
+				expect(
+					(screen.getByRole('button', { name: /Reset Changes/ }) as HTMLButtonElement)
+						.disabled
+				).toBe(true);
 			});
 
-			it('should expand preprocessed image when clicked', async () => {
-				const testImageData = 'data:image/png;base64,testdata';
-				const { container, getByText } = render(() => (
-					<ScoreboardOCR uploadBatch={{ images: [testImageData] }} />
-				));
+			it('should show unsaved changes when the editor becomes dirty', async () => {
+				renderSingle();
+				await waitForFooter();
 
-				await waitFor(
-					() => {
-						expect(getByText('Pre-processed Image')).not.toBeNull();
-					},
-					{ timeout: 1500 }
+				fireEvent.click(screen.getByTestId('make-dirty'));
+
+				expect(screen.getByText('Unsaved changes')).not.toBeNull();
+				expect(
+					(screen.getByRole('button', { name: /Save Changes/ }) as HTMLButtonElement)
+						.disabled
+				).toBe(false);
+			});
+
+			it('should save through the registered editor actions', async () => {
+				const { saveGameRecord, updateGameRecord } = await import('#utils/storage');
+				renderSingle();
+				await waitForFooter();
+				const recordId = vi.mocked(saveGameRecord).mock.results.at(-1)?.value;
+
+				fireEvent.click(screen.getByTestId('make-dirty'));
+				fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
+
+				expect(updateGameRecord).toHaveBeenCalledWith(
+					recordId,
+					expect.anything(),
+					expect.anything()
 				);
+			});
 
-				const imageContainers = container.querySelectorAll('.image-container');
-				const uploadedContainer = imageContainers[0];
-				const preprocessedContainer = imageContainers[1];
+			it('should reset through the registered editor actions', async () => {
+				renderSingle();
+				await waitForFooter();
 
-				preprocessedContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+				fireEvent.click(screen.getByTestId('make-dirty'));
+				fireEvent.click(screen.getByRole('button', { name: /Reset Changes/ }));
 
-				await waitFor(() => {
-					expect(preprocessedContainer.classList.contains('expanded')).toBe(true);
-					expect(uploadedContainer.classList.contains('hidden')).toBe(true);
-				});
+				expect(screen.getByTestId('reset-count').textContent).toBe('1');
+				expect(screen.getByText('Saved to records')).not.toBeNull();
+			});
+
+			it('should disable Next Screenshot on the last screenshot', async () => {
+				renderSingle();
+				await waitForFooter();
+				expect(
+					(screen.getByRole('button', { name: /Next Screenshot/ }) as HTMLButtonElement)
+						.disabled
+				).toBe(true);
 			});
 		});
 	});
@@ -654,7 +683,7 @@ describe('ScoreboardOCR', () => {
 			await waitFor(
 				() => {
 					// Processing should complete (no longer showing processing indicator)
-					const processingText = queryByText(/Processing image/);
+					const processingText = queryByText(/Reading screenshot/);
 					expect(processingText).toBeNull();
 				},
 				{ timeout: 1500 }
@@ -1231,10 +1260,34 @@ describe('ScoreboardOCR', () => {
 		const renderBatch = (batch: { images: string[] } | null = { images }) =>
 			render(() => <ScoreboardOCR uploadBatch={batch} />);
 
-		it('should not show the queue for a single screenshot', async () => {
+		it('should show the queue for a single screenshot', async () => {
 			renderBatch({ images: [images[0]] });
 			await screen.findByTestId('save-button', undefined, { timeout: 1500 });
-			expect(screen.queryByRole('list', { name: 'Uploaded screenshots' })).toBeNull();
+			expect(screen.getByRole('list', { name: 'Uploaded screenshots' })).not.toBeNull();
+			expect(queueItems()).toHaveLength(1);
+		});
+
+		describe('status labels', () => {
+			const statusLabel = (item: HTMLElement) =>
+				item.querySelector('.queue-item__status')?.textContent;
+
+			it('should label queued, reading and saved screenshots', async () => {
+				renderBatch();
+				await waitFor(() =>
+					expect(queueItems().map(statusLabel)).toEqual(['Reading\u2026', 'Waiting'])
+				);
+				await waitForStatuses(['done', 'done']);
+				expect(queueItems().map(statusLabel)).toEqual(['Saved', 'Saved']);
+			});
+
+			it('should label a failed screenshot', async () => {
+				const { loadImageDimensions } = await import('#utils/preprocess');
+				vi.spyOn(console, 'error').mockImplementation(() => {});
+				vi.mocked(loadImageDimensions).mockRejectedValueOnce(new Error('Bad image'));
+				renderBatch();
+				await waitForStatuses(['error', 'done']);
+				expect(statusLabel(queueItems()[0])).toBe('Failed');
+			});
 		});
 
 		it('should process every screenshot and save a record for each', async () => {
@@ -1298,7 +1351,7 @@ describe('ScoreboardOCR', () => {
 
 		it('should show progress for the screenshot being processed', async () => {
 			renderBatch();
-			expect(await screen.findByText(/Processing image 1 of 2/)).not.toBeNull();
+			expect(await screen.findByText(/Reading screenshot 1 of 2/)).not.toBeNull();
 			await waitForStatuses(['done', 'done']);
 		});
 
@@ -1358,7 +1411,10 @@ describe('ScoreboardOCR', () => {
 				await screen.findByText(/already saved/, undefined, { timeout: 1500 });
 				expect(loadImageDimensions).not.toHaveBeenCalled();
 				expect(extractGameStats).not.toHaveBeenCalled();
-				expect(screen.queryByText('Pre-processed Image')).toBeNull();
+				expect(screen.getByRole('button', { name: 'Processed' })).toHaveProperty(
+					'disabled',
+					true
+				);
 			});
 
 			it('should show the existing record for a duplicate screenshot', async () => {

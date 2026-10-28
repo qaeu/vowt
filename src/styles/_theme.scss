@@ -67,6 +67,13 @@ $errors: _colourset('ruby');
 $white: var(--white-a12);
 $black: var(--black-a12);
 
+// Region annotation colours drawn onto canvases. These are fixed image colours, not
+// theme colours, and must match the REGION_COLOUR_* constants in utils/preprocess.ts
+$region-colour-text: #ff0000;
+$region-colour-italic: #4caf50;
+$region-colour-image: #3131da;
+$region-colour-isolated: #d63cf5;
+
 // Animation
 $toggle-animation-dur: 240ms;
 

@@ -10,6 +10,7 @@ import {
 	Show,
 } from 'solid-js';
 import Tesseract from 'tesseract.js';
+import { Maximize2, Minimize2, RotateCcw, Save, SkipForward } from 'lucide-solid';
 
 import type {
 	PlayerStats,
@@ -118,11 +119,11 @@ interface ScreenshotJob {
 const WORKER_COUNT = 2;
 
 const JOB_STATUS_LABELS: Record<ScreenshotJob['status'], string> = {
-	queued: 'Queued',
-	processing: 'Processing',
-	done: 'Done',
-	duplicate: 'Duplicate',
-	merged: 'Merged',
+	queued: 'Waiting',
+	processing: 'Reading\u2026',
+	done: 'Saved',
+	duplicate: 'Already saved',
+	merged: 'Merged into record',
 	error: 'Failed',
 };
 
@@ -141,11 +142,12 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	const [selectedJobId, setSelectedJobId] = createSignal<string>();
 	const [error, setError] = createSignal<string>('');
 	const [progress, setProgress] = createSignal<number>(0);
-	const [expandedImage, setExpandedImage] = createSignal<
-		'uploaded' | 'preprocessed' | null
-	>(null);
+	const [imageView, setImageView] = createSignal<'original' | 'processed'>('original');
+	const [fullSize, setFullSize] = createSignal(false);
+	const [isDirty, setIsDirty] = createSignal(false);
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
+	let editorActions: { save: () => void; reset: () => void } | null = null;
 	let nextJobId = 0;
 	let isQueueRunning = false;
 	/** Whether the job being processed is shown, rather than one the user picked */
@@ -164,6 +166,13 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 		const stats = selectedJob()?.stats;
 		return stats && stats.players.length > 0 ? stats : undefined;
 	};
+	const selectedIndex = () => jobs().findIndex(({ id }) => id === selectedJobId());
+	const nextJob = () => jobs()[selectedIndex() + 1];
+	/** Image shown in the viewer; falls back to the original until the processed one exists */
+	const viewedImage = () =>
+		imageView() === 'processed' && selectedJob()?.preprocessedPreview ?
+			'processed'
+		:	'original';
 	const processingIndex = () => jobs().findIndex(({ status }) => status === 'processing');
 	const errorMessage = () => error() || selectedJob()?.error;
 
@@ -856,162 +865,229 @@ const ScoreboardOCR: Component<ScoreboardOCRProps> = (props) => {
 	};
 
 	return (
-		<Screen id="scoreboard-ocr-screen" title="Image Processing">
+		<Screen
+			id="scoreboard-ocr-screen"
+			title="Image Processing"
+			subtitle="Check each reading against the screenshot and correct anything the OCR got wrong."
+		>
 			<Show when={errorMessage()}>
 				<div class="error-box">
 					<strong>Error:</strong> {errorMessage()}
 				</div>
 			</Show>
 
-			<Show when={selectedJob()?.matchedRecordCreatedAt}>
-				{(createdAt) => (
-					<div class="info-box matched-record">
-						<Show
-							when={selectedJob()?.status === 'merged'}
-							fallback={
-								<p>
-									This screenshot was already saved on {createdAt().toLocaleString()}.
-									Showing that game record instead of creating a duplicate.
-								</p>
-							}
-						>
-							<p>
-								This screenshot is from the same game as a record saved on{' '}
-								{createdAt().toLocaleString()}, so that record was updated instead of
-								creating a new one.
-							</p>
-						</Show>
-						<Show when={selectedJob()?.undoMerge && selectedJobId()} keyed>
-							{(jobId) => (
-								<button
-									type="button"
-									class="separate-record-button"
-									onClick={() => handleSeparateRecord(jobId)}
-								>
-									Save as Separate Record
-								</button>
-							)}
-						</Show>
-					</div>
-				)}
-			</Show>
-
 			<Show when={processingIndex() >= 0}>
 				<div class="progress-container">
 					<p class="progress-text">
-						<Show when={jobs().length > 1} fallback="Processing image... ">
-							Processing image {processingIndex() + 1} of {jobs().length}...{' '}
-						</Show>
-						{progress()}%
+						<span>
+							Reading screenshot {processingIndex() + 1} of {jobs().length}
+						</span>
+						<span>{progress()}%</span>
 					</p>
-					<div class="progress-bar-wrapper">
+					<div
+						class="progress-bar-wrapper"
+						role="progressbar"
+						aria-label="Reading progress"
+						aria-valuemin={0}
+						aria-valuemax={100}
+						aria-valuenow={progress()}
+					>
 						<div class="progress-bar" style={{ width: `${progress()}%` }} />
 					</div>
 				</div>
 			</Show>
 
-			<Show when={jobs().length > 1}>
-				<ol class="screenshot-queue" aria-label="Uploaded screenshots">
+			<div class="review">
+				<ol class="review__queue" aria-label="Uploaded screenshots">
 					<Index each={jobs()}>
 						{(job, i) => (
 							<li>
 								<button
 									type="button"
-									class="screenshot-queue-item"
+									class="queue-item"
 									classList={{ selected: job().id === selectedJobId() }}
 									data-status={job().status}
 									aria-current={job().id === selectedJobId() ? 'true' : undefined}
 									title={job().error}
 									onClick={() => selectJob(job())}
 								>
-									<img src={job().image} alt={`Screenshot ${i + 1}`} />
-									<span class="screenshot-queue-status">
-										{JOB_STATUS_LABELS[job().status]}
+									<img src={job().image} alt="" />
+									<span class="queue-item__text">
+										<span class="queue-item__name">Screenshot {i + 1}</span>
+										<span class="queue-item__status">
+											{JOB_STATUS_LABELS[job().status]}
+										</span>
 									</span>
 								</button>
 							</li>
 						)}
 					</Index>
 				</ol>
-			</Show>
 
-			<div class="image-grid">
-				<Show when={selectedJob()?.image}>
-					<div
-						class="image-container"
-						classList={{
-							expanded: expandedImage() === 'uploaded',
-							hidden: expandedImage() === 'preprocessed',
-						}}
-						onClick={() =>
-							setExpandedImage(expandedImage() === 'uploaded' ? null : 'uploaded')
-						}
-					>
-						<h2>Uploaded Image</h2>
-						<img src={selectedJob()?.image} alt="Uploaded Image" />
-					</div>
-				</Show>
+				<div class="review__main">
+					<Show when={selectedJob()?.matchedRecordCreatedAt}>
+						{(createdAt) => (
+							<div class="info-box matched-record">
+								<Show
+									when={selectedJob()?.status === 'merged'}
+									fallback={
+										<p>
+											This screenshot was already saved on {createdAt().toLocaleString()}.
+											Showing that game record instead of creating a duplicate.
+										</p>
+									}
+								>
+									<p>
+										This screenshot is from the same game as a record saved on{' '}
+										{createdAt().toLocaleString()}, so that record was updated instead of
+										creating a new one.
+									</p>
+								</Show>
+								<Show when={selectedJob()?.undoMerge && selectedJobId()} keyed>
+									{(jobId) => (
+										<button
+											type="button"
+											class="separate-record-button"
+											onClick={() => handleSeparateRecord(jobId)}
+										>
+											Save as Separate Record
+										</button>
+									)}
+								</Show>
+							</div>
+						)}
+					</Show>
 
-				<Show when={selectedJob()?.preprocessedPreview}>
-					<div
-						class="image-container"
-						classList={{
-							expanded: expandedImage() === 'preprocessed',
-							hidden: expandedImage() === 'uploaded',
-						}}
-						onClick={() =>
-							setExpandedImage(expandedImage() === 'preprocessed' ? null : 'preprocessed')
-						}
-					>
-						<h2>Pre-processed Image</h2>
-						<img
-							src={selectedJob()?.preprocessedPreview}
-							alt="Pre-processed scoreboard with regions and unskew applied"
-						/>
-						<p>
-							Filtered for OCR clarity. Red boxes show text regions. Green boxes show
-							regions with transformed italic text. Magenta boxes show regions cleaned up
-							on their own (enlarged and cropped to the text). Blue boxes show image
-							matching regions.
-						</p>
-					</div>
-				</Show>
+					<Show when={selectedJob()?.image}>
+						<section
+							class="image-viewer"
+							classList={{ 'image-viewer--full': fullSize() }}
+						>
+							<div class="image-viewer__toolbar">
+								<div class="image-viewer__switch" role="group" aria-label="Image shown">
+									<button
+										type="button"
+										aria-pressed={viewedImage() === 'original'}
+										onClick={() => setImageView('original')}
+									>
+										Original
+									</button>
+									<button
+										type="button"
+										aria-pressed={viewedImage() === 'processed'}
+										disabled={!selectedJob()?.preprocessedPreview}
+										onClick={() => setImageView('processed')}
+									>
+										Processed
+									</button>
+								</div>
+								<button
+									type="button"
+									class="image-viewer__expand"
+									aria-pressed={fullSize()}
+									aria-label="View full size"
+									title="View full size"
+									onClick={() => setFullSize(!fullSize())}
+								>
+									<Show when={fullSize()} fallback={<Maximize2 size={16} />}>
+										<Minimize2 size={16} />
+									</Show>
+								</button>
+							</div>
+
+							<Show
+								when={viewedImage() === 'processed'}
+								fallback={<img src={selectedJob()?.image} alt="Uploaded Image" />}
+							>
+								<img
+									src={selectedJob()?.preprocessedPreview}
+									alt="Pre-processed scoreboard with regions and unskew applied"
+								/>
+								<ul class="image-viewer__legend" aria-label="Region colours">
+									<li data-region="text">Text regions</li>
+									<li data-region="italic">Italic text</li>
+									<li data-region="isolated">Cleaned-up text</li>
+									<li data-region="image">Image matching</li>
+								</ul>
+							</Show>
+						</section>
+					</Show>
+
+					{/* Keyed by job so switching screenshots remounts the editor with that record */}
+					<Show when={selectedStats() && selectedJobId()} keyed>
+						{(jobId) => (
+							<EditableGameData
+								initialPlayers={selectedStats()?.players ?? []}
+								initialMatchInfo={selectedStats()?.matchInfo ?? ({} as MatchInfo)}
+								showActions={false}
+								onDirtyChange={setIsDirty}
+								registerActions={(actions) => (editorActions = actions)}
+								onSave={(players, matchInfo) => handleSaveData(jobId, players, matchInfo)}
+							/>
+						)}
+					</Show>
+
+					<Show when={selectedStats() || selectedJob()?.rawOcrText}>
+						<details class="developer-output">
+							<summary>Developer output</summary>
+							<div class="developer-output__grid">
+								<Show when={selectedStats()}>
+									<div class="stats-box">
+										<h2>Extracted Game Stats (JSON)</h2>
+										<div class="scrollable-content">
+											<pre>{JSON.stringify(selectedStats(), null, 2)}</pre>
+										</div>
+									</div>
+								</Show>
+
+								<Show when={selectedJob()?.rawOcrText}>
+									<div class="ocr-output-box">
+										<h2>Raw OCR Text Output</h2>
+										<div class="scrollable-content">
+											<pre>{selectedJob()?.rawOcrText}</pre>
+										</div>
+									</div>
+								</Show>
+							</div>
+						</details>
+					</Show>
+				</div>
 			</div>
 
-			{/* Keyed by job so switching screenshots remounts the editor with that record */}
-			<Show when={selectedStats() && selectedJobId()} keyed>
-				{(jobId) => (
-					<EditableGameData
-						initialPlayers={selectedStats()?.players ?? []}
-						initialMatchInfo={selectedStats()?.matchInfo ?? ({} as MatchInfo)}
-						onSave={(players, matchInfo) => handleSaveData(jobId, players, matchInfo)}
-					/>
-				)}
+			<Show when={selectedStats()}>
+				<footer class="review-footer">
+					<p class="review-footer__status" classList={{ unsaved: isDirty() }}>
+						{isDirty() ? 'Unsaved changes' : 'Saved to records'}
+					</p>
+					<div class="review-footer__actions">
+						<button
+							type="button"
+							disabled={!isDirty()}
+							onClick={() => editorActions?.reset()}
+						>
+							<RotateCcw size={14} /> Reset Changes
+						</button>
+						<button
+							type="button"
+							class="primary"
+							disabled={!isDirty()}
+							onClick={() => editorActions?.save()}
+						>
+							<Save size={14} /> Save Changes
+						</button>
+						<button
+							type="button"
+							disabled={!nextJob()}
+							onClick={() => {
+								const next = nextJob();
+								if (next) selectJob(next);
+							}}
+						>
+							Next Screenshot <SkipForward size={14} />
+						</button>
+					</div>
+				</footer>
 			</Show>
-
-			<div class="ocr-output-grid">
-				<Show when={selectedStats()}>
-					<div class="stats-box">
-						<h2>
-							<span>Extracted Game Stats (JSON)</span>
-						</h2>
-						<div class="scrollable-content">
-							<pre>{JSON.stringify(selectedStats(), null, 2)}</pre>
-						</div>
-					</div>
-				</Show>
-
-				<Show when={selectedJob()?.rawOcrText}>
-					<div class="ocr-output-box">
-						<h2>
-							<span>Raw OCR Text Output</span>
-						</h2>
-						<div class="scrollable-content">
-							<pre>{selectedJob()?.rawOcrText}</pre>
-						</div>
-					</div>
-				</Show>
-			</div>
 
 			<Toaster />
 			<AlertDialog openDialog={(fn) => (openDialog = fn)} />

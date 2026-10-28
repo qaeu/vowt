@@ -1,9 +1,11 @@
 import {
+	createEffect,
 	createSignal,
 	createUniqueId,
 	For,
 	Index,
 	onCleanup,
+	onMount,
 	Show,
 	type Component,
 } from 'solid-js';
@@ -121,6 +123,10 @@ interface EditableGameDataProps {
 	initialPlayers: PlayerStats[];
 	initialMatchInfo: MatchInfo;
 	showActions?: boolean;
+	/** Called with whether any field differs from the last saved state */
+	onDirtyChange?: (dirty: boolean) => void;
+	/** Hands the parent save and reset functions, for controls rendered outside the editor */
+	registerActions?: (actions: { save: () => void; reset: () => void }) => void;
 	onSave: (players: PlayerStats[], matchInfo: MatchInfo) => void;
 }
 
@@ -229,6 +235,14 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		});
 		return hasChanges;
 	};
+
+	createEffect(() => {
+		props.onDirtyChange?.(hasUnsavedChanges());
+	});
+
+	onMount(() => {
+		props.registerActions?.({ save: handleSave, reset: handleReset });
+	});
 
 	const updatePlayerField = <K extends keyof PlayerStats>(
 		index: number,

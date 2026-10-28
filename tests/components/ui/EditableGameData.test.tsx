@@ -282,6 +282,103 @@ describe('EditableGameData', () => {
 		expect.soft(cancelButton).toBeNull();
 	});
 
+	describe('parent integration', () => {
+		type Actions = { save: () => void; reset: () => void };
+
+		const editResult = (container: HTMLElement, value: string) => {
+			const input = container.querySelector(
+				'.match-info-edit input[type="text"]'
+			) as HTMLInputElement;
+			fireEvent.input(input, { target: { value } });
+			return input;
+		};
+
+		describe('onDirtyChange', () => {
+			it('should report clean on mount', () => {
+				const onDirtyChange = vi.fn();
+				render(() => (
+					<EditableGameData
+						initialPlayers={mockPlayers}
+						initialMatchInfo={mockMatchInfo}
+						onDirtyChange={onDirtyChange}
+						onSave={onSaveMock}
+					/>
+				));
+
+				expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+			});
+
+			it('should report dirty after an edit', () => {
+				const onDirtyChange = vi.fn();
+				const { container } = render(() => (
+					<EditableGameData
+						initialPlayers={mockPlayers}
+						initialMatchInfo={mockMatchInfo}
+						onDirtyChange={onDirtyChange}
+						onSave={onSaveMock}
+					/>
+				));
+
+				editResult(container, 'DEFEAT');
+
+				expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+			});
+		});
+
+		describe('registerActions', () => {
+			let actions: Actions | undefined;
+			const onDirtyChange = vi.fn();
+
+			const renderWithActions = () =>
+				render(() => (
+					<EditableGameData
+						initialPlayers={mockPlayers}
+						initialMatchInfo={mockMatchInfo}
+						showActions={false}
+						onDirtyChange={onDirtyChange}
+						registerActions={(registered) => (actions = registered)}
+						onSave={onSaveMock}
+					/>
+				));
+
+			beforeEach(() => {
+				actions = undefined;
+				onDirtyChange.mockClear();
+			});
+
+			it('should hand the parent save and reset functions', () => {
+				renderWithActions();
+
+				expect(actions?.save).toBeTypeOf('function');
+				expect(actions?.reset).toBeTypeOf('function');
+			});
+
+			it('should save the edits and report clean', () => {
+				const { container } = renderWithActions();
+				editResult(container, 'DEFEAT');
+
+				actions?.save();
+
+				expect(onSaveMock).toHaveBeenCalledWith(
+					expect.any(Array),
+					expect.objectContaining({ result: 'DEFEAT' })
+				);
+				expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+			});
+
+			it('should discard the edits on reset and report clean', () => {
+				const { container } = renderWithActions();
+				const input = editResult(container, 'DEFEAT');
+
+				actions?.reset();
+
+				expect(input.value).toBe('VICTORY');
+				expect(onSaveMock).not.toHaveBeenCalled();
+				expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+			});
+		});
+	});
+
 	describe('Datalist suggestions', () => {
 		beforeEach(() => {
 			localStorage.clear();
