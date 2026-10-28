@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach, assert } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 
-import type { PlayerStats, MatchInfo, GameRecord } from '#types';
+import type {
+	PlayerStats,
+	MatchInfo,
+	GameRecord,
+	OverFastHero,
+	OverFastMap,
+	OverFastStore,
+} from '#types';
 import GameRecordsTable from '#c/GameRecordsTable';
 import * as gameStorage from '#utils/storage';
 import { updateOverFastData } from '#utils/overfastApi';
@@ -114,9 +121,7 @@ describe('GameRecordsTable', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue(
-			mockRecords
-		);
+		vi.mocked(gameStorage.loadGameRecords).mockReturnValue(mockRecords);
 	});
 
 	it('should render the component', () => {
@@ -133,7 +138,7 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should show empty state when no records exist', () => {
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue([]);
+		vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 		expect(screen.getByText(/No game records found/)).toBeDefined();
 	});
@@ -350,7 +355,7 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should disable export button when no records exist', () => {
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue([]);
+		vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const exportButton = screen.getByText(/Export/);
@@ -358,7 +363,7 @@ describe('GameRecordsTable', () => {
 	});
 
 	it('should disable clear all button when no records exist', () => {
-		(gameStorage.loadGameRecords as ReturnType<typeof vi.fn>).mockReturnValue([]);
+		vi.mocked(gameStorage.loadGameRecords).mockReturnValue([]);
 		render(() => <GameRecordsTable onUploadClick={mockOnUploadClick} />);
 
 		const clearButton = screen.getByText(/Delete All/);
@@ -397,14 +402,14 @@ describe('GameRecordsTable', () => {
 		expect(hasDefeatClass).toBe(true);
 	});
 	describe('update game data', () => {
-		const mockUpdate = updateOverFastData as ReturnType<typeof vi.fn>;
+		const mockUpdate = vi.mocked(updateOverFastData);
 
 		it('should show a success toast with counts', async () => {
 			mockUpdate.mockResolvedValue({
 				schemaVersion: 1,
-				heroes: [{}, {}, {}],
-				maps: [{}, {}],
-				updatedAt: '2025-11-11T00:00:00.000Z',
+				heroes: [{}, {}, {}] as OverFastHero[],
+				maps: [{}, {}] as OverFastMap[],
+				updatedAt: new Date('2025-11-11T00:00:00.000Z'),
 			});
 			const { container } = render(() => (
 				<GameRecordsTable onUploadClick={mockOnUploadClick} />
@@ -436,7 +441,7 @@ describe('GameRecordsTable', () => {
 		});
 
 		it('should disable the button while pending and re-enable afterwards', async () => {
-			let resolveUpdate!: (v: unknown) => void;
+			let resolveUpdate!: (v: OverFastStore) => void;
 			mockUpdate.mockReturnValue(new Promise((r) => (resolveUpdate = r)));
 			const { container } = render(() => (
 				<GameRecordsTable onUploadClick={mockOnUploadClick} />
@@ -447,7 +452,7 @@ describe('GameRecordsTable', () => {
 			fireEvent.click(button);
 			await waitFor(() => expect(button.disabled).toBe(true));
 
-			resolveUpdate({ schemaVersion: 1, heroes: [], maps: [], updatedAt: '' });
+			resolveUpdate({ schemaVersion: 1, heroes: [], maps: [], updatedAt: new Date() });
 			await waitFor(() => expect(button.disabled).toBe(false));
 		});
 	});

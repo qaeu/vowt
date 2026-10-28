@@ -103,7 +103,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -124,7 +124,7 @@ describe('preprocess', () => {
 				src: '',
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onerror?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -146,7 +146,7 @@ describe('preprocess', () => {
 				height: 1080,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -166,7 +166,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -188,7 +188,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -210,7 +210,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -253,7 +253,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -271,7 +271,7 @@ describe('preprocess', () => {
 				src: '',
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onerror?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -300,7 +300,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -334,7 +334,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -377,7 +377,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -395,7 +395,7 @@ describe('preprocess', () => {
 				src: '',
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onerror?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -424,7 +424,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -458,7 +458,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -475,7 +475,7 @@ describe('preprocess', () => {
 				src: '',
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onerror?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -494,7 +494,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -516,7 +516,7 @@ describe('preprocess', () => {
 				height: 600,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -546,7 +546,7 @@ describe('preprocess', () => {
 				height: 100,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});
@@ -588,7 +588,7 @@ describe('preprocess', () => {
 				height: 100,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});

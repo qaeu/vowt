@@ -1,11 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent } from '@solidjs/testing-library';
+import type { ComponentProps } from 'solid-js';
 
 import RecordFieldInput from '#c/ui/RecordFieldInput';
 
+type RecordFieldInputProps = ComponentProps<typeof RecordFieldInput>;
+
 describe('RecordFieldInput', () => {
-	let onInputMock: ReturnType<typeof vi.fn>;
-	let registerFieldMock: ReturnType<typeof vi.fn>;
+	let onInputMock: Mock<RecordFieldInputProps['onInput']>;
+	let registerFieldMock: Mock<NonNullable<RecordFieldInputProps['staticRegisterField']>>;
 
 	beforeEach(() => {
 		onInputMock = vi.fn();

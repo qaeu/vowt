@@ -325,7 +325,7 @@ describe('RegionProfileManager', () => {
 				height: testHeight,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				// Trigger onload asynchronously
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
@@ -358,7 +358,7 @@ describe('RegionProfileManager', () => {
 				height: testHeight,
 			};
 
-			vi.spyOn(globalThis, 'Image').mockImplementation(() => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
 				setTimeout(() => mockImage.onload?.(), 0);
 				return mockImage as unknown as HTMLImageElement;
 			});

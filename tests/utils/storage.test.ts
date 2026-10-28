@@ -101,6 +101,7 @@ describe('storage', () => {
 			date: '09/16/25 - 03:50',
 			game_mode: 'CONTROL',
 			game_length: '12:30',
+			map: 'ILIOS',
 		};
 
 		const updatedRecord = updateGameRecord(recordId, updatedPlayers, updatedMatchInfo);
@@ -221,9 +222,9 @@ describe('handleFileUpload', () => {
 			}),
 			onload: null as ((event: ProgressEvent<FileReader>) => void) | null,
 		};
-		vi.spyOn(globalThis, 'FileReader').mockImplementation(
-			() => mockFileReader as unknown as FileReader
-		);
+		vi.spyOn(globalThis, 'FileReader').mockImplementation(function () {
+			return mockFileReader as unknown as FileReader;
+		});
 
 		const callback = vi.fn();
 		const file = new File(['pixel'], 'test.png', { type: 'image/png' });

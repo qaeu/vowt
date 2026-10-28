@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@solidjs/testing-library';
 
 import type { PlayerStats, MatchInfo } from '#types';
@@ -60,7 +60,7 @@ describe('EditableGameData', () => {
 		map: 'Lijiang Tower',
 	};
 
-	let onSaveMock: ReturnType<typeof vi.fn>;
+	let onSaveMock: Mock<(players: PlayerStats[], matchInfo: MatchInfo) => void>;
 
 	beforeEach(() => {
 		onSaveMock = vi.fn();
