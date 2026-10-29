@@ -26,11 +26,18 @@ const AlertDialog: Component<AlertDialogProps> = (props) => {
 		});
 	});
 
-	const actionText = () => options().actionText || 'Confirm';
+	const hasConfirm = () => !!options().onConfirm;
+	const actionText = () => options().actionText || (hasConfirm() ? 'Confirm' : 'Close');
+	const cancelText = () => options().cancelText || 'Cancel';
 
 	const handleConfirm = (e: MouseEvent) => {
 		e.stopPropagation();
 		options().onConfirm?.();
+		setOpen(false);
+	};
+
+	const handleCancel = (e: MouseEvent) => {
+		e.stopPropagation();
 		setOpen(false);
 	};
 
@@ -60,9 +67,15 @@ const AlertDialog: Component<AlertDialogProps> = (props) => {
 							<X size={18} />
 						</Dialog.CloseTrigger>
 						<div class="button-group">
+							<Show when={hasConfirm()}>
+								<button type="button" class="dialog-cancel" onClick={handleCancel}>
+									{cancelText()}
+								</button>
+							</Show>
 							<button
 								type="button"
-								class="dialog-action highlight"
+								class="dialog-action primary"
+								classList={{ danger: options().tone === 'danger' }}
 								onClick={handleConfirm}
 							>
 								{actionText()}

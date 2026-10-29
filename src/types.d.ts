@@ -5,7 +5,11 @@ import type { Component, JSX } from 'solid-js';
  * This file contains all shared type definitions used across the application
  */
 
-type ExportFileType = 'vowt-game-records' | 'vowt-region-profile' | 'vowt-image-hashes';
+type ExportFileType =
+	| 'vowt-game-records'
+	| 'vowt-region-profile'
+	| 'vowt-image-hashes'
+	| 'vowt-insights-summary';
 
 interface ExportFileBase {
 	type: ExportFileType;
@@ -24,6 +28,10 @@ export type DateFieldName = 'createdAt' | 'updatedAt' | 'exportedAt';
 
 export interface Settings {
 	darkMode: boolean;
+	/** Player whose games the Insights screen analyses; null until chosen */
+	trackedPlayer: string | null;
+	/** ISO timestamp of the last records export (backup); null if never exported */
+	lastExportedAt: string | null;
 }
 
 // UI Component Types
@@ -42,7 +50,12 @@ export interface AlertDialogOptions {
 	description: string;
 	/** Extra content rendered below the description */
 	content?: () => JSX.Element;
+	/** Action button label; defaults to 'Confirm', or 'Close' without onConfirm */
 	actionText?: string;
+	/** Cancel button label, shown only when onConfirm is set; defaults to 'Cancel' */
+	cancelText?: string;
+	/** 'danger' styles the action as destructive */
+	tone?: 'default' | 'danger';
 	onConfirm?: () => void;
 }
 
@@ -82,6 +95,8 @@ export interface GameRecord {
 	id: string;
 	players: PlayerStats[];
 	matchInfo: MatchInfo;
+	/** SHA-256 of each screenshot the record was read from, used to spot re-uploads */
+	screenshotHashes?: string[];
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -91,7 +106,221 @@ export interface ExportedGameRecords extends ExportFileBase {
 	records: ExportedRecord<GameRecord>[];
 }
 
+// Insights
+
+/** Time window the Insights screen analyses */
+export type InsightsPeriod = 'last30' | 'last90' | 'all';
+
+/** Player stat field name */
+export type StatKey = keyof PlayerStatsNumberFields;
+
+/** Game outcome from the tracked player's side; 'unknown' when unreadable */
+export type GameResult = 'win' | 'loss' | 'draw' | 'unknown';
+
+export interface InsightsFilters {
+	/** Tracked player name (compared trimmed and case-insensitively) */
+	player: string;
+	period: InsightsPeriod;
+	/** 'previous' also computes the window before the period, for deltas */
+	compare: 'previous' | 'none';
+	role: OverFastHeroRole | 'all';
+	/** Normalised (trimmed, uppercase) game mode, or 'all' */
+	mode: string | 'all';
+}
+
+export type TrendMetric = 'winRate' | 'kda' | 'dmg10' | 'heal10';
+
+/** One game from the tracked player's point of view */
+export interface PlayerGame {
+	recordId: string;
+	/** Match date, or the record's creation time if the date is unreadable */
+	date: Date;
+	createdAt: Date;
+	result: GameResult;
+	team: 'blue' | 'red';
+	/** Game length in seconds, null if unreadable */
+	lengthSeconds: number | null;
+	/** Normalised (trimmed, uppercase); 'UNKNOWN' if empty */
+	mode: string;
+	/** Normalised (trimmed, uppercase); 'UNKNOWN' if empty */
+	map: string;
+	/** Hero display name, null if none was read */
+	hero: string | null;
+	role: OverFastHeroRole | 'unknown';
+	/** The tracked player's stats; null for unreadable fields */
+	stats: Record<StatKey, number | null>;
+	/** Mean stats of the tracked player's teammates (excluding them) */
+	teamAvg: Record<StatKey, number | null>;
+	/** Mean stats of the opposing team */
+	enemyAvg: Record<StatKey, number | null>;
+}
+
+export interface FilteredGames {
+	current: PlayerGame[];
+	/** Equal-length window before `current`; empty when not compared */
+	previous: PlayerGame[];
+	/** False when there is nothing to compare against (compare off or period 'all') */
+	hasComparison: boolean;
+}
+
+/** A value with its change against the comparison window */
+export interface InsightsMetric {
+	value: number | null;
+	/** current minus previous; null without a comparison or a value in either window */
+	delta: number | null;
+}
+
+export interface InsightsHeadline {
+	/** Games played, including those with an unreadable result */
+	games: InsightsMetric;
+	wins: number;
+	losses: number;
+	draws: number;
+	/** Percentage 0-100 of games with a readable result */
+	winRate: InsightsMetric;
+	kda: InsightsMetric;
+	dmg10: InsightsMetric;
+	heal10: InsightsMetric;
+	/** Deaths per 10 minutes; lower is better */
+	deaths10: InsightsMetric;
+}
+
+export interface WeeklyTrendPoint {
+	/** Monday (local midnight) of the week */
+	weekStart: Date;
+	games: number;
+	/** Metric value for the week, null if the week has no data */
+	value: number | null;
+}
+
+export interface RecentFormEntry {
+	recordId: string;
+	result: Exclude<GameResult, 'unknown'>;
+}
+
+export interface RecentForm {
+	/** Last games with a readable result, oldest first */
+	results: RecentFormEntry[];
+	wins: number;
+	losses: number;
+	draws: number;
+	/** Run of identical results ending at the latest game; null result if no games */
+	currentStreak: { result: Exclude<GameResult, 'unknown'> | null; length: number };
+	/** Longest run of wins across all given games */
+	bestWinStreak: number;
+}
+
+export interface HeroPoolRow {
+	hero: string;
+	role: OverFastHeroRole | 'unknown';
+	games: number;
+	winRate: number | null;
+	/** Hero win rate minus overall win rate, in points */
+	winRateDelta: number | null;
+	kda: number | null;
+	dmg10: number | null;
+	heal10: number | null;
+	mit10: number | null;
+}
+
+export interface LobbyComparisonRow {
+	stat: 'e' | 'a' | 'd' | 'h' | 'dmg';
+	/** Per 10 minutes */
+	you: number | null;
+	team: number | null;
+	enemy: number | null;
+}
+
+export interface RecordStatsRow {
+	games: number;
+	wins: number;
+	losses: number;
+	draws: number;
+	/** Percentage 0-100 of games with a readable result */
+	winRate: number | null;
+}
+
+export interface MapStatsRow extends RecordStatsRow {
+	map: string;
+}
+
+export interface ModeStatsRow extends RecordStatsRow {
+	mode: string;
+}
+
+export interface PersonalBest {
+	value: number;
+	recordId: string;
+	date: Date;
+}
+
+export interface PersonalBests {
+	kills: PersonalBest | null;
+	damage: PersonalBest | null;
+	healing: PersonalBest | null;
+	fewestDeathsInWin: PersonalBest | null;
+}
+
+interface WinRateBucket {
+	games: number;
+	winRate: number;
+}
+
+/** Rule-based observation; the UI owns the wording. Rates are percentages 0-100 */
+export type InsightFinding =
+	| {
+			kind: 'deathsSplit';
+			medianDeaths: number;
+			lowDeaths: WinRateBucket;
+			highDeaths: WinRateBucket;
+	  }
+	| {
+			kind: 'bestHero';
+			hero: string;
+			games: number;
+			winRate: number;
+			overallWinRate: number;
+	  }
+	| {
+			kind: 'weakestMode';
+			mode: string;
+			games: number;
+			winRate: number;
+			overallWinRate: number;
+			worstMap:
+				(Omit<RecordStatsRow, 'winRate'> & { map: string; winRate: number }) | null;
+	  };
+
+export interface InsightsSummary {
+	filters: InsightsFilters;
+	generatedAt: Date;
+	/** All games the player appears in, before period, role and mode filters */
+	totalGames: number;
+	/** Normalised modes the player has games in, for building mode filters */
+	availableModes: string[];
+	headline: InsightsHeadline;
+	trend: Record<TrendMetric, WeeklyTrendPoint[]>;
+	recentForm: RecentForm;
+	heroPool: HeroPoolRow[];
+	lobby: LobbyComparisonRow[];
+	maps: MapStatsRow[];
+	modes: ModeStatsRow[];
+	personalBests: PersonalBests;
+	findings: InsightFinding[];
+}
+
+export interface ExportedInsightsSummary extends ExportFileBase {
+	type: 'vowt-insights-summary';
+	summary: InsightsSummary;
+}
+
 // OCR Region Profiles
+
+/**
+ * Per-region text clean-up: 'name' crops to the main run of glyphs, dropping icons and
+ * shapes touching the edges; 'number' keeps every non-noise shape
+ */
+export type TextCleanupMode = 'name' | 'number';
 
 export interface TextRegion {
 	name: string;
@@ -101,6 +330,8 @@ export interface TextRegion {
 	height: number;
 	charSet?: string;
 	isItalic?: boolean;
+	/** Clean up the region on its own (enlarge, binarise, crop to text) instead of the global filter */
+	isolateText?: TextCleanupMode;
 	imgHashSet?: string;
 	/** Alignment group that moves this region; see AlignmentGroup */
 	group?: string;

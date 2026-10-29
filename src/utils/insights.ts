@@ -1,0 +1,734 @@
+/**
+ * Insights: aggregate stats across saved game records for one tracked player
+ *
+ * Pure functions with no DOM access. Every field in a record is an OCR string, so
+ * parsers return null/'unknown' for unreadable values and aggregates skip them.
+ */
+
+import type {
+	GameRecord,
+	GameResult,
+	InsightFinding,
+	InsightsFilters,
+	InsightsHeadline,
+	InsightsMetric,
+	InsightsSummary,
+	FilteredGames,
+	HeroPoolRow,
+	LobbyComparisonRow,
+	MapStatsRow,
+	ModeStatsRow,
+	OverFastHero,
+	PersonalBest,
+	PersonalBests,
+	PlayerGame,
+	RecentForm,
+	RecordStatsRow,
+	StatKey,
+	TrendMetric,
+	WeeklyTrendPoint,
+} from '#types';
+
+import { getHeroDisplayName } from '#utils/gameData';
+import { normaliseName } from '#utils/playerNames';
+
+/** Minimum games in every bucket before a finding is reported */
+export const MIN_FINDING_GAMES = 5;
+
+/** Minimum win-rate gap (points) between low- and high-death games */
+export const MIN_DEATHS_GAP = 10;
+
+/** Minimum win-rate gap (points) between the best hero and overall */
+export const MIN_HERO_GAP = 5;
+
+/** Minimum win-rate gap (points) between the weakest mode and overall */
+export const MIN_MODE_GAP = 10;
+
+/** Minimum games on a map for it to be named as a mode's worst map */
+export const MIN_WORST_MAP_GAMES = 3;
+
+/** Default minimum games for a map to appear in the map stats */
+export const DEFAULT_MIN_MAP_GAMES = 4;
+
+/** Default number of games shown in recent form */
+export const DEFAULT_FORM_GAMES = 20;
+
+/** Default number of weeks in the weekly trend */
+export const DEFAULT_TREND_WEEKS = 12;
+
+/** Mode and map name used when none was read */
+export const UNKNOWN_NAME = 'UNKNOWN';
+
+/** Stats compared against the lobby, in display order */
+export const LOBBY_STATS = ['e', 'a', 'd', 'h', 'dmg'] as const;
+
+const STAT_KEYS: StatKey[] = ['e', 'a', 'd', 'dmg', 'h', 'mit'];
+const DAY_MS = 24 * 60 * 60 * 1000;
+const PERIOD_DAYS = { last30: 30, last90: 90 } as const;
+const SECONDS_PER_10_MINUTES = 600;
+
+type DecidedResult = Exclude<GameResult, 'unknown'>;
+type PlayerRecord = Pick<GameRecord, 'players' | 'matchInfo' | 'createdAt'>;
+
+const RESULT_BY_TEXT: Record<string, DecidedResult> = {
+	VICTORY: 'win',
+	DEFEAT: 'loss',
+	DRAW: 'draw',
+};
+
+// Parsers
+
+/**
+ * Parses a result as read from the screen (blue team's view)
+ * @returns 'unknown' for anything other than VICTORY, DEFEAT or DRAW
+ */
+export function parseResult(text: string): GameResult {
+	return RESULT_BY_TEXT[normaliseName(text ?? '')] ?? 'unknown';
+}
+
+/**
+ * Parses the match date of a record
+ * @param record - Record with `matchInfo.date` as `MM/DD/YYYY` (extra text is ignored)
+ * @returns Local midnight of that date, or the record's createdAt if unparseable
+ */
+export function parseMatchDate(record: PlayerRecord): Date {
+	const match = /(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4}|\d{2})(?!\d)/.exec(
+		record.matchInfo.date ?? ''
+	);
+	if (match) {
+		const month = Number(match[1]);
+		const day = Number(match[2]);
+		const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
+		const date = new Date(year, month - 1, day);
+		if (
+			date.getFullYear() === year
+			&& date.getMonth() === month - 1
+			&& date.getDate() === day
+		) {
+			return date;
+		}
+	}
+	return new Date(record.createdAt);
+}
+
+/**
+ * Parses a game length
+ * @param text - `mm:ss` or `h:mm:ss`
+ * @returns Seconds, or null if invalid or zero
+ */
+export function parseGameLengthSeconds(text: string): number | null {
+	const match = /^(?:(\d{1,2}):)?(\d{1,3}):(\d{2})$/.exec((text ?? '').trim());
+	if (!match) return null;
+	const hours = match[1] === undefined ? 0 : Number(match[1]);
+	const minutes = Number(match[2]);
+	const seconds = Number(match[3]);
+	if (seconds > 59 || (match[1] !== undefined && minutes > 59)) return null;
+	const total = hours * 3600 + minutes * 60 + seconds;
+	return total > 0 ? total : null;
+}
+
+/**
+ * Parses a stat value
+ * @returns A non-negative integer, or null if the text is not all digits
+ */
+export function parseStat(text: string): number | null {
+	const trimmed = (text ?? '').trim();
+	return /^\d+$/.test(trimmed) ? Number(trimmed) : null;
+}
+
+// Local helpers
+
+function _mean(values: (number | null)[]): number | null {
+	const valid = values.filter((v): v is number => v !== null);
+	return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+}
+
+function _median(values: number[]): number {
+	const sorted = [...values].sort((a, b) => a - b);
+	const mid = Math.floor(sorted.length / 2);
+	return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function _normaliseLabel(text: string): string {
+	return normaliseName(text ?? '') || UNKNOWN_NAME;
+}
+
+function _invert(result: GameResult): GameResult {
+	return (
+		result === 'win' ? 'loss'
+		: result === 'loss' ? 'win'
+		: result
+	);
+}
+
+function _delta(current: number | null, previous: number | null): number | null {
+	return current === null || previous === null ? null : current - previous;
+}
+
+function _metric(
+	current: number | null,
+	previous: number | null,
+	hasComparison: boolean
+): InsightsMetric {
+	return { value: current, delta: hasComparison ? _delta(current, previous) : null };
+}
+
+function _avgStats(players: GameRecord['players']): Record<StatKey, number | null> {
+	return Object.fromEntries(
+		STAT_KEYS.map((key) => [key, _mean(players.map((p) => parseStat(p[key])))])
+	) as Record<StatKey, number | null>;
+}
+
+function _compareGames(a: PlayerGame, b: PlayerGame): number {
+	return (
+		a.date.getTime() - b.date.getTime()
+		|| a.createdAt.getTime() - b.createdAt.getTime()
+		|| a.recordId.localeCompare(b.recordId)
+	);
+}
+
+function _sorted(games: PlayerGame[]): PlayerGame[] {
+	return [...games].sort(_compareGames);
+}
+
+function _countResults(games: PlayerGame[]): Omit<RecordStatsRow, 'games'> & {
+	decided: number;
+} {
+	const wins = games.filter((g) => g.result === 'win').length;
+	const losses = games.filter((g) => g.result === 'loss').length;
+	const draws = games.filter((g) => g.result === 'draw').length;
+	const decided = wins + losses + draws;
+	return {
+		wins,
+		losses,
+		draws,
+		decided,
+		winRate: decided ? (wins / decided) * 100 : null,
+	};
+}
+
+function _recordStats(games: PlayerGame[]): RecordStatsRow {
+	const { wins, losses, draws, winRate } = _countResults(games);
+	return { games: games.length, wins, losses, draws, winRate };
+}
+
+/** Win percentage over games with a readable result; null if there are none */
+function _winRate(games: PlayerGame[]): number | null {
+	return _countResults(games).winRate;
+}
+
+/** Sum of a stat per 10 minutes over games with both a valid length and stat */
+function _per10(
+	games: PlayerGame[],
+	value: (game: PlayerGame) => number | null
+): number | null {
+	let total = 0;
+	let seconds = 0;
+	for (const game of games) {
+		const v = value(game);
+		if (v === null || game.lengthSeconds === null) continue;
+		total += v;
+		seconds += game.lengthSeconds;
+	}
+	return seconds ? (total / seconds) * SECONDS_PER_10_MINUTES : null;
+}
+
+/** (kills + assists) / max(deaths, 1) over games where all three were read */
+function _kda(games: PlayerGame[]): number | null {
+	let kills = 0;
+	let assists = 0;
+	let deaths = 0;
+	let count = 0;
+	for (const { stats } of games) {
+		if (stats.e === null || stats.a === null || stats.d === null) continue;
+		kills += stats.e;
+		assists += stats.a;
+		deaths += stats.d;
+		count++;
+	}
+	return count ? (kills + assists) / Math.max(deaths, 1) : null;
+}
+
+function _metricValue(games: PlayerGame[], metric: TrendMetric): number | null {
+	switch (metric) {
+		case 'winRate':
+			return _winRate(games);
+		case 'kda':
+			return _kda(games);
+		case 'dmg10':
+			return _per10(games, (g) => g.stats.dmg);
+		case 'heal10':
+			return _per10(games, (g) => g.stats.h);
+	}
+}
+
+function _groupBy<T>(items: T[], key: (item: T) => string | null): Map<string, T[]> {
+	const groups = new Map<string, T[]>();
+	for (const item of items) {
+		const k = key(item);
+		if (k === null) continue;
+		const group = groups.get(k);
+		if (group) group.push(item);
+		else groups.set(k, [item]);
+	}
+	return groups;
+}
+
+function _weekStart(date: Date): Date {
+	const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+	return start;
+}
+
+// Exported functions
+
+/**
+ * Lists player names found in records, for choosing the tracked player
+ * @param records - Saved game records
+ * @returns Normalised (trimmed, uppercase) names with the number of records they
+ * appear in, most frequent first (ties alphabetical)
+ */
+export function getPlayerNameCounts(
+	records: GameRecord[]
+): { name: string; count: number }[] {
+	const counts = new Map<string, number>();
+	for (const record of records) {
+		const names = new Set(record.players.map((p) => normaliseName(p.name)));
+		names.delete('');
+		for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
+	}
+	return [...counts]
+		.map(([name, count]) => ({ name, count }))
+		.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/**
+ * Turns records into per-game rows from the tracked player's point of view
+ * Records the player does not appear in are skipped. If a name appears twice in a
+ * record, the first is used. A result read as VICTORY/DEFEAT is inverted for red.
+ * @param records - Saved game records
+ * @param player - Tracked player name (trimmed, case-insensitive)
+ * @param heroes - OverFast heroes, used to look up roles; may be empty
+ * @returns Games sorted by match date, then creation time (oldest first)
+ */
+export function toPlayerGames(
+	records: GameRecord[],
+	player: string,
+	heroes: OverFastHero[]
+): PlayerGame[] {
+	const target = normaliseName(player ?? '');
+	if (!target) return [];
+
+	const games: PlayerGame[] = [];
+	for (const record of records) {
+		const me = record.players.find((p) => normaliseName(p.name) === target);
+		if (!me) continue;
+
+		const heroName = me.hero?.trim() ? getHeroDisplayName(me.hero, heroes) : null;
+		const hero = heroName ? heroName.trim() : null;
+		const matched = hero ? heroes.find((h) => h.name === hero) : undefined;
+		const others = record.players.filter((p) => p !== me);
+		const result = parseResult(record.matchInfo.result);
+
+		games.push({
+			recordId: record.id,
+			date: parseMatchDate(record),
+			createdAt: new Date(record.createdAt),
+			result: me.team === 'red' ? _invert(result) : result,
+			team: me.team,
+			lengthSeconds: parseGameLengthSeconds(record.matchInfo.game_length),
+			mode: _normaliseLabel(record.matchInfo.game_mode),
+			map: _normaliseLabel(record.matchInfo.map),
+			hero,
+			role: matched?.role ?? 'unknown',
+			stats: _avgStats([me]),
+			teamAvg: _avgStats(others.filter((p) => p.team === me.team)),
+			enemyAvg: _avgStats(others.filter((p) => p.team !== me.team)),
+		});
+	}
+	return _sorted(games);
+}
+
+/**
+ * Applies the period, role and mode filters
+ * The player filter is applied by toPlayerGames. The comparison window is the span of
+ * equal length immediately before the period. Games dated in the future count in the
+ * current window.
+ * @param games - Games from toPlayerGames
+ * @param filters - Active filters
+ * @param now - Current time
+ */
+export function filterGames(
+	games: PlayerGame[],
+	filters: InsightsFilters,
+	now: Date
+): FilteredGames {
+	const matches = (game: PlayerGame) =>
+		(filters.role === 'all' || game.role === filters.role)
+		&& (filters.mode === 'all' || game.mode === normaliseName(filters.mode));
+
+	if (filters.period === 'all') {
+		return { current: games.filter(matches), previous: [], hasComparison: false };
+	}
+
+	const span = PERIOD_DAYS[filters.period] * DAY_MS;
+	const currentStart = now.getTime() - span;
+	const previousStart = currentStart - span;
+	const current = games.filter((g) => g.date.getTime() >= currentStart && matches(g));
+	const hasComparison = filters.compare === 'previous';
+	const previous =
+		hasComparison ?
+			games.filter(
+				(g) =>
+					g.date.getTime() >= previousStart
+					&& g.date.getTime() < currentStart
+					&& matches(g)
+			)
+		:	[];
+	return { current, previous, hasComparison };
+}
+
+/**
+ * Builds the headline numbers with changes against the comparison window
+ * Win rate is wins over games with a readable result (draws count as non-wins).
+ * KDA is (sum kills + sum assists) / max(sum deaths, 1). Per-10 stats are summed
+ * stat over summed seconds, so games with an unreadable length or stat are skipped.
+ * @param current - Games in the current window
+ * @param previous - Games in the comparison window
+ * @param hasComparison - Whether deltas should be computed
+ */
+export function buildHeadline(
+	current: PlayerGame[],
+	previous: PlayerGame[],
+	hasComparison: boolean
+): InsightsHeadline {
+	const { wins, losses, draws } = _countResults(current);
+	const metric = (name: TrendMetric) =>
+		_metric(_metricValue(current, name), _metricValue(previous, name), hasComparison);
+
+	return {
+		games: {
+			value: current.length,
+			delta: hasComparison && previous.length ? current.length - previous.length : null,
+		},
+		wins,
+		losses,
+		draws,
+		winRate: metric('winRate'),
+		kda: metric('kda'),
+		dmg10: metric('dmg10'),
+		heal10: metric('heal10'),
+		deaths10: _metric(
+			_per10(current, (g) => g.stats.d),
+			_per10(previous, (g) => g.stats.d),
+			hasComparison
+		),
+	};
+}
+
+/**
+ * Buckets a metric by week (Monday start, local time)
+ * Weeks end at the latest game's week and start at most `weeks` back, with empty weeks
+ * included as `{ games: 0, value: null }`.
+ * @param games - Games to bucket
+ * @param metric - Metric to compute per week
+ * @param weeks - Maximum number of weeks
+ * @returns Weekly points, oldest first; empty if there are no games
+ */
+export function buildWeeklyTrend(
+	games: PlayerGame[],
+	metric: TrendMetric,
+	weeks = DEFAULT_TREND_WEEKS
+): WeeklyTrendPoint[] {
+	if (!games.length || weeks < 1) return [];
+
+	const byWeek = _groupBy(games, (g) => String(_weekStart(g.date).getTime()));
+	const last = _sorted(games).at(-1)!;
+	const lastWeek = _weekStart(last.date);
+	const firstStart = new Date(lastWeek);
+	firstStart.setDate(firstStart.getDate() - 7 * (weeks - 1));
+
+	const points: WeeklyTrendPoint[] = [];
+	const cursor = new Date(firstStart);
+	const earliest = _weekStart(_sorted(games)[0].date);
+	if (earliest > cursor) cursor.setTime(earliest.getTime());
+	while (cursor <= lastWeek) {
+		const inWeek = byWeek.get(String(cursor.getTime())) ?? [];
+		points.push({
+			weekStart: new Date(cursor),
+			games: inWeek.length,
+			value: inWeek.length ? _metricValue(inWeek, metric) : null,
+		});
+		cursor.setDate(cursor.getDate() + 7);
+	}
+	return points;
+}
+
+/**
+ * Summarises the most recent results and streaks
+ * Games with an unreadable result are ignored (they do not break a streak); a draw does.
+ * @param games - Games in any order
+ * @param count - Number of recent games to list
+ */
+export function buildRecentForm(
+	games: PlayerGame[],
+	count = DEFAULT_FORM_GAMES
+): RecentForm {
+	const decided = _sorted(games).filter(
+		(g): g is PlayerGame & { result: DecidedResult } => g.result !== 'unknown'
+	);
+
+	let best = 0;
+	let run = 0;
+	for (const game of decided) {
+		run = game.result === 'win' ? run + 1 : 0;
+		best = Math.max(best, run);
+	}
+
+	const latest = decided.at(-1)?.result ?? null;
+	let length = 0;
+	for (let i = decided.length - 1; i >= 0 && decided[i].result === latest; i--) length++;
+
+	const results = decided
+		.slice(Math.max(decided.length - count, 0))
+		.map((g) => ({ recordId: g.recordId, result: g.result }));
+	return {
+		results,
+		wins: results.filter((r) => r.result === 'win').length,
+		losses: results.filter((r) => r.result === 'loss').length,
+		draws: results.filter((r) => r.result === 'draw').length,
+		currentStreak: { result: latest, length },
+		bestWinStreak: best,
+	};
+}
+
+/**
+ * Builds per-hero stats; games without a hero are skipped
+ * @param games - Games to group
+ * @returns Rows by games played (descending), then hero name
+ */
+export function buildHeroPool(games: PlayerGame[]): HeroPoolRow[] {
+	const overall = _winRate(games);
+	const rows = [..._groupBy(games, (g) => g.hero)].map(
+		([hero, heroGames]): HeroPoolRow => {
+			const winRate = _winRate(heroGames);
+			return {
+				hero,
+				role: heroGames.find((g) => g.role !== 'unknown')?.role ?? 'unknown',
+				games: heroGames.length,
+				winRate,
+				winRateDelta: _delta(winRate, overall),
+				kda: _kda(heroGames),
+				dmg10: _per10(heroGames, (g) => g.stats.dmg),
+				heal10: _per10(heroGames, (g) => g.stats.h),
+				mit10: _per10(heroGames, (g) => g.stats.mit),
+			};
+		}
+	);
+	return rows.sort((a, b) => b.games - a.games || a.hero.localeCompare(b.hero));
+}
+
+/**
+ * Compares the player with the team average and enemy average per 10 minutes
+ * Only games with a valid length and all three values read are used, so the columns
+ * are measured over the same games.
+ * @param games - Games to compare
+ */
+export function buildLobbyComparison(games: PlayerGame[]): LobbyComparisonRow[] {
+	return LOBBY_STATS.map((stat) => {
+		const usable = games.filter(
+			(g) =>
+				g.stats[stat] !== null && g.teamAvg[stat] !== null && g.enemyAvg[stat] !== null
+		);
+		return {
+			stat,
+			you: _per10(usable, (g) => g.stats[stat]),
+			team: _per10(usable, (g) => g.teamAvg[stat]),
+			enemy: _per10(usable, (g) => g.enemyAvg[stat]),
+		};
+	});
+}
+
+/**
+ * Builds per-map results
+ * @param games - Games to group
+ * @param minGames - Maps with fewer games are left out
+ * @returns Rows by win rate (descending; unreadable last), then games played
+ */
+export function buildMapStats(
+	games: PlayerGame[],
+	minGames = DEFAULT_MIN_MAP_GAMES
+): MapStatsRow[] {
+	return [..._groupBy(games, (g) => g.map)]
+		.filter(([, mapGames]) => mapGames.length >= minGames)
+		.map(([map, mapGames]) => ({ map, ..._recordStats(mapGames) }))
+		.sort(
+			(a, b) =>
+				(b.winRate ?? -1) - (a.winRate ?? -1)
+				|| b.games - a.games
+				|| a.map.localeCompare(b.map)
+		);
+}
+
+/**
+ * Builds per-mode results
+ * @param games - Games to group
+ * @returns Rows by games played (descending), then mode name
+ */
+export function buildModeStats(games: PlayerGame[]): ModeStatsRow[] {
+	return [..._groupBy(games, (g) => g.mode)]
+		.map(([mode, modeGames]) => ({ mode, ..._recordStats(modeGames) }))
+		.sort((a, b) => b.games - a.games || a.mode.localeCompare(b.mode));
+}
+
+/**
+ * Finds personal bests; ties go to the earliest game
+ * @param games - Games to search
+ */
+export function buildPersonalBests(games: PlayerGame[]): PersonalBests {
+	const best = (
+		pool: PlayerGame[],
+		value: (g: PlayerGame) => number | null,
+		better: (a: number, b: number) => boolean
+	): PersonalBest | null => {
+		let result: PersonalBest | null = null;
+		for (const game of _sorted(pool)) {
+			const v = value(game);
+			if (v !== null && (result === null || better(v, result.value))) {
+				result = { value: v, recordId: game.recordId, date: game.date };
+			}
+		}
+		return result;
+	};
+	const more = (a: number, b: number) => a > b;
+
+	return {
+		kills: best(games, (g) => g.stats.e, more),
+		damage: best(games, (g) => g.stats.dmg, more),
+		healing: best(games, (g) => g.stats.h, more),
+		fewestDeathsInWin: best(
+			games.filter((g) => g.result === 'win'),
+			(g) => g.stats.d,
+			(a, b) => a < b
+		),
+	};
+}
+
+/**
+ * Reports notable patterns; each rule needs MIN_FINDING_GAMES in every bucket
+ * - deathsSplit: win rate at or below the median deaths vs above it (MIN_DEATHS_GAP)
+ * - bestHero: best win rate among heroes vs overall (MIN_HERO_GAP)
+ * - weakestMode: lowest win rate among modes vs overall (MIN_MODE_GAP), with its worst map
+ * Win rates are over games with a readable result.
+ * @param games - Games to analyse
+ * @returns Zero or more findings, in the order above
+ */
+export function buildFindings(games: PlayerGame[]): InsightFinding[] {
+	const findings: InsightFinding[] = [];
+	const decided = games.filter((g) => g.result !== 'unknown');
+	if (decided.length < MIN_FINDING_GAMES) return findings;
+	const overallWinRate = _winRate(decided)!;
+
+	const withDeaths = decided.filter((g) => g.stats.d !== null);
+	if (withDeaths.length) {
+		const medianDeaths = _median(withDeaths.map((g) => g.stats.d!));
+		const low = withDeaths.filter((g) => g.stats.d! <= medianDeaths);
+		const high = withDeaths.filter((g) => g.stats.d! > medianDeaths);
+		if (low.length >= MIN_FINDING_GAMES && high.length >= MIN_FINDING_GAMES) {
+			const lowRate = _winRate(low)!;
+			const highRate = _winRate(high)!;
+			if (lowRate - highRate >= MIN_DEATHS_GAP) {
+				findings.push({
+					kind: 'deathsSplit',
+					medianDeaths,
+					lowDeaths: { games: low.length, winRate: lowRate },
+					highDeaths: { games: high.length, winRate: highRate },
+				});
+			}
+		}
+	}
+
+	const heroes = [..._groupBy(decided, (g) => g.hero)]
+		.filter(([, heroGames]) => heroGames.length >= MIN_FINDING_GAMES)
+		.map(([hero, heroGames]) => ({
+			hero,
+			games: heroGames.length,
+			winRate: _winRate(heroGames)!,
+		}))
+		.sort(
+			(a, b) => b.winRate - a.winRate || b.games - a.games || a.hero.localeCompare(b.hero)
+		);
+	if (heroes.length && heroes[0].winRate - overallWinRate >= MIN_HERO_GAP) {
+		findings.push({ kind: 'bestHero', ...heroes[0], overallWinRate });
+	}
+
+	const modes = [..._groupBy(decided, (g) => g.mode)]
+		.filter(([, modeGames]) => modeGames.length >= MIN_FINDING_GAMES)
+		.map(([mode, modeGames]) => ({ mode, modeGames, winRate: _winRate(modeGames)! }))
+		.sort(
+			(a, b) =>
+				a.winRate - b.winRate
+				|| b.modeGames.length - a.modeGames.length
+				|| a.mode.localeCompare(b.mode)
+		);
+	if (modes.length && overallWinRate - modes[0].winRate >= MIN_MODE_GAP) {
+		const { mode, modeGames, winRate } = modes[0];
+		const worstMap = [..._groupBy(modeGames, (g) => g.map)]
+			.filter(([, mapGames]) => mapGames.length >= MIN_WORST_MAP_GAMES)
+			.map(([map, mapGames]) => {
+				const { games, wins, losses, draws } = _recordStats(mapGames);
+				return { map, games, wins, losses, draws, winRate: _winRate(mapGames)! };
+			})
+			.sort(
+				(a, b) => a.winRate - b.winRate || b.games - a.games || a.map.localeCompare(b.map)
+			)[0];
+		findings.push({
+			kind: 'weakestMode',
+			mode,
+			games: modeGames.length,
+			winRate,
+			overallWinRate,
+			worstMap: worstMap ?? null,
+		});
+	}
+
+	return findings;
+}
+
+/**
+ * Computes every Insights section for the given filters
+ * @param records - Saved game records
+ * @param filters - Active filters
+ * @param heroes - OverFast heroes (for roles); may be empty
+ * @param now - Current time, injected for testability
+ */
+export function buildInsightsSummary(
+	records: GameRecord[],
+	filters: InsightsFilters,
+	heroes: OverFastHero[],
+	now: Date
+): InsightsSummary {
+	const all = toPlayerGames(records, filters.player, heroes);
+	const { current, previous, hasComparison } = filterGames(all, filters, now);
+
+	return {
+		filters,
+		generatedAt: now,
+		totalGames: all.length,
+		availableModes: [...new Set(all.map((g) => g.mode))].sort(),
+		headline: buildHeadline(current, previous, hasComparison),
+		trend: {
+			winRate: buildWeeklyTrend(current, 'winRate'),
+			kda: buildWeeklyTrend(current, 'kda'),
+			dmg10: buildWeeklyTrend(current, 'dmg10'),
+			heal10: buildWeeklyTrend(current, 'heal10'),
+		},
+		recentForm: buildRecentForm(current),
+		heroPool: buildHeroPool(current),
+		lobby: buildLobbyComparison(current),
+		maps: buildMapStats(current),
+		modes: buildModeStats(current),
+		personalBests: buildPersonalBests(current),
+		findings: buildFindings(current),
+	};
+}

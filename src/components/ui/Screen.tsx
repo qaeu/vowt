@@ -1,15 +1,17 @@
 import type { Component, JSXElement } from 'solid-js';
-import type { LucideIcon } from 'lucide-solid';
-import { For } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
+import { For, Show } from 'solid-js';
 
 import type { ScreenAction } from '#types';
 
 interface ScreenProps {
 	id: string;
-	title: string;
-	navActions?: () => ScreenAction[];
+	title: JSXElement;
+	/** Short line shown under the title */
+	subtitle?: string;
+	/** Buttons shown on the right of the title row */
 	screenActions?: () => ScreenAction[];
+	/** Extra controls (e.g. a menu) shown after the action buttons */
+	extraActions?: JSXElement;
 	children?: JSXElement;
 }
 
@@ -17,9 +19,15 @@ const Screen: Component<ScreenProps> = (props) => {
 	return (
 		<div id={props.id} class="screen">
 			<header>
-				<h1>{props.title}</h1>
-				<nav class="button-group nav-actions">
-					<For each={props.navActions?.()}>
+				<div class="screen__heading">
+					<h1>{props.title}</h1>
+					<Show when={props.subtitle}>
+						<p class="screen__subtitle">{props.subtitle}</p>
+					</Show>
+				</div>
+
+				<div class="button-group screen-actions">
+					<For each={props.screenActions?.()}>
 						{(action) => (
 							<button
 								id={action.id}
@@ -27,27 +35,13 @@ const Screen: Component<ScreenProps> = (props) => {
 								disabled={action.disabled?.()}
 								onClick={action.onClick}
 							>
-								<Dynamic<LucideIcon> component={action.icon} size={18} /> {action.text}
+								{action.text}
 							</button>
 						)}
 					</For>
-				</nav>
+					{props.extraActions}
+				</div>
 			</header>
-
-			<section class="button-group screen-actions">
-				<For each={props.screenActions?.()}>
-					{(action) => (
-						<button
-							id={action.id}
-							class={action.class}
-							disabled={action.disabled?.()}
-							onClick={action.onClick}
-						>
-							{action.text}
-						</button>
-					)}
-				</For>
-			</section>
 
 			<main>{props.children}</main>
 		</div>

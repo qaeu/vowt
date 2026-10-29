@@ -1,25 +1,27 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup, Switch, Match } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
-import { Sun, Moon } from 'lucide-solid';
+import { Upload } from 'lucide-solid';
 
 import ScoreboardOCR from '#c/ScoreboardOCR';
 import RegionProfileManager from '#c/RegionProfileManager';
 import GameRecordsTable from '#c/GameRecordsTable';
+import Insights from '#c/Insights';
+import AppHeader from '#c/ui/AppHeader';
+import type { ViewMode, NavView } from '#c/ui/AppHeader';
+import type { UploadBatch } from '#c/ScoreboardOCR';
 import {
 	triggerUploadDialog,
-	handleFileUpload,
+	readImageFiles,
 	loadSettings,
 	saveSettings,
 } from '#utils/storage';
 import '#styles/App';
 
-type ViewMode = 'ocr' | 'records' | 'regions';
-
 const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
-	const [uploadedImage, setUploadedImage] = createSignal<string | null>(null);
+	const [uploadBatch, setUploadBatch] = createSignal<UploadBatch | null>(null);
 	const [isDragging, setIsDragging] = createSignal(false);
+	const [openRecordId, setOpenRecordId] = createSignal<string | null>(null);
 
 	const settings = loadSettings();
 	const [isDarkMode, setIsDarkMode] = createSignal(settings.darkMode);
@@ -27,10 +29,8 @@ const App: Component = () => {
 	const handleDragOver = (e: DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		if (
-			e.dataTransfer?.items[0]?.kind === 'file'
-			&& e.dataTransfer.items[0].type.startsWith('image/')
-		) {
+		const items = Array.from(e.dataTransfer?.items ?? []);
+		if (items.some((item) => item.kind === 'file' && item.type.startsWith('image/'))) {
 			setIsDragging(true);
 		}
 	};
@@ -41,20 +41,20 @@ const App: Component = () => {
 		setIsDragging(false);
 	};
 
-	const handleDrop = (e: DragEvent) => {
+	const handleDrop = async (e: DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 		setIsDragging(false);
 
-		const file = e.dataTransfer?.files[0] as File;
 		const currentViewMode = viewMode();
-		handleFileUpload(file, (imageData) => {
-			setUploadedImage(imageData);
-			// If we're in regions view, stay in regions view; otherwise go to OCR
-			if (currentViewMode !== 'regions') {
-				setViewMode('ocr');
-			}
-		});
+		const images = await readImageFiles(e.dataTransfer?.files ?? []);
+		if (images.length === 0) return;
+
+		setUploadBatch({ images });
+		// If we're in regions view, stay in regions view; otherwise go to OCR
+		if (currentViewMode !== 'regions') {
+			setViewMode('ocr');
+		}
 	};
 
 	onMount(() => {
@@ -74,62 +74,65 @@ const App: Component = () => {
 	});
 
 	const handleUploadClick = () => {
-		triggerUploadDialog((imageData) => {
-			setUploadedImage(imageData);
+		triggerUploadDialog((images) => {
+			setUploadBatch({ images });
 			setViewMode('ocr');
 		});
 	};
 
-	const handleCloseOCR = () => {
+	const handleOpenRecord = (recordId: string) => {
+		setOpenRecordId(recordId);
 		setViewMode('records');
+	};
+
+	const handleNavigate = (view: NavView) => {
+		if (view === 'records') setOpenRecordId(null);
+		setViewMode(view);
 	};
 
 	const handleDarkMode = () => {
 		const currentDarkMode = isDarkMode();
 		setIsDarkMode(!currentDarkMode);
-		saveSettings({ ...settings, darkMode: !currentDarkMode });
+		saveSettings({ ...loadSettings(), darkMode: !currentDarkMode });
 		document.querySelector('body')?.classList.toggle('dark-theme');
 	};
 
 	return (
 		<div>
+			<AppHeader
+				viewMode={viewMode()}
+				onNavigate={handleNavigate}
+				onUploadClick={handleUploadClick}
+				isDarkMode={isDarkMode()}
+				onToggleDarkMode={handleDarkMode}
+			/>
 			{isDragging() && (
 				<div class="drag-overlay">
 					<div class="drag-overlay-content">
-						<div class="drag-overlay-icon">📤</div>
-						<div class="drag-overlay-text">Drop image here to analyze</div>
+						<div class="drag-overlay-icon">
+							<Upload size={48} />
+						</div>
+						<div class="drag-overlay-text">Drop images here to analyze</div>
 					</div>
 				</div>
 			)}
 			<Switch>
 				<Match when={viewMode() === 'ocr'}>
-					{viewMode() === 'ocr' && (
-						<ScoreboardOCR
-							uploadedImage={uploadedImage()}
-							onClose={handleCloseOCR}
-							onOpenRegionManager={() => setViewMode('regions')}
-						/>
-					)}{' '}
+					{viewMode() === 'ocr' && <ScoreboardOCR uploadBatch={uploadBatch()} />}{' '}
 				</Match>
 				<Match when={viewMode() === 'records'}>
-					<GameRecordsTable onUploadClick={handleUploadClick} />
-				</Match>
-				<Match when={viewMode() === 'regions'}>
-					<RegionProfileManager
-						previewImage={uploadedImage()}
-						onClose={() => setViewMode('ocr')}
+					<GameRecordsTable
+						onUploadClick={handleUploadClick}
+						initialExpandedId={openRecordId()}
 					/>
 				</Match>
+				<Match when={viewMode() === 'insights'}>
+					<Insights onOpenRecord={handleOpenRecord} />
+				</Match>
+				<Match when={viewMode() === 'regions'}>
+					<RegionProfileManager previewImage={uploadBatch()?.images[0] ?? null} />
+				</Match>
 			</Switch>
-
-			<button
-				title="Toggle dark mode"
-				aria-label="Toggle dark mode"
-				class="dark-mode-toggle"
-				onClick={handleDarkMode}
-			>
-				<Dynamic component={isDarkMode() ? Moon : Sun} size={18} />
-			</button>
 		</div>
 	);
 };

@@ -9,6 +9,8 @@ import type {
 	MatchInfo,
 	GameRecord,
 	ExportedGameRecords,
+	InsightsSummary,
+	ExportedInsightsSummary,
 } from '#types';
 
 interface SettingsStore extends Settings {
@@ -32,10 +34,14 @@ const SCHEMA_VERSION = 2;
 const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
 
 const SETTINGS_STORAGE_KEY = 'vowt_settings';
-const SETTINGS_SCHEMA_VERSION = 1;
+const SETTINGS_SCHEMA_VERSION = 2;
 const DEFAULT_SETTINGS: Settings = {
 	darkMode: false,
+	trackedPlayer: null,
+	lastExportedAt: null,
 };
+
+const INSIGHTS_SUMMARY_SCHEMA_VERSION = 1;
 
 export const PLAYER_STATS_NUMBER_FIELD_NAMES = [
 	'e',
@@ -86,27 +92,46 @@ function _loadStorage(): GameStore {
 	}
 }
 
-export function triggerUploadDialog(callback: (imageData: string) => void) {
+/** Reads a file as a data URL, resolving null if it cannot be read */
+function _readFileAsDataURL(file: File): Promise<string | null> {
+	return new Promise((resolve) => {
+		const reader = new FileReader();
+		reader.onload = (event) => resolve((event.target?.result as string) ?? null);
+		reader.onerror = () => {
+			console.error(`Error reading file '${file.name}':`, reader.error);
+			resolve(null);
+		};
+		reader.readAsDataURL(file);
+	});
+}
+
+/**
+ * Opens a file picker for one or more images
+ * @param callback - Receives the selected images as data URLs, in selection order
+ */
+export function triggerUploadDialog(callback: (images: string[]) => void) {
 	const input = document.createElement('input');
 	input.type = 'file';
 	input.accept = 'image/*';
-	input.onchange = (event) => {
+	input.multiple = true;
+	input.onchange = async (event) => {
 		const input = event.target as HTMLInputElement;
-		const file = input.files?.[0] as File;
-
-		handleFileUpload(file, callback);
+		const images = await readImageFiles(input.files ?? []);
+		if (images.length > 0) {
+			callback(images);
+		}
 	};
 	input.click();
 }
 
-export function handleFileUpload(file: File, callback: (imageData: string) => void) {
-	if (file && file.type.startsWith('image/')) {
-		const reader = new FileReader();
-		reader.onload = (event) => {
-			callback(event.target?.result as string);
-		};
-		reader.readAsDataURL(file);
-	}
+/**
+ * Reads image files as data URLs, skipping non-images and files that fail to read
+ * @returns Data URLs in the order the files were given
+ */
+export async function readImageFiles(files: FileList | File[]): Promise<string[]> {
+	const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+	const images = await Promise.all(imageFiles.map(_readFileAsDataURL));
+	return images.filter((image): image is string => image !== null);
 }
 
 /**
@@ -126,15 +151,48 @@ function _saveGameRecords(storage: GameStore): void {
 }
 
 /**
+ * Hashes a screenshot so a re-upload of the same file can be recognised
+ * @param image - Screenshot as a data URL
+ * @returns Hex-encoded SHA-256 of the data URL, or null if hashing is unavailable
+ */
+export async function hashScreenshot(image: string): Promise<string | null> {
+	try {
+		const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(image));
+		return Array.from(new Uint8Array(digest), (byte) =>
+			byte.toString(16).padStart(2, '0')
+		).join('');
+	} catch (error) {
+		console.error('Error hashing screenshot:', error);
+		return null;
+	}
+}
+
+/**
+ * Finds the game record read from a screenshot
+ * @param screenshotHash - Hash from hashScreenshot
+ */
+export function findGameRecordByScreenshot(
+	screenshotHash: string
+): GameRecord | undefined {
+	return _loadStorage().records.find((r) => r.screenshotHashes?.includes(screenshotHash));
+}
+
+/**
  * Save a new game record to localStorage
+ * @param screenshotHash - Hash of the source screenshot, if known
  * @returns The saved GameRecord ID
  */
-export function saveGameRecord(players: PlayerStats[], matchInfo: MatchInfo): string {
+export function saveGameRecord(
+	players: PlayerStats[],
+	matchInfo: MatchInfo,
+	screenshotHash?: string
+): string {
 	const now = new Date();
 	const record: GameRecord = {
 		id: _generateGameId(),
 		players,
 		matchInfo,
+		...(screenshotHash && { screenshotHashes: [screenshotHash] }),
 		createdAt: now,
 		updatedAt: now,
 	};
@@ -153,11 +211,13 @@ export function saveGameRecord(players: PlayerStats[], matchInfo: MatchInfo): st
 
 /**
  * Update an existing game record
+ * @param screenshotHashes - Replaces the record's screenshot hashes, if given
  */
 export function updateGameRecord(
 	id: string,
 	players: PlayerStats[],
-	matchInfo: MatchInfo
+	matchInfo: MatchInfo,
+	screenshotHashes?: string[]
 ): GameRecord | null {
 	try {
 		const stored = _loadStorage();
@@ -172,6 +232,7 @@ export function updateGameRecord(
 			...stored.records[index],
 			players,
 			matchInfo,
+			...(screenshotHashes && { screenshotHashes }),
 			updatedAt: now,
 		};
 
@@ -231,6 +292,21 @@ export function exportGameRecords(): string {
 }
 
 /**
+ * Export an insights summary as JSON string
+ * @param summary - Summary from buildInsightsSummary
+ */
+export function exportInsightsSummary(summary: InsightsSummary): string {
+	const exportData: ExportedInsightsSummary = {
+		type: 'vowt-insights-summary',
+		schemaVersion: INSIGHTS_SUMMARY_SCHEMA_VERSION,
+		exportedAt: new Date().toISOString(),
+		summary,
+	};
+
+	return JSON.stringify(exportData, null, 2);
+}
+
+/**
  * Import game records from JSON string
  */
 export function importGameRecords(jsonData: string): number {
@@ -276,6 +352,17 @@ function _sanitiseSettings(stored: unknown): Settings {
 	return {
 		darkMode:
 			typeof values.darkMode === 'boolean' ? values.darkMode : DEFAULT_SETTINGS.darkMode,
+		trackedPlayer:
+			typeof values.trackedPlayer === 'string' && values.trackedPlayer.trim() ?
+				values.trackedPlayer.trim()
+			:	DEFAULT_SETTINGS.trackedPlayer,
+		lastExportedAt:
+			(
+				typeof values.lastExportedAt === 'string'
+				&& !Number.isNaN(Date.parse(values.lastExportedAt))
+			) ?
+				values.lastExportedAt
+			:	DEFAULT_SETTINGS.lastExportedAt,
 	};
 }
 
@@ -292,8 +379,11 @@ export function loadSettings(): Settings {
 
 		const stored: unknown = JSON.parse(data);
 		const schemaVersion = (stored as Partial<SettingsStore> | null)?.schemaVersion;
-		// Settings saved before versioning have no schemaVersion and use the same fields
-		if (schemaVersion !== undefined && schemaVersion !== SETTINGS_SCHEMA_VERSION) {
+		// Older versions (and unversioned settings) are loaded with defaults for new fields
+		if (
+			schemaVersion !== undefined
+			&& !(typeof schemaVersion === 'number' && schemaVersion <= SETTINGS_SCHEMA_VERSION)
+		) {
 			console.warn(
 				`Settings storage uses schema version ${schemaVersion}, expected ${SETTINGS_SCHEMA_VERSION}`
 			);

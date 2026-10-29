@@ -51,7 +51,7 @@
 		font-weight: 400;
 		font-size: 16px;
 		color: $foreground;
-		background-color: $background;
+		background-color: $page-background;
 		background-image: radial-gradient(
 			circle at 40% -60%,
 			oklch(from get($primaries, 'sep') l c h / 0.1) 0%,
@@ -73,19 +73,17 @@
 	}
 
 	h1 {
-		font-style: italic;
-		font-weight: 300;
+		font-weight: 700;
 		font-size: 32px;
-		color: get($primaries, 'fg-light');
+		color: $foreground;
 		margin: 20px 0;
 	}
 
 	h2 {
-		font-style: italic;
-		font-weight: 400;
+		font-weight: 600;
 		font-size: 24px;
 		letter-spacing: 1px;
-		color: get($primaries, 'fg-light');
+		color: $foreground;
 		margin: 16px 0;
 	}
 
@@ -93,8 +91,20 @@
 		font-weight: 400;
 		font-size: 18px;
 		letter-spacing: 1px;
-		color: get($primaries, 'fg-light');
+		color: $foreground;
 		margin: 12px 0;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	button {
@@ -108,6 +118,12 @@
 		button {
 			flex: 1;
 		}
+	}
+
+	select,
+	input[type='search'],
+	input[type='text'] {
+		@include input-control;
 	}
 
 	input,

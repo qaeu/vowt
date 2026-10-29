@@ -1,0 +1,174 @@
+@use '../theme' as *;
+
+@layer ui {
+	.region-inspector {
+		display: grid;
+		grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
+		align-items: start;
+		gap: 20px;
+
+		@media (max-width: 700px) {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		&__list-panel,
+		&__detail {
+			@include card($surface);
+			border: 1px solid get($neutrals, 'sep');
+			padding: 12px;
+			margin-bottom: 0;
+		}
+
+		&__search {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			margin-bottom: 10px;
+			padding: 0 8px;
+			border: 1px solid get($neutrals, 'sep');
+			border-radius: 4px;
+			color: get($neutrals, 'fg-light');
+
+			&:focus-within {
+				border-color: get($primaries, 'sep-dark');
+			}
+
+			input {
+				flex: 1;
+				min-width: 0;
+				padding: 8px 0;
+				border: 0;
+				background-color: transparent;
+				color: $foreground;
+				font-size: 14px;
+
+				&:focus {
+					outline: none;
+				}
+			}
+		}
+
+		&__list {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			max-height: 420px;
+			overflow-y: auto;
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		&__item {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: 2px 8px;
+			width: 100%;
+			padding: 6px 10px;
+			text-align: left;
+			letter-spacing: normal;
+
+			&--changed {
+				border-left: 3px solid get($warnings, 'base');
+			}
+		}
+
+		&__item-name {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			color: $foreground;
+			font-family: 'Fira Mono', monospace;
+			font-size: 13px;
+		}
+
+		&__item-meta {
+			grid-column: 1;
+			font-size: 11px;
+			font-weight: 400;
+			color: get($neutrals, 'fg-light');
+		}
+
+		&__item-group {
+			grid-column: 2;
+			grid-row: 1;
+			justify-self: end;
+			padding: 1px 6px;
+			border-radius: 4px;
+			background-color: get($warnings, 'highlight');
+			color: get($warnings, 'fg-light');
+			font-size: 11px;
+		}
+
+		&__changed {
+			grid-column: 2;
+			justify-self: end;
+			color: get($warnings, 'fg-light');
+			font-size: 11px;
+			font-weight: 600;
+		}
+
+		&__empty {
+			margin: 0;
+			padding: 20px 10px;
+			text-align: center;
+			color: get($neutrals, 'fg-light');
+			font-size: 14px;
+		}
+
+		&__fields {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+
+		&__row {
+			display: grid;
+			grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+			gap: 10px;
+
+			&--position {
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+			}
+		}
+
+		&__field {
+			@include field;
+
+			input[type='text'] {
+				padding: 8px;
+				border: 1px solid get($neutrals, 'sep');
+				border-radius: 4px;
+				font-size: 14px;
+			}
+		}
+
+		&__check {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			align-self: flex-start;
+			padding: 4px 6px;
+			border-radius: 4px;
+			font-size: 14px;
+			cursor: pointer;
+
+			&--modified {
+				background-color: get($warnings, 'highlight');
+			}
+		}
+
+		&__actions {
+			display: flex;
+			justify-content: flex-end;
+			padding-top: 8px;
+			border-top: 1px solid get($neutrals, 'sep');
+
+			button {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+			}
+		}
+	}
+}

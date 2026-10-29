@@ -1,0 +1,52 @@
+@use '../theme' as *;
+
+@layer ui {
+	.team-scoreboard {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+		gap: 20px;
+
+		&__table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 14px;
+
+			&--blue {
+				--team-colour: #{$primary};
+			}
+
+			&--red {
+				--team-colour: #{get($errors, 'base')};
+			}
+
+			th,
+			td {
+				padding: 6px 8px;
+				text-align: left;
+				border-bottom: 1px solid get($neutrals, 'sep');
+			}
+
+			thead th {
+				font-size: 12px;
+				color: get($neutrals, 'fg-light');
+				border-bottom-color: var(--team-colour);
+			}
+		}
+
+		&__caption {
+			text-align: left;
+			font-weight: 700;
+			padding: 0 8px 6px;
+			color: var(--team-colour);
+		}
+
+		&__player {
+			font-weight: 600;
+		}
+
+		&__table &__stat {
+			text-align: right;
+			font-family: 'Fira Mono', monospace;
+		}
+	}
+}

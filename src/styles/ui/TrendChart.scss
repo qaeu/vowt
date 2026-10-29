@@ -1,0 +1,59 @@
+@use '../theme' as *;
+
+@layer ui {
+	.trend-chart {
+		display: block;
+		width: 100%;
+		height: 220px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.trend-chart__empty {
+		margin: 0;
+		padding: 40px 0;
+		text-align: center;
+		color: get($neutrals, 'fg-light');
+	}
+
+	.trend-chart__grid {
+		stroke: get($neutrals, 'highlight');
+		stroke-width: 1px;
+	}
+
+	.trend-chart__reference {
+		stroke: get($greys, 'sep-dark');
+		stroke-width: 1px;
+		stroke-dasharray: 4 4;
+	}
+
+	.trend-chart__axis-label {
+		fill: get($neutrals, 'fg-light');
+		font-family: 'Fira Mono', monospace;
+		font-size: 11px;
+	}
+
+	.trend-chart__bar {
+		fill: get($greys, 'sep');
+		opacity: 0.35;
+	}
+
+	.trend-chart__line {
+		fill: none;
+		stroke: get($primaries, 'base');
+		stroke-width: 2.5px;
+		stroke-linejoin: round;
+		stroke-linecap: round;
+	}
+
+	.trend-chart__line--gap {
+		stroke-width: 2px;
+		stroke-dasharray: 3 5;
+		opacity: 0.6;
+	}
+
+	.trend-chart__point {
+		fill: get($primaries, 'base');
+		stroke: $surface;
+		stroke-width: 1.5px;
+	}
+}

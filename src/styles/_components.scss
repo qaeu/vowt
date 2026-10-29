@@ -1,10 +1,16 @@
+@use 'ui/AppHeader';
 @use 'ui/Screen';
 @use 'ui/EditableGameData';
-@use 'ui/EditableRegionsData';
+@use 'ui/RegionInspector';
 @use 'ui/AlignmentGroupsEditor';
 @use 'ui/RecordFieldInput';
 @use 'ui/AlertDialog';
 @use 'ui/Toaster';
+@use 'ui/BarMeter';
+@use 'ui/TrendChart';
+@use 'ui/TeamScoreboard';
+@use 'ui/DropZone';
 @use 'GameRecordsTable';
 @use 'RegionProfileManager';
 @use 'ScoreboardOCR';
+@use 'Insights';

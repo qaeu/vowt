@@ -3,9 +3,8 @@
 @layer ui {
 	.screen {
 		header {
-			display: flex;
+			@include toolbar(16px);
 			justify-content: space-between;
-			align-items: center;
 			margin: 20px 0 30px;
 
 			h1 {
@@ -13,28 +12,23 @@
 			}
 		}
 
-		:where(section.button-group, header) button {
+		&__subtitle {
+			margin: 4px 0 0;
+			font-size: 14px;
+			color: get($neutrals, 'fg-light');
+		}
+
+		header button {
 			font-size: 14px;
 		}
 
-		.nav-actions {
+		.screen-actions {
 			flex-wrap: wrap;
-			max-width: calc(66% - 40px);
-			justify-content: right;
+			justify-content: flex-end;
 
 			button {
-				flex: 0 0 150px;
-				display: flex;
-				align-items: center;
-				gap: 4px;
-				padding: 11px 18px;
-				text-wrap: nowrap;
-				text-align: left;
+				flex: 0 0 auto;
 			}
-		}
-
-		.screen-actions {
-			margin: 15px 4px;
 		}
 
 		main {

@@ -20,7 +20,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "blue_player1_e",
@@ -28,7 +29,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "blue_player1_a",
@@ -36,6 +38,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 290
 			},
 			{
@@ -44,6 +47,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 290
 			},
 			{
@@ -52,6 +56,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 290
 			},
 			{
@@ -60,6 +65,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 290
 			},
 			{
@@ -68,6 +74,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 290
 			},
 			{
@@ -85,7 +92,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "blue_player2_e",
@@ -93,7 +101,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "blue_player2_a",
@@ -101,6 +110,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 370
 			},
 			{
@@ -109,6 +119,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 370
 			},
 			{
@@ -117,6 +128,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 370
 			},
 			{
@@ -125,6 +137,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 370
 			},
 			{
@@ -133,6 +146,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 370
 			},
 			{
@@ -150,7 +164,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "blue_player3_e",
@@ -158,7 +173,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "blue_player3_a",
@@ -166,6 +182,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 450
 			},
 			{
@@ -174,6 +191,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 450
 			},
 			{
@@ -182,6 +200,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 450
 			},
 			{
@@ -190,6 +209,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 450
 			},
 			{
@@ -198,6 +218,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 450
 			},
 			{
@@ -215,7 +236,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "blue_player4_e",
@@ -223,7 +245,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "blue_player4_a",
@@ -231,6 +254,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 530
 			},
 			{
@@ -239,6 +263,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 530
 			},
 			{
@@ -247,6 +272,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 530
 			},
 			{
@@ -255,6 +281,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 530
 			},
 			{
@@ -263,6 +290,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 530
 			},
 			{
@@ -280,7 +308,8 @@
 				"width": 240,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "blue_player5_e",
@@ -288,7 +317,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "blue_player5_a",
@@ -296,6 +326,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 610
 			},
 			{
@@ -304,6 +335,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 610
 			},
 			{
@@ -312,6 +344,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 610
 			},
 			{
@@ -320,6 +353,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 610
 			},
 			{
@@ -328,6 +362,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 610
 			},
 			{
@@ -345,7 +380,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "red_player1_e",
@@ -353,7 +389,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "red_player1_a",
@@ -361,6 +398,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 810
 			},
 			{
@@ -369,6 +407,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 810
 			},
 			{
@@ -377,6 +416,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 810
 			},
 			{
@@ -385,6 +425,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 810
 			},
 			{
@@ -393,6 +434,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 810
 			},
 			{
@@ -410,7 +452,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "red_player2_e",
@@ -418,7 +461,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "red_player2_a",
@@ -426,6 +470,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 890
 			},
 			{
@@ -434,6 +479,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 890
 			},
 			{
@@ -442,6 +488,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 890
 			},
 			{
@@ -450,6 +497,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 890
 			},
 			{
@@ -458,6 +506,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 890
 			},
 			{
@@ -475,7 +524,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "red_player3_e",
@@ -483,7 +533,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "red_player3_a",
@@ -491,6 +542,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 970
 			},
 			{
@@ -499,6 +551,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 970
 			},
 			{
@@ -507,6 +560,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 970
 			},
 			{
@@ -515,6 +569,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 970
 			},
 			{
@@ -523,6 +578,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 970
 			},
 			{
@@ -540,7 +596,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "red_player4_e",
@@ -548,7 +605,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "red_player4_a",
@@ -556,6 +614,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 1050
 			},
 			{
@@ -564,6 +623,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 1050
 			},
 			{
@@ -572,6 +632,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 1050
 			},
 			{
@@ -580,6 +641,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 1050
 			},
 			{
@@ -588,6 +650,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 1050
 			},
 			{
@@ -605,7 +668,8 @@
 				"width": 300,
 				"height": 60,
 				"charSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-				"isItalic": true
+				"isItalic": true,
+				"isolateText": "name"
 			},
 			{
 				"name": "red_player5_e",
@@ -613,7 +677,8 @@
 				"x": 930,
 				"width": 70,
 				"height": 60,
-				"charSet": "0123456789"
+				"charSet": "0123456789",
+				"isolateText": "number"
 			},
 			{
 				"name": "red_player5_a",
@@ -621,6 +686,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 1130
 			},
 			{
@@ -629,6 +695,7 @@
 				"width": 70,
 				"height": 60,
 				"charSet": "0123456789",
+				"isolateText": "number",
 				"y": 1130
 			},
 			{
@@ -637,6 +704,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 1130
 			},
 			{
@@ -645,6 +713,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 1130
 			},
 			{
@@ -653,6 +722,7 @@
 				"width": 135,
 				"height": 60,
 				"charSet": "0123456789,",
+				"isolateText": "number",
 				"y": 1130
 			},
 			{
@@ -666,7 +736,7 @@
 		],
 		"hashSets": [],
 		"createdAt": "2025-11-28T00:00:00.000Z",
-		"updatedAt": "2025-11-28T00:00:00.000Z"
+		"updatedAt": "2026-10-28T18:00:00.000Z"
 	},
 	"exportedAt": "2025-11-28T00:00:00.000Z"
 }

@@ -23,6 +23,7 @@ const NAME_TAG: Omit<TextRegion, 'name' | 'y'> = {
 	height: 60,
 	charSet: A_TO_Z + ZERO_TO_NINE,
 	isItalic: true,
+	isolateText: 'name',
 };
 
 const EAD: Omit<TextRegion, 'name' | 'y'> = {
@@ -30,6 +31,7 @@ const EAD: Omit<TextRegion, 'name' | 'y'> = {
 	width: 67,
 	height: NAME_TAG.height,
 	charSet: ZERO_TO_NINE,
+	isolateText: 'number',
 };
 
 const STATLINE: Omit<TextRegion, 'name' | 'y'> = {
@@ -37,6 +39,7 @@ const STATLINE: Omit<TextRegion, 'name' | 'y'> = {
 	width: 128,
 	height: NAME_TAG.height,
 	charSet: ZERO_TO_NINE + COMMA,
+	isolateText: 'number',
 };
 
 const MATCH_INFO: Omit<TextRegion, 'name' | 'height'> = {

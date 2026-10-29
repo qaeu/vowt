@@ -2,28 +2,104 @@
 @use 'theme' as *;
 
 @layer override {
-	button#delete-all-records {
-		@include button($errors);
-		font-size: 14px;
+	#game-records-screen .more-actions-trigger {
+		@include icon-button;
 	}
 }
 
 @layer screen {
-	@scope (#game-records-screen) to (.expanded-details) {
-		.records-header {
-			@include shadow;
-			position: sticky;
-			z-index: 1;
-			top: 0;
+	// The more-actions menu is portalled outside the screen
+	.more-actions-menu {
+		@include shadow;
+		display: flex;
+		flex-direction: column;
+		min-width: 200px;
+		padding: 4px;
+		z-index: 50;
+		background-color: $surface;
+		border: 1px solid get($neutrals, 'sep');
+		border-radius: 6px;
+
+		&[hidden] {
+			display: none;
+		}
+
+		&__item {
+			padding: 8px 12px;
+			border-radius: 4px;
+			font-size: 14px;
+			cursor: pointer;
+
+			&[data-highlighted] {
+				background-color: get($neutrals, 'highlight');
+			}
+
+			&[data-disabled] {
+				opacity: 0.5;
+				cursor: default;
+			}
+
+			&--danger {
+				color: get($errors, 'fg-light');
+			}
 		}
 	}
 
 	#game-records-screen {
 		@include container;
 
-		.empty-state {
-			@include card($background);
+		.records-toolbar {
+			@include toolbar(10px);
+			margin-bottom: 20px;
 
+			&__search {
+				@include input-control;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				flex: 1 1 260px;
+				max-width: 480px;
+				color: get($neutrals, 'fg-light');
+
+				&:focus-within {
+					outline: 2px solid $primary;
+					outline-offset: 1px;
+				}
+
+				input {
+					flex: 1;
+					min-width: 0;
+					height: 100%;
+					padding: 0;
+					border: 0;
+					background: transparent;
+					outline: none;
+					font-family: inherit;
+					font-size: 14px;
+				}
+			}
+
+			&__results {
+				display: flex;
+				gap: 6px;
+			}
+
+			&__mode {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-size: 14px;
+				color: get($neutrals, 'fg-light');
+			}
+		}
+
+		.empty-state {
+			@include card($surface);
+
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 12px;
 			padding: 40px;
 			text-align: center;
 			color: get($neutrals, 'fg-light');
@@ -35,29 +111,30 @@
 		}
 
 		.records-table-wrapper {
-			@include card(get($neutrals, 'bg-light'));
+			@include card;
 			padding: 0;
 			contain: paint;
+			overflow-x: auto;
 
 			.records-list {
 				display: grid;
-				grid-template-columns: 2fr 1fr 1fr 2fr 3fr auto;
+				grid-template-columns: 1.5fr 1fr 1fr 1.5fr 2fr 1fr auto;
+				min-width: 640px;
 			}
 
 			.records-header {
 				grid-column: 1 / -1;
 				display: grid;
 				grid-template-columns: subgrid;
-				background-color: get($greys, 'base');
-				color: $white;
+				border-bottom: 1px solid get($neutrals, 'sep-light');
+				color: get($neutrals, 'fg-light');
+				font-size: 12px;
+				font-weight: 600;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
 
 				> div {
 					padding: 12px;
-					font-weight: bold;
-
-					&.center {
-						text-align: center;
-					}
 				}
 			}
 
@@ -72,7 +149,11 @@
 				}
 
 				&.expanded {
-					background-color: $background;
+					background-color: $surface;
+
+					.record-cell--chevron svg {
+						transform: rotate(180deg);
+					}
 				}
 			}
 
@@ -80,25 +161,41 @@
 				grid-column: 1 / -1;
 				display: grid;
 				grid-template-columns: subgrid;
+				align-items: center;
+				padding: 0;
+				border: none;
+				border-radius: 0;
+				background: none;
+				box-shadow: none;
+				filter: none;
+				backdrop-filter: none;
+				font: inherit;
+				letter-spacing: normal;
+				text-align: left;
+				color: inherit;
 				cursor: pointer;
 				user-select: none;
+
+				&:hover {
+					background-color: get($neutrals, 'highlight');
+				}
 
 				.record-cell {
 					padding: 12px;
 
-					&.center {
-						text-align: center;
-					}
-				}
+					&--chevron {
+						display: flex;
 
-				.delete-button {
-					@include button-small($errors);
+						svg {
+							transition: transform $toggle-animation-dur ease;
+						}
+					}
 				}
 			}
 		}
 
 		.result-badge {
-			@include badge($background);
+			@include badge($surface);
 
 			&:not(.empty)::after {
 				content: '';
@@ -147,45 +244,25 @@
 		}
 
 		.expanded-details {
-			background-color: $background;
+			background-color: $surface;
 			overflow: hidden;
 			opacity: 0;
 			transition: opacity $toggle-animation-dur cubic-bezier(0.2, 1, 0.75, 1);
 			min-height: 0;
+
+			&__actions {
+				@include toolbar(10px);
+				justify-content: flex-end;
+				padding: 12px 20px 20px;
+			}
 		}
 
 		.record-expanded-row.expanded .expanded-details {
 			opacity: 1;
 		}
 
-		.expanded-details h3 {
-			color: $foreground;
-			margin-top: 0;
-		}
-
-		.expanded-details h4 {
-			color: $foreground;
-			margin-bottom: 10px;
-		}
-
-		.expanded-details h5 {
-			margin-bottom: 10px;
-
-			&.blue-team {
-				color: $primary;
-			}
-
-			&.red-team {
-				color: get($errors, 'base');
-			}
-		}
-
-		.expanded-details .game-info {
-			margin-bottom: 15px;
-
-			strong {
-				font-weight: bold;
-			}
+		.expanded-details > .team-scoreboard {
+			padding: 20px 20px 0;
 		}
 	}
 }

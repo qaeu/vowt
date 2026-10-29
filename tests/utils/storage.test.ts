@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import type { PlayerStats, MatchInfo } from '#types';
+import type { PlayerStats, MatchInfo, InsightsSummary } from '#types';
 import {
 	loadGameRecords,
 	saveGameRecord,
@@ -11,7 +11,11 @@ import {
 	importGameRecords,
 	loadSettings,
 	saveSettings,
-	handleFileUpload,
+	readImageFiles,
+	triggerUploadDialog,
+	hashScreenshot,
+	findGameRecordByScreenshot,
+	exportInsightsSummary,
 } from '#utils/storage';
 
 describe('storage', () => {
@@ -185,6 +189,84 @@ describe('storage', () => {
 		const records = loadGameRecords();
 		expect(records).toEqual([]);
 	});
+
+	describe('screenshot hashes', () => {
+		const image = 'data:image/png;base64,screenshot';
+
+		describe('hashScreenshot', () => {
+			it('should return a hex SHA-256 digest', async () => {
+				expect(await hashScreenshot(image)).toMatch(/^[0-9a-f]{64}$/);
+			});
+
+			it('should return the same hash for the same screenshot', async () => {
+				expect(await hashScreenshot(image)).toBe(await hashScreenshot(image));
+			});
+
+			it('should return different hashes for different screenshots', async () => {
+				expect(await hashScreenshot(image)).not.toBe(
+					await hashScreenshot('data:image/png;base64,other')
+				);
+			});
+
+			it('should return null when hashing fails', async () => {
+				vi.spyOn(console, 'error').mockImplementation(() => {});
+				vi.spyOn(crypto.subtle, 'digest').mockRejectedValueOnce(new Error('No crypto'));
+				expect(await hashScreenshot(image)).toBeNull();
+				vi.restoreAllMocks();
+			});
+		});
+
+		describe('findGameRecordByScreenshot', () => {
+			it('should find the record saved with a screenshot hash', () => {
+				saveGameRecord(mockPlayers, mockMatchInfo);
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+			});
+
+			it('should return undefined when no record matches', () => {
+				saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				expect(findGameRecordByScreenshot('def456')).toBeUndefined();
+			});
+
+			it('should not store a hash when none is given', () => {
+				saveGameRecord(mockPlayers, mockMatchInfo);
+				expect(loadGameRecords()[0]).not.toHaveProperty('screenshotHashes');
+			});
+
+			it('should keep the hash through export and import', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				const exported = exportGameRecords();
+				clearAllGameRecords();
+
+				importGameRecords(exported);
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+			});
+
+			it('should keep the hash when the record is updated', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				updateGameRecord(recordId, [], mockMatchInfo);
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+			});
+
+			it('should find a record by any of its screenshots', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				updateGameRecord(recordId, mockPlayers, mockMatchInfo, ['abc123', 'def456']);
+
+				expect(findGameRecordByScreenshot('abc123')?.id).toBe(recordId);
+				expect(findGameRecordByScreenshot('def456')?.id).toBe(recordId);
+			});
+
+			it('should replace the hashes when updating with new ones', () => {
+				const recordId = saveGameRecord(mockPlayers, mockMatchInfo, 'abc123');
+				updateGameRecord(recordId, mockPlayers, mockMatchInfo, []);
+
+				expect(findGameRecordByScreenshot('abc123')).toBeUndefined();
+			});
+		});
+	});
 });
 
 describe('settings storage', () => {
@@ -194,32 +276,136 @@ describe('settings storage', () => {
 
 	it('should return default settings when none are stored', () => {
 		const settings = loadSettings();
-		expect(settings).toEqual({ darkMode: false });
+		expect(settings).toEqual({
+			darkMode: false,
+			trackedPlayer: null,
+			lastExportedAt: null,
+		});
 	});
 
 	it('should save and load settings', () => {
-		saveSettings({ darkMode: true });
+		saveSettings({ darkMode: true, trackedPlayer: null, lastExportedAt: null });
 		const settings = loadSettings();
 		expect(settings.darkMode).toBe(true);
 	});
 
 	it('should overwrite previously saved settings', () => {
-		saveSettings({ darkMode: true });
-		saveSettings({ darkMode: false });
+		saveSettings({ darkMode: true, trackedPlayer: null, lastExportedAt: null });
+		saveSettings({ darkMode: false, trackedPlayer: null, lastExportedAt: null });
 		const settings = loadSettings();
 		expect(settings.darkMode).toBe(false);
 	});
 
 	it('should store a schema version with the settings', () => {
-		saveSettings({ darkMode: true });
+		saveSettings({ darkMode: true, trackedPlayer: null, lastExportedAt: null });
 		const stored = JSON.parse(localStorage.getItem('vowt_settings')!);
-		expect(stored).toEqual({ schemaVersion: 1, darkMode: true });
+		expect(stored).toEqual({
+			schemaVersion: 2,
+			darkMode: true,
+			trackedPlayer: null,
+			lastExportedAt: null,
+		});
 	});
 
 	it('should return a fresh copy of the defaults', () => {
 		const settings = loadSettings();
 		settings.darkMode = true;
 		expect(loadSettings().darkMode).toBe(false);
+	});
+
+	describe('lastExportedAt', () => {
+		beforeEach(() => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('should default to null', () => {
+			expect(loadSettings().lastExportedAt).toBeNull();
+		});
+
+		it('should save and load a timestamp', () => {
+			const iso = '2026-01-02T03:04:05.000Z';
+			saveSettings({ ...loadSettings(), lastExportedAt: iso });
+			expect(loadSettings().lastExportedAt).toBe(iso);
+		});
+
+		it('should migrate settings stored with an older schema version', () => {
+			localStorage.setItem(
+				'vowt_settings',
+				'{"schemaVersion":1,"darkMode":true,"trackedPlayer":"Bob"}'
+			);
+			expect(loadSettings()).toEqual({
+				darkMode: true,
+				trackedPlayer: 'Bob',
+				lastExportedAt: null,
+			});
+			expect(console.warn).not.toHaveBeenCalled();
+		});
+
+		it.each([['5'], ['"not a date"'], ['null']])(
+			'should fall back to null for %s',
+			(v) => {
+				localStorage.setItem('vowt_settings', `{"lastExportedAt":${v}}`);
+				expect(loadSettings().lastExportedAt).toBeNull();
+			}
+		);
+	});
+
+	describe('trackedPlayer', () => {
+		beforeEach(() => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('should default to null', () => {
+			expect(loadSettings().trackedPlayer).toBeNull();
+		});
+
+		it('should save and load a tracked player', () => {
+			saveSettings({ darkMode: false, trackedPlayer: 'ALICE', lastExportedAt: null });
+			expect(loadSettings().trackedPlayer).toBe('ALICE');
+			const stored = JSON.parse(localStorage.getItem('vowt_settings')!);
+			expect(stored.schemaVersion).toBe(2);
+		});
+
+		it('should keep the tracked player when dark mode changes', () => {
+			saveSettings({ darkMode: false, trackedPlayer: 'ALICE', lastExportedAt: null });
+			saveSettings({ ...loadSettings(), darkMode: true });
+			expect(loadSettings()).toEqual({
+				darkMode: true,
+				trackedPlayer: 'ALICE',
+				lastExportedAt: null,
+			});
+		});
+
+		it('should trim the stored name', () => {
+			localStorage.setItem('vowt_settings', '{"trackedPlayer":"  Bob "}');
+			expect(loadSettings().trackedPlayer).toBe('Bob');
+		});
+
+		it.each([['""'], ['"   "'], ['5'], ['true'], ['{}'], ['null']])(
+			'should fall back to null for %s',
+			(value) => {
+				localStorage.setItem('vowt_settings', `{"trackedPlayer":${value}}`);
+				expect(loadSettings().trackedPlayer).toBeNull();
+			}
+		);
+
+		it('should load settings saved before trackedPlayer existed', () => {
+			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":true}');
+			expect(loadSettings()).toEqual({
+				darkMode: true,
+				trackedPlayer: null,
+				lastExportedAt: null,
+			});
+			expect(console.warn).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('invalid stored settings', () => {
@@ -234,34 +420,58 @@ describe('settings storage', () => {
 
 		it('should return defaults for corrupt JSON', () => {
 			localStorage.setItem('vowt_settings', '{not json');
-			expect(loadSettings()).toEqual({ darkMode: false });
+			expect(loadSettings()).toEqual({
+				darkMode: false,
+				trackedPlayer: null,
+				lastExportedAt: null,
+			});
 			expect(console.error).toHaveBeenCalled();
 		});
 
 		it('should return defaults for a non-object value', () => {
 			localStorage.setItem('vowt_settings', 'null');
-			expect(loadSettings()).toEqual({ darkMode: false });
+			expect(loadSettings()).toEqual({
+				darkMode: false,
+				trackedPlayer: null,
+				lastExportedAt: null,
+			});
 		});
 
 		it('should use defaults for fields with the wrong type', () => {
 			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":"yes"}');
-			expect(loadSettings()).toEqual({ darkMode: false });
+			expect(loadSettings()).toEqual({
+				darkMode: false,
+				trackedPlayer: null,
+				lastExportedAt: null,
+			});
 		});
 
 		it('should ignore unknown fields', () => {
 			localStorage.setItem('vowt_settings', '{"schemaVersion":1,"darkMode":true,"x":1}');
-			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(loadSettings()).toEqual({
+				darkMode: true,
+				trackedPlayer: null,
+				lastExportedAt: null,
+			});
 		});
 
 		it('should load unversioned settings', () => {
 			localStorage.setItem('vowt_settings', '{"darkMode":true}');
-			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(loadSettings()).toEqual({
+				darkMode: true,
+				trackedPlayer: null,
+				lastExportedAt: null,
+			});
 			expect(console.warn).not.toHaveBeenCalled();
 		});
 
 		it('should warn about an unexpected schema version', () => {
 			localStorage.setItem('vowt_settings', '{"schemaVersion":99,"darkMode":true}');
-			expect(loadSettings()).toEqual({ darkMode: true });
+			expect(loadSettings()).toEqual({
+				darkMode: true,
+				trackedPlayer: null,
+				lastExportedAt: null,
+			});
 			expect(console.warn).toHaveBeenCalled();
 		});
 
@@ -269,44 +479,132 @@ describe('settings storage', () => {
 			vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
 				throw new Error('QuotaExceededError');
 			});
-			expect(() => saveSettings({ darkMode: true })).not.toThrow();
+			expect(() =>
+				saveSettings({ darkMode: true, trackedPlayer: null, lastExportedAt: null })
+			).not.toThrow();
 			expect(console.error).toHaveBeenCalled();
 		});
 	});
 });
 
-describe('handleFileUpload', () => {
-	it('should call callback with data URL for a valid image file', async () => {
-		const fakeDataUrl = 'data:image/png;base64,cGl4ZWw=';
-		const mockFileReader = {
-			readAsDataURL: vi.fn(function (this: typeof mockFileReader) {
-				this.onload?.({
-					target: { result: fakeDataUrl },
-				} as unknown as ProgressEvent<FileReader>);
-			}),
-			onload: null as ((event: ProgressEvent<FileReader>) => void) | null,
-		};
-		vi.spyOn(globalThis, 'FileReader').mockImplementation(function () {
-			return mockFileReader as unknown as FileReader;
-		});
+describe('exportInsightsSummary', () => {
+	const summary = {
+		filters: {
+			player: 'ALICE',
+			period: 'all',
+			compare: 'none',
+			role: 'all',
+			mode: 'all',
+		},
+		generatedAt: new Date('2025-03-01T00:00:00.000Z'),
+		totalGames: 0,
+	} as unknown as InsightsSummary;
 
-		const callback = vi.fn();
-		const file = new File(['pixel'], 'test.png', { type: 'image/png' });
+	it('should wrap the summary with type, schema version and timestamp', () => {
+		const parsed = JSON.parse(exportInsightsSummary(summary));
+		expect(parsed.type).toBe('vowt-insights-summary');
+		expect(parsed.schemaVersion).toBe(1);
+		expect(parsed.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+		expect(parsed.summary.filters.player).toBe('ALICE');
+		expect(parsed.summary.generatedAt).toBe('2025-03-01T00:00:00.000Z');
+	});
 
-		handleFileUpload(file, callback);
+	it('should use the current time for exportedAt', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2025-06-01T12:00:00.000Z'));
+		try {
+			expect(JSON.parse(exportInsightsSummary(summary)).exportedAt).toBe(
+				'2025-06-01T12:00:00.000Z'
+			);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
 
-		expect(callback).toHaveBeenCalledOnce();
-		expect(callback).toHaveBeenCalledWith(fakeDataUrl);
+describe('upload helpers', () => {
+	const png = (name: string, content = name) =>
+		new File([content], name, { type: 'image/png' });
+	const toDataURL = (content: string) =>
+		`data:image/png;base64,${Buffer.from(content).toString('base64')}`;
 
+	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
-	it('should not call callback for a non-image file', () => {
-		const callback = vi.fn();
-		const file = new File(['text'], 'document.txt', { type: 'text/plain' });
+	describe('readImageFiles', () => {
+		it('should read multiple images as data URLs in the given order', async () => {
+			const images = await readImageFiles([png('a.png'), png('b.png'), png('c.png')]);
+			expect(images).toEqual([
+				toDataURL('a.png'),
+				toDataURL('b.png'),
+				toDataURL('c.png'),
+			]);
+		});
 
-		handleFileUpload(file, callback);
+		it('should skip non-image files', async () => {
+			const text = new File(['text'], 'notes.txt', { type: 'text/plain' });
+			const images = await readImageFiles([text, png('a.png')]);
+			expect(images).toEqual([toDataURL('a.png')]);
+		});
 
-		expect(callback).not.toHaveBeenCalled();
+		it('should return an empty list when no files are given', async () => {
+			expect(await readImageFiles([])).toEqual([]);
+		});
+
+		it('should skip files that fail to read', async () => {
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			const OriginalFileReader = globalThis.FileReader;
+			let calls = 0;
+			vi.spyOn(globalThis, 'FileReader').mockImplementation(function () {
+				const reader = new OriginalFileReader();
+				if (calls++ === 0) {
+					reader.readAsDataURL = function () {
+						this.onerror?.(new ProgressEvent('error') as ProgressEvent<FileReader>);
+					};
+				}
+				return reader;
+			});
+
+			const images = await readImageFiles([png('broken.png'), png('b.png')]);
+
+			expect(images).toEqual([toDataURL('b.png')]);
+			expect(console.error).toHaveBeenCalled();
+		});
+	});
+
+	describe('triggerUploadDialog', () => {
+		const openDialog = (files: File[]) => {
+			const input = document.createElement('input');
+			vi.spyOn(document, 'createElement').mockReturnValue(input);
+			vi.spyOn(input, 'click').mockImplementation(() => {});
+			const callback = vi.fn();
+
+			triggerUploadDialog(callback);
+			Object.defineProperty(input, 'files', { value: files });
+			input.dispatchEvent(new Event('change'));
+
+			return { input, callback };
+		};
+
+		it('should allow selecting multiple images', () => {
+			const { input } = openDialog([]);
+			expect.soft(input.type).toBe('file');
+			expect.soft(input.accept).toBe('image/*');
+			expect.soft(input.multiple).toBe(true);
+		});
+
+		it('should pass all selected images to the callback', async () => {
+			const { callback } = openDialog([png('a.png'), png('b.png')]);
+			await vi.waitFor(() => expect(callback).toHaveBeenCalledOnce());
+			expect(callback).toHaveBeenCalledWith([toDataURL('a.png'), toDataURL('b.png')]);
+		});
+
+		it('should not call the callback when no images are selected', async () => {
+			const text = new File(['text'], 'notes.txt', { type: 'text/plain' });
+			const { callback } = openDialog([text]);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(callback).not.toHaveBeenCalled();
+		});
 	});
 });

@@ -2,7 +2,7 @@
 
 @layer ui {
 	.editable-data-container {
-		@include card($background);
+		@include card($surface);
 
 		box-shadow: none;
 		padding: 20px;
@@ -97,7 +97,7 @@
 			border-collapse: collapse;
 
 			thead tr {
-				background-color: $background;
+				background-color: $surface;
 				border-bottom: 2px solid get($neutrals, 'sep');
 
 				th.hero-column,

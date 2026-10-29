@@ -1,24 +1,29 @@
 import {
+	createEffect,
 	createSignal,
 	createUniqueId,
 	For,
 	Index,
 	onCleanup,
+	onMount,
 	Show,
 	type Component,
 } from 'solid-js';
 
 import type { PlayerStats, MatchInfo } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
+import { DEFAULT_HASH_SETS } from '#data/hashSets';
 import { getHeroNames, getMapNames } from '#utils/gameData';
 import { loadOverFastData } from '#utils/overfastApi';
-import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
+import { buildNameLexicon } from '#utils/playerNames';
+import { PLAYER_STATS_NUMBER_FIELD_NAMES, loadGameRecords } from '#utils/storage';
 
 interface TeamDataTableProps {
 	players: () => PlayerStats[];
 	savedPlayers: () => PlayerStats[];
 	team: PlayerStats['team'];
 	heroListId?: string;
+	nameListId?: string;
 	isNewRecord?: boolean;
 	onPlayerUpdate: <K extends keyof PlayerStats>(
 		index: number,
@@ -68,6 +73,7 @@ const TeamDataTable: Component<TeamDataTableProps> = (props) => {
 							<td class="name-column">
 								<RecordFieldInput
 									staticId={`${props.team}-player-${index}-name`}
+									staticListId={props.nameListId}
 									initialValue={props.players()[index]?.name ?? ''}
 									baseline={() => props.savedPlayers()[index]?.name ?? ''}
 									onInput={(value) => props.onPlayerUpdate(index, 'name', value)}
@@ -121,15 +127,25 @@ interface EditableGameDataProps {
 	initialPlayers: PlayerStats[];
 	initialMatchInfo: MatchInfo;
 	showActions?: boolean;
+	/** Called with whether any field differs from the last saved state */
+	onDirtyChange?: (dirty: boolean) => void;
+	/** Hands the parent save and reset functions, for controls rendered outside the editor */
+	registerActions?: (actions: { save: () => void; reset: () => void }) => void;
 	onSave: (players: PlayerStats[], matchInfo: MatchInfo) => void;
 }
 
 const EditableGameData: Component<EditableGameDataProps> = (props) => {
 	const overFastData = loadOverFastData();
-	const heroNames = getHeroNames(overFastData);
+	// Without downloaded OverFast data, offer the heroes the app can recognise by portrait
+	const heroNames =
+		getHeroNames(overFastData).length > 0 ?
+			getHeroNames(overFastData)
+		:	[...new Set(DEFAULT_HASH_SETS.flatMap((set) => set.hashes.map((h) => h.name)))];
 	const mapNames = getMapNames(overFastData);
+	const playerNames = buildNameLexicon(loadGameRecords());
 	const uniqueId = createUniqueId();
 	const heroListId = `${uniqueId}-hero-list`;
+	const nameListId = `${uniqueId}-name-list`;
 	const mapListId = `${uniqueId}-map-list`;
 
 	// Track the working state
@@ -230,6 +246,14 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		return hasChanges;
 	};
 
+	createEffect(() => {
+		props.onDirtyChange?.(hasUnsavedChanges());
+	});
+
+	onMount(() => {
+		props.registerActions?.({ save: handleSave, reset: handleReset });
+	});
+
 	const updatePlayerField = <K extends keyof PlayerStats>(
 		index: number,
 		field: K,
@@ -255,6 +279,9 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 		<div class="editable-data-container">
 			<datalist id={heroListId}>
 				<For each={heroNames}>{(name) => <option value={name} />}</For>
+			</datalist>
+			<datalist id={nameListId}>
+				<For each={playerNames}>{(name) => <option value={name} />}</For>
 			</datalist>
 			<datalist id={mapListId}>
 				<For each={mapNames}>{(name) => <option value={name} />}</For>
@@ -380,6 +407,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 							}
 							team="blue"
 							heroListId={heroListId}
+							nameListId={nameListId}
 							onPlayerUpdate={updatePlayerField}
 							isFieldJustSaved={isFieldJustSaved}
 							registerField={registerField}
@@ -397,6 +425,7 @@ const EditableGameData: Component<EditableGameDataProps> = (props) => {
 							}
 							team="red"
 							heroListId={heroListId}
+							nameListId={nameListId}
 							onPlayerUpdate={(index, ...args) => {
 								updatePlayerField(index + 5, ...args);
 							}}
