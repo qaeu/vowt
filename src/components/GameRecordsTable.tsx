@@ -19,6 +19,7 @@ import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
 import * as Store from '#utils/storage';
 import { updateOverFastData } from '#utils/overfastApi';
+import { parseMatchDate } from '#utils/insights';
 
 interface GameRecordsTableProps {
 	/** Opens the screenshot file picker (also used by the empty-state Choose Files) */
@@ -55,12 +56,6 @@ const formatRelativeTime = (iso: string, now = Date.now()): string => {
 		}
 	}
 	return formatter.format(0, 'minute');
-};
-
-/** The date a game was played, or the record's creation time if it is unreadable */
-const getPlayedDate = (record: GameRecord): Date => {
-	const played = new Date(record.matchInfo.date);
-	return Number.isNaN(played.getTime()) ? record.createdAt : played;
 };
 
 /** Returns a css class for the result */
@@ -436,7 +431,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 											onClick={() => toggleExpanded(record)}
 										>
 											<span class="record-cell">
-												{getPlayedDate(record).toLocaleDateString()}
+												{parseMatchDate(record).toLocaleDateString()}
 											</span>
 											<span class="record-cell">
 												<span
@@ -479,6 +474,9 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 															<>
 																<TeamScoreboard players={record.players} />
 																<div class="expanded-details__actions">
+																	<span class="expanded-details__uploaded">
+																		Uploaded {new Date(record.createdAt).toLocaleString()}
+																	</span>
 																	<button
 																		type="button"
 																		class="danger"

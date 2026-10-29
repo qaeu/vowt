@@ -300,6 +300,19 @@ describe('GameRecordsTable', () => {
 			expect(screen.getByText('10:30')).toBeDefined();
 		});
 
+		it('should show the played date rather than the upload date', () => {
+			const records = [
+				{
+					...mockRecords[0],
+					matchInfo: { ...mockRecords[0].matchInfo, date: '09/15/25 - 02:49' },
+				},
+			];
+			vi.mocked(gameStorage.loadGameRecords).mockReturnValue(records);
+			renderTable();
+			expect(screen.getByText(new Date(2025, 8, 15).toLocaleDateString())).toBeDefined();
+			expect(screen.queryByText(records[0].createdAt.toLocaleDateString())).toBeNull();
+		});
+
 		it('should fall back to the creation time when the date is unreadable', () => {
 			const records = [
 				{
@@ -357,6 +370,15 @@ describe('GameRecordsTable', () => {
 			expect(screen.getByText('Player1')).toBeDefined();
 			expect(screen.getByText('Player2')).toBeDefined();
 			expect(screen.queryByTestId('editable-game-data')).toBeNull();
+		});
+
+		it('should show the upload date when opened', () => {
+			renderTable();
+			fireEvent.click(getRowButton('VICTORY'));
+
+			expect(
+				screen.getByText(`Uploaded ${mockRecords[0].createdAt.toLocaleString()}`)
+			).toBeDefined();
 		});
 
 		it('should expand the record given by initialExpandedId', () => {
