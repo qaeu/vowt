@@ -538,6 +538,27 @@ describe('GameRecordsTable', () => {
 			});
 		});
 
+		describe('record count', () => {
+			it('should show the filtered count out of the total', () => {
+				renderTable();
+				fireEvent.click(screen.getByText('Victories'));
+				expect(screen.getByText(/1 of 2 records · stored in this browser/)).toBeDefined();
+			});
+
+			it('should show zero when nothing matches', () => {
+				renderTable();
+				search('zzz');
+				expect(screen.getByText(/0 of 2 records/)).toBeDefined();
+			});
+
+			it('should return to the total once filters are cleared', () => {
+				renderTable();
+				search('zzz');
+				fireEvent.click(screen.getByText('Clear filters'));
+				expect(screen.getByText(/^2 records · stored in this browser/)).toBeDefined();
+			});
+		});
+
 		describe('no matches', () => {
 			it('should show a no-match state with Clear filters', () => {
 				renderTable();

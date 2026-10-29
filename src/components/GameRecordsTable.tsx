@@ -121,10 +121,12 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	};
 
 	const subtitle = () => {
-		const count = records().length;
+		const total = records().length;
+		const shown = filteredRecords().length;
 		const backup = lastExportedAt();
+		const noun = (hasActiveFilters() ? total : shown) === 1 ? 'record' : 'records';
 		return [
-			`${count} ${count === 1 ? 'record' : 'records'}`,
+			hasActiveFilters() ? `${shown} of ${total} ${noun}` : `${total} ${noun}`,
 			'stored in this browser',
 			backup ? `last backup ${formatRelativeTime(backup)}` : 'no backup yet',
 		].join(' · ');
