@@ -321,7 +321,48 @@ export type InsightFinding =
 			restGames: number;
 			worstMap:
 				(Omit<RecordStatsRow, 'winRate'> & { map: string; winRate: number }) | null;
+	  }
+	| {
+			kind: 'sessionFatigue';
+			confidence: FindingConfidence;
+			/** Games 1-3 of sessions */
+			early: WinRateBucket;
+			/** Game 4 onwards */
+			late: WinRateBucket;
+	  }
+	| {
+			kind: 'tilt';
+			confidence: FindingConfidence;
+			/** The game after a win, in the same session */
+			afterWin: WinRateBucket;
+			/** The game after a loss, in the same session */
+			afterLoss: WinRateBucket;
 	  };
+
+/** Results by position in a session; the label is 1-4 or '5+' */
+export interface GameNumberRow extends RecordStatsRow {
+	label: string;
+}
+
+/**
+ * Play sessions, built only from games with a readable time of day
+ * A session is a run of games with no gap over SESSION_BREAK_MINUTES between them.
+ */
+export interface SessionStats {
+	/** Always five buckets (1, 2, 3, 4, 5+); empty ones have 0 games */
+	byGameNumber: GameNumberRow[];
+	/** The next game in the same session after a win (draws and unknowns excluded) */
+	afterWin: RecordStatsRow;
+	/** The next game in the same session after a loss */
+	afterLoss: RecordStatsRow;
+	sessionCount: number;
+	/** Games per session; null when there are no sessions */
+	averageLength: number | null;
+	/** Games with a readable time, used for the sessions */
+	timedGames: number;
+	/** Games left out because no time of day was read */
+	untimedGames: number;
+}
 
 export interface InsightsSummary {
 	filters: InsightsFilters;
@@ -339,6 +380,7 @@ export interface InsightsSummary {
 	modes: ModeStatsRow[];
 	personalBests: PersonalBests;
 	findings: InsightFinding[];
+	sessions: SessionStats;
 }
 
 export interface ExportedInsightsSummary extends ExportFileBase {

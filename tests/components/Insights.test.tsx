@@ -217,6 +217,7 @@ describe('Insights', () => {
 				'You vs the lobby',
 				'Maps',
 				'Game modes',
+				'Sessions',
 				'Personal bests',
 			]) {
 				expect(screen.getByRole('heading', { name })).toBeDefined();
@@ -545,6 +546,135 @@ describe('Insights', () => {
 			fireEvent.click(best);
 
 			expect(onOpenRecord).toHaveBeenCalledWith('g3');
+		});
+	});
+
+	describe('sessions', () => {
+		/** One game per 5 minutes on 06/01/2025 starting at 10:00 */
+		const timedRecords = (results: string[], dayStart = 1): GameRecord[] =>
+			results.map((result, i) =>
+				makeRecord({
+					id: `s${dayStart}-${i}`,
+					result,
+					date: `06/0${dayStart}/2025 10:${String(i * 5).padStart(2, '0')}`,
+				})
+			);
+
+		it('should render bars by game number with counts', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(
+				timedRecords(['VICTORY', 'DEFEAT', 'VICTORY'])
+			);
+			renderInsights();
+
+			expect(screen.getByRole('heading', { name: 'Sessions' })).toBeDefined();
+			const list = screen.getByRole('list', { name: 'Win rate by game number' });
+			const rows = list.querySelectorAll('.insights-bars__row');
+			expect(rows).toHaveLength(5);
+			expect(rows[0].textContent).toContain('Game 1');
+			expect(rows[0].textContent).toContain('100% (1)');
+			expect(rows[1].textContent).toContain('0% (1)');
+			expect(rows[4].textContent).toContain('Game 5+');
+			expect(rows[4].textContent).toContain('— (0)');
+		});
+
+		it('should show after-win and after-loss rates, session count and length', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(
+				timedRecords(['VICTORY', 'DEFEAT', 'VICTORY'])
+			);
+			renderInsights();
+
+			const stat = (name: string) =>
+				screen.getByText(name, { selector: 'dt' }).parentElement?.querySelector('dd')
+					?.textContent;
+			expect(stat('After a win')).toMatch(/^0%/);
+			expect(stat('After a loss')).toMatch(/^100%/);
+			expect(stat('Sessions')).toBe('1');
+			expect(stat('Average length')).toBe('3.0 games');
+		});
+
+		it('should note games without a readable time', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue([
+				...timedRecords(['VICTORY', 'DEFEAT']),
+				makeRecord({ id: 'no-time', date: '06/05/2025' }),
+				makeRecord({ id: 'no-time2', date: '06/06/2025' }),
+			]);
+			renderInsights();
+
+			expect(
+				screen.getByText('2 games had no readable time and are left out.')
+			).toBeDefined();
+		});
+
+		it('should use the singular for one untimed game', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue([
+				...timedRecords(['VICTORY', 'DEFEAT']),
+				makeRecord({ id: 'no-time', date: '06/05/2025' }),
+			]);
+			renderInsights();
+
+			expect(
+				screen.getByText('1 game had no readable time and is left out.')
+			).toBeDefined();
+		});
+
+		it('should show a hint instead of bars when no game has a time', () => {
+			renderInsights();
+
+			expect(screen.getByRole('heading', { name: 'Sessions' })).toBeDefined();
+			expect(screen.getByText(/No games have a readable time/)).toBeDefined();
+			expect(screen.queryByRole('list', { name: 'Win rate by game number' })).toBeNull();
+		});
+
+		it('should write the session fatigue finding', () => {
+			const records = Array.from({ length: 10 }, (_, d) =>
+				timedRecords(['VICTORY', 'VICTORY', 'VICTORY', 'DEFEAT', 'DEFEAT'], 1).map(
+					(r, i) => ({
+						...r,
+						id: `f${d}-${i}`,
+						matchInfo: {
+							...r.matchInfo,
+							date: `06/${String(d + 1).padStart(2, '0')}/2025 10:${String(i * 5).padStart(2, '0')}`,
+						},
+					})
+				)
+			).flat();
+			vi.mocked(Store.loadGameRecords).mockReturnValue(records);
+			renderInsights();
+
+			expect(screen.getByText('You tire over a long session')).toBeDefined();
+			expect(
+				screen.getByText(
+					'You win 100% in your first 3 games but 0% after. Consider stopping after 3.'
+				)
+			).toBeDefined();
+		});
+
+		it('should write the tilt finding', () => {
+			const at = (d: number, i: number) =>
+				`06/${String(d).padStart(2, '0')}/2025 10:${String(i * 5).padStart(2, '0')}`;
+			const records = [
+				...[
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'DEFEAT',
+				].map((result, i) => makeRecord({ id: `a${i}`, result, date: at(1, i) })),
+				...Array.from({ length: 6 }, (_, i) =>
+					makeRecord({ id: `b${i}`, result: 'DEFEAT', date: at(2, i) })
+				),
+			];
+			vi.mocked(Store.loadGameRecords).mockReturnValue(records);
+			renderInsights();
+
+			expect(screen.getByText('Losses carry over')).toBeDefined();
+			expect(
+				screen.getByText(
+					'After a loss you win 0%, vs 83% after a win. Take a break before re-queueing.'
+				)
+			).toBeDefined();
 		});
 	});
 

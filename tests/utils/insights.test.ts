@@ -9,6 +9,9 @@ import type {
 } from '#types';
 import {
 	MIN_FINDING_GAMES,
+	MIN_FATIGUE_GAP,
+	MIN_TILT_GAP,
+	SESSION_BREAK_MINUTES,
 	MIN_TEAM_SPLIT_GAMES,
 	parseResult,
 	parseMatchDate,
@@ -26,6 +29,7 @@ import {
 	buildModeStats,
 	buildPersonalBests,
 	buildFindings,
+	buildSessionStats,
 	buildInsightsSummary,
 } from '#utils/insights';
 
@@ -1320,6 +1324,223 @@ describe('insights', () => {
 		});
 	});
 
+	describe('buildSessionStats', () => {
+		const at = (day: number, hour: number, minute: number) =>
+			new Date(2025, 5, day, hour, minute);
+		/** Timed game at the given time; id taken from the clock for stable ordering */
+		const timed = (date: Date, result: PlayerGame['result'] = 'win') =>
+			game({
+				recordId: `t${date.getTime()}`,
+				date,
+				createdAt: date,
+				hasTime: true,
+				result,
+			});
+		/** n consecutive timed games 20 minutes apart starting on the given day */
+		const run = (day: number, results: PlayerGame['result'][]) =>
+			results.map((r, i) => timed(at(day, 10, i * 20), r));
+
+		it('exports the break length', () => {
+			expect(SESSION_BREAK_MINUTES).toBe(60);
+		});
+
+		describe('session splitting', () => {
+			it('keeps a gap of exactly 60 minutes in one session', () => {
+				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 11, 0))]);
+				expect(stats.sessionCount).toBe(1);
+				expect(stats.averageLength).toBe(2);
+			});
+
+			it('starts a new session after 61 minutes', () => {
+				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 11, 1))]);
+				expect(stats.sessionCount).toBe(2);
+				expect(stats.averageLength).toBe(1);
+			});
+
+			it('keeps a session that spans midnight together', () => {
+				const stats = buildSessionStats([timed(at(1, 23, 30)), timed(at(2, 0, 15))]);
+				expect(stats.sessionCount).toBe(1);
+			});
+
+			it('sorts games before splitting', () => {
+				const stats = buildSessionStats([timed(at(1, 12, 0)), timed(at(1, 10, 0))]);
+				expect(stats.sessionCount).toBe(2);
+			});
+
+			it('reports no sessions for no games', () => {
+				const stats = buildSessionStats([]);
+				expect(stats.sessionCount).toBe(0);
+				expect(stats.averageLength).toBeNull();
+				expect(stats.timedGames).toBe(0);
+				expect(stats.afterWin.games).toBe(0);
+				expect(stats.byGameNumber.map((b) => b.games)).toEqual([0, 0, 0, 0, 0]);
+			});
+		});
+
+		describe('games without a time', () => {
+			it('excludes them and counts them as untimed', () => {
+				const stats = buildSessionStats([
+					timed(at(1, 10, 0)),
+					game({ recordId: 'x', date: at(1, 10, 20) }),
+					game({ recordId: 'y', date: at(1, 10, 40) }),
+				]);
+				expect(stats.timedGames).toBe(1);
+				expect(stats.untimedGames).toBe(2);
+				expect(stats.sessionCount).toBe(1);
+			});
+		});
+
+		describe('byGameNumber', () => {
+			it('buckets by position with 5+ pooling the rest', () => {
+				const stats = buildSessionStats([
+					...run(1, ['win', 'win', 'loss', 'loss', 'win', 'loss', 'loss']),
+					...run(2, ['loss', 'win']),
+				]);
+				expect(stats.byGameNumber.map((b) => b.label)).toEqual([
+					'1',
+					'2',
+					'3',
+					'4',
+					'5+',
+				]);
+				expect(stats.byGameNumber.map((b) => b.games)).toEqual([2, 2, 1, 1, 3]);
+				expect(stats.byGameNumber[0]).toMatchObject({ wins: 1, losses: 1, winRate: 50 });
+				expect(stats.byGameNumber[4]).toMatchObject({ wins: 1, losses: 2 });
+			});
+
+			it('keeps empty buckets with a null win rate', () => {
+				const stats = buildSessionStats(run(1, ['win', 'win']));
+				expect(stats.byGameNumber[3]).toMatchObject({ games: 0, winRate: null });
+			});
+		});
+
+		describe('afterWin and afterLoss', () => {
+			it('records the next game after each result', () => {
+				const stats = buildSessionStats(run(1, ['win', 'win', 'loss', 'win']));
+				expect(stats.afterWin).toMatchObject({ games: 2, wins: 1, losses: 1 });
+				expect(stats.afterLoss).toMatchObject({ games: 1, wins: 1 });
+			});
+
+			it('does not pair games across sessions', () => {
+				const stats = buildSessionStats([
+					timed(at(1, 10, 0), 'loss'),
+					timed(at(1, 15, 0), 'win'),
+				]);
+				expect(stats.afterLoss.games).toBe(0);
+				expect(stats.afterWin.games).toBe(0);
+			});
+
+			it('ignores draws and unknown results as the previous game', () => {
+				const stats = buildSessionStats(
+					run(1, ['draw', 'win', 'unknown', 'loss', 'win'])
+				);
+				expect(stats.afterWin.games).toBe(1);
+				expect(stats.afterLoss.games).toBe(1);
+			});
+		});
+	});
+
+	describe('session findings', () => {
+		/** One session per day, 20 minutes apart, with the given result sequence */
+		const sessionsOf = (days: PlayerGame['result'][][]) =>
+			days.flatMap((results, d) =>
+				results.map((result, i) => {
+					const date = new Date(2025, 5, 1 + d, 10, i * 20);
+					return game({
+						recordId: `s${d}-${i}`,
+						date,
+						createdAt: date,
+						hasTime: true,
+						result,
+					});
+				})
+			);
+		const W = 'win' as const;
+		const L = 'loss' as const;
+		const kinds = (g: PlayerGame[]) => buildFindings(g).map((f) => f.kind);
+
+		it('exports the gaps', () => {
+			expect(MIN_FATIGUE_GAP).toBe(10);
+			expect(MIN_TILT_GAP).toBe(10);
+		});
+
+		describe('sessionFatigue', () => {
+			// 10 sessions of WWW then LL: early 100% (30), late 0% (20)
+			const fatigued = sessionsOf(Array.from({ length: 10 }, () => [W, W, W, L, L]));
+
+			it('fires when early games win much more than late ones', () => {
+				const found = buildFindings(fatigued).find((f) => f.kind === 'sessionFatigue');
+				expect(found).toEqual({
+					kind: 'sessionFatigue',
+					confidence: 'medium',
+					early: { games: 30, winRate: 100 },
+					late: { games: 20, winRate: 0 },
+				});
+			});
+
+			it('does not fire when the gap is too small', () => {
+				// early 60%, late 50% in 10 sessions (30 vs 20 games)
+				const g = sessionsOf(
+					Array.from({ length: 10 }, (_, i) => [i % 5 < 3 ? W : L, W, L, W, L])
+				);
+				expect(kinds(g)).not.toContain('sessionFatigue');
+			});
+
+			it('does not fire when the gap is not significant', () => {
+				// early 2/3, late 1/3 over only 6 + 6 games
+				const g = sessionsOf([
+					[W, W, L, L, W, L],
+					[W, W, L, L, L, W],
+				]);
+				const found = buildFindings(g).find((f) => f.kind === 'sessionFatigue');
+				expect(found).toBeUndefined();
+			});
+
+			it('does not fire with too few late games', () => {
+				const g = sessionsOf(Array.from({ length: 10 }, () => [W, W, W, L]).slice(0, 4));
+				expect(kinds(g)).not.toContain('sessionFatigue');
+			});
+
+			it('ignores games without a time', () => {
+				const untimed = fatigued.map((x) => ({ ...x, hasTime: false }));
+				expect(kinds(untimed)).not.toContain('sessionFatigue');
+			});
+		});
+
+		describe('tilt', () => {
+			it('fires when games after a loss win far less than after a win', () => {
+				// Session 1 gives 6 after-win games (5W 1L); session 2 gives 5 after-loss games (0W)
+				const g = sessionsOf([
+					[W, W, W, W, W, W, L],
+					[L, L, L, L, L, L],
+				]);
+				const found = buildFindings(g).find((f) => f.kind === 'tilt');
+				expect(found).toMatchObject({
+					kind: 'tilt',
+					afterWin: { games: 6, winRate: (5 / 6) * 100 },
+					afterLoss: { games: 5, winRate: 0 },
+				});
+				expect(found?.confidence).toBe('low');
+			});
+
+			it('does not fire when afterLoss is not lower by the gap', () => {
+				const g = sessionsOf(Array.from({ length: 8 }, () => [W, L, W, L, W, L]));
+				expect(kinds(g)).not.toContain('tilt');
+			});
+
+			it('does not fire with too few games after a loss', () => {
+				const g = sessionsOf([[W, W, W, W, W, W, W, W, L, L]]);
+				expect(kinds(g)).not.toContain('tilt');
+			});
+
+			it('does not pair across sessions', () => {
+				// Each session is a single game, so no pairs exist
+				const g = sessionsOf(Array.from({ length: 12 }, (_, i) => [i % 2 ? L : W]));
+				expect(kinds(g)).not.toContain('tilt');
+			});
+		});
+	});
+
 	describe('buildFindings confidence', () => {
 		/** Hero 'Ana' wins every game, 'Tracer' (the rest) loses all of them */
 		const tier = (n: number) =>
@@ -1384,6 +1605,7 @@ describe('insights', () => {
 			expect(s.trend.winRate).toEqual([]);
 			expect(s.heroPool).toEqual([]);
 			expect(s.findings).toEqual([]);
+			expect(s.sessions.sessionCount).toBe(0);
 			expect(s.generatedAt).toBe(NOW);
 		});
 

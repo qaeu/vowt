@@ -6,7 +6,15 @@ import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import type { LucideIcon } from 'lucide-solid';
-import { Download, RotateCcw, Skull, Star, TriangleAlert } from 'lucide-solid';
+import {
+	Download,
+	Flame,
+	Hourglass,
+	RotateCcw,
+	Skull,
+	Star,
+	TriangleAlert,
+} from 'lucide-solid';
 
 import type {
 	GameRecord,
@@ -234,6 +242,8 @@ const FINDING_ICONS: Record<InsightFinding['kind'], LucideIcon> = {
 	deathsSplit: Skull,
 	bestHero: Star,
 	weakestMode: TriangleAlert,
+	sessionFatigue: Hourglass,
+	tilt: Flame,
 };
 
 const ROLE_LABELS: Record<RoleDeathsMedian['role'], string> = {
@@ -280,6 +290,21 @@ const _findingContent = (finding: InsightFinding): { title: string; text: string
 					+ `${gap} points below your other games${mapText}.`,
 			};
 		}
+		case 'sessionFatigue':
+			return {
+				title: 'You tire over a long session',
+				text:
+					`You win ${Math.round(finding.early.winRate)}% in your first 3 games but `
+					+ `${Math.round(finding.late.winRate)}% after. Consider stopping after 3.`,
+			};
+		case 'tilt':
+			return {
+				title: 'Losses carry over',
+				text:
+					`After a loss you win ${Math.round(finding.afterLoss.winRate)}%, vs `
+					+ `${Math.round(finding.afterWin.winRate)}% after a win. `
+					+ `Take a break before re-queueing.`,
+			};
 	}
 };
 
@@ -850,6 +875,82 @@ const Insights: Component<InsightsProps> = (props) => {
 									)}
 								</For>
 							</ul>
+						</section>
+					</div>
+
+					<div class="insights-row">
+						<section class="insights-panel" aria-labelledby="sessions-h">
+							<h2 id="sessions-h">Sessions</h2>
+							<Show
+								when={summary().sessions.timedGames > 0}
+								fallback={
+									<p class="insights-note">
+										No games have a readable time, so sessions can't be built.
+									</p>
+								}
+							>
+								<div class="insights-sessions">
+									<ul class="insights-bars" aria-label="Win rate by game number">
+										<For each={summary().sessions.byGameNumber}>
+											{(row) => (
+												<li class="insights-bars__row">
+													<span class="insights-bars__name">Game {row.label}</span>
+													<BarMeter
+														segments={[
+															{
+																value: row.winRate ?? 0,
+																tone: (row.winRate ?? 0) >= 50 ? 'success' : 'error',
+															},
+														]}
+														max={100}
+														marker={50}
+														label={`Game ${row.label} win rate ${_formatPercent(row.winRate)}`}
+													/>
+													<span class="insights-bars__value">
+														{_formatPercent(row.winRate)} ({row.games})
+													</span>
+												</li>
+											)}
+										</For>
+									</ul>
+									<dl class="insights-mini-stats">
+										<div>
+											<dt>After a win</dt>
+											<dd>
+												{_formatPercent(summary().sessions.afterWin.winRate)} (
+												{summary().sessions.afterWin.games})
+											</dd>
+										</div>
+										<div>
+											<dt>After a loss</dt>
+											<dd>
+												{_formatPercent(summary().sessions.afterLoss.winRate)} (
+												{summary().sessions.afterLoss.games})
+											</dd>
+										</div>
+										<div>
+											<dt>Sessions</dt>
+											<dd>{summary().sessions.sessionCount}</dd>
+										</div>
+										<div>
+											<dt>Average length</dt>
+											<dd>{_formatNumber(summary().sessions.averageLength, 1)} games</dd>
+										</div>
+									</dl>
+								</div>
+								<p class="insights-note">
+									Win rate by game number within a session; a break of over an hour starts
+									a new one. After a win/loss: the next game in the same session.
+								</p>
+							</Show>
+							<Show when={summary().sessions.untimedGames > 0}>
+								<p class="insights-note insights-sessions__untimed">
+									{summary().sessions.untimedGames}{' '}
+									{summary().sessions.untimedGames === 1 ? 'game' : 'games'} had no
+									readable time and {summary().sessions.untimedGames === 1 ? 'is' : 'are'}{' '}
+									left out.
+								</p>
+							</Show>
 						</section>
 					</div>
 

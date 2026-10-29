@@ -490,6 +490,19 @@
 			cursor: pointer;
 		}
 
+		// Sessions
+
+		.insights-sessions {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+			align-items: start;
+			gap: 20px;
+		}
+
+		.insights-sessions__untimed {
+			font-style: italic;
+		}
+
 		// Personal bests
 
 		.insights-bests {

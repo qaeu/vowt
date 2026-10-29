@@ -15,6 +15,7 @@ import type {
 	InsightsMetric,
 	InsightsSummary,
 	FilteredGames,
+	GameNumberRow,
 	HeroPoolRow,
 	LobbyComparisonRow,
 	MapStatsRow,
@@ -27,6 +28,7 @@ import type {
 	RecordStatsRow,
 	RoleDeathsMedian,
 	RoleLobbyComparison,
+	SessionStats,
 	StatKey,
 	TrendMetric,
 	WeeklyTrendPoint,
@@ -49,6 +51,15 @@ export const MIN_MODE_GAP = 10;
 
 /** Minimum games on a map for it to be named as a mode's worst map */
 export const MIN_WORST_MAP_GAMES = 3;
+
+/** Minimum win-rate gap (points) between games 1-3 and game 4 onwards of a session */
+export const MIN_FATIGUE_GAP = 10;
+
+/** Minimum win-rate gap (points) between the game after a win and after a loss */
+export const MIN_TILT_GAP = 10;
+
+/** A gap of more than this many minutes between games starts a new session */
+export const SESSION_BREAK_MINUTES = 60;
 
 /** Decided games in the smaller group at which confidence becomes medium */
 export const MEDIUM_CONFIDENCE_GAMES = 10;
@@ -75,6 +86,11 @@ export const MIN_TEAM_SPLIT_GAMES = 5;
 export const LOBBY_STATS = ['e', 'a', 'd', 'h', 'dmg'] as const;
 
 const STAT_KEYS: StatKey[] = ['e', 'a', 'd', 'dmg', 'h', 'mit'];
+const MINUTE_MS = 60 * 1000;
+/** Games per session counted as "early"; later games count as fatigued */
+const EARLY_SESSION_GAMES = 3;
+/** Game numbers at or above this share the last bucket */
+const LAST_GAME_BUCKET = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PERIOD_DAYS = { last30: 30, last90: 90 } as const;
 const SECONDS_PER_10_MINUTES = 600;
@@ -401,6 +417,45 @@ function _weekStart(date: Date): Date {
 	const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 	start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
 	return start;
+}
+
+/**
+ * Splits games into play sessions
+ * Only games with a readable time are used. A gap of more than SESSION_BREAK_MINUTES
+ * between consecutive games starts a new session (exactly that long stays in one).
+ * Dates carry the full date and time, so a session can span midnight.
+ * @returns Sessions oldest first, each oldest game first
+ */
+function _sessions(games: PlayerGame[]): PlayerGame[][] {
+	const sessions: PlayerGame[][] = [];
+	let previous: PlayerGame | null = null;
+	for (const game of _sorted(games.filter((g) => g.hasTime))) {
+		const gap = previous ? game.date.getTime() - previous.date.getTime() : 0;
+		if (previous && gap <= SESSION_BREAK_MINUTES * MINUTE_MS) {
+			sessions[sessions.length - 1].push(game);
+		} else {
+			sessions.push([game]);
+		}
+		previous = game;
+	}
+	return sessions;
+}
+
+/** Games that directly follow a win, and those that follow a loss, within sessions */
+function _afterResult(sessions: PlayerGame[][]): {
+	afterWin: PlayerGame[];
+	afterLoss: PlayerGame[];
+} {
+	const afterWin: PlayerGame[] = [];
+	const afterLoss: PlayerGame[] = [];
+	for (const session of sessions) {
+		for (let i = 1; i < session.length; i++) {
+			const before = session[i - 1].result;
+			if (before === 'win') afterWin.push(session[i]);
+			else if (before === 'loss') afterLoss.push(session[i]);
+		}
+	}
+	return { afterWin, afterLoss };
 }
 
 // Exported functions
@@ -765,6 +820,11 @@ export function buildPersonalBests(games: PlayerGame[]): PersonalBests {
  * - bestHero: best win rate among heroes vs all other games (MIN_HERO_GAP)
  * - weakestMode: lowest win rate among modes vs all other games (MIN_MODE_GAP), with
  *   its worst map
+ * - sessionFatigue: win rate in games 1-3 of a session vs game 4 onwards
+ *   (MIN_FATIGUE_GAP)
+ * - tilt: win rate in the game after a win vs after a loss, within a session
+ *   (MIN_TILT_GAP)
+ * Sessions only use games with a readable time (see buildSessionStats).
  * Win rates are over games with a readable result. A finding also needs its gap to be
  * statistically significant (see _compareRates), which sets its confidence.
  * @param games - Games to analyse
@@ -878,7 +938,67 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 		}
 	}
 
+	const sessions = _sessions(games);
+	const fatigue = _compareRates(
+		sessions.flatMap((s) => s.slice(0, EARLY_SESSION_GAMES)),
+		sessions.flatMap((s) => s.slice(EARLY_SESSION_GAMES))
+	);
+	if (fatigue.aRate - fatigue.bRate >= MIN_FATIGUE_GAP && fatigue.significant) {
+		findings.push({
+			kind: 'sessionFatigue',
+			confidence: fatigue.confidence,
+			early: { games: fatigue.aGames, winRate: fatigue.aRate },
+			late: { games: fatigue.bGames, winRate: fatigue.bRate },
+		});
+	}
+
+	const next = _afterResult(sessions);
+	const tilt = _compareRates(next.afterWin, next.afterLoss);
+	if (tilt.aRate - tilt.bRate >= MIN_TILT_GAP && tilt.significant) {
+		findings.push({
+			kind: 'tilt',
+			confidence: tilt.confidence,
+			afterWin: { games: tilt.aGames, winRate: tilt.aRate },
+			afterLoss: { games: tilt.bGames, winRate: tilt.bRate },
+		});
+	}
+
 	return findings;
+}
+
+/**
+ * Builds session statistics from games with a readable time of day
+ * Games without one are left out and counted in `untimedGames`. Game-number buckets
+ * are 1, 2, 3, 4 and 5+, all always present (empty ones have 0 games). The after-win
+ * and after-loss rows cover the next game in the same session; a draw or unknown
+ * result as the previous game counts as neither, and pairs never cross sessions.
+ * @param games - Games in any order
+ */
+export function buildSessionStats(games: PlayerGame[]): SessionStats {
+	const sessions = _sessions(games);
+	const timedGames = sessions.reduce((sum, s) => sum + s.length, 0);
+	const { afterWin, afterLoss } = _afterResult(sessions);
+
+	const byGameNumber = Array.from({ length: LAST_GAME_BUCKET }, (_, i): GameNumberRow => {
+		const number = i + 1;
+		const inBucket = sessions.flatMap((s) =>
+			number === LAST_GAME_BUCKET ? s.slice(i) : s.slice(i, number)
+		);
+		return {
+			label: number === LAST_GAME_BUCKET ? `${number}+` : String(number),
+			..._recordStats(inBucket),
+		};
+	});
+
+	return {
+		byGameNumber,
+		afterWin: _recordStats(afterWin),
+		afterLoss: _recordStats(afterLoss),
+		sessionCount: sessions.length,
+		averageLength: sessions.length ? timedGames / sessions.length : null,
+		timedGames,
+		untimedGames: games.length - timedGames,
+	};
 }
 
 /**
@@ -916,5 +1036,6 @@ export function buildInsightsSummary(
 		modes: buildModeStats(current),
 		personalBests: buildPersonalBests(current),
 		findings: buildFindings(current),
+		sessions: buildSessionStats(current),
 	};
 }
