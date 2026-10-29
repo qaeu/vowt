@@ -418,16 +418,6 @@
 			list-style: none;
 		}
 
-		.insights-lobby__group + .insights-lobby__group {
-			margin-top: 18px;
-		}
-
-		.insights-lobby__role {
-			margin: 0 0 8px;
-			font-size: 14px;
-			font-weight: 700;
-		}
-
 		.insights-lobby__split {
 			margin: 4px 0 0;
 			font-size: 12px;
@@ -458,49 +448,19 @@
 
 		.insights-matchups {
 			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+			grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
 			align-items: start;
 			gap: 20px;
+		}
+
+		.insights-matchups__group {
+			min-width: 0;
 		}
 
 		.insights-matchups__title {
 			margin: 0 0 8px;
 			font-size: 14px;
 			font-weight: 700;
-		}
-
-		.insights-matchups__list {
-			display: flex;
-			flex-direction: column;
-			gap: 10px;
-			margin: 0;
-			padding: 0;
-			list-style: none;
-		}
-
-		.insights-matchup {
-			display: flex;
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 6px;
-			padding: 10px 12px;
-			border-left: 3px solid transparent;
-			border-radius: 6px;
-			background-color: get($greys, 'highlight');
-
-			&--ally {
-				border-left-color: get($successes, 'base');
-			}
-
-			&--enemy {
-				border-left-color: get($errors, 'base');
-			}
-		}
-
-		.insights-matchup__text {
-			margin: 0;
-			font-size: 14px;
-			line-height: 1.4;
 		}
 
 		// Maps and modes
@@ -542,10 +502,9 @@
 		// Sessions
 
 		.insights-sessions {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-			align-items: start;
-			gap: 20px;
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
 		}
 
 		.insights-sessions__untimed {
