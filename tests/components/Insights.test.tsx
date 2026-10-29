@@ -259,7 +259,7 @@ describe('Insights', () => {
 		it('should list heroes in the hero pool', () => {
 			renderInsights();
 
-			const table = screen.getByRole('table');
+			const table = screen.getByRole('region', { name: 'Hero pool table' });
 			expect(within(table).getByRole('rowheader', { name: 'Tracer' })).toBeDefined();
 			expect(within(table).getByRole('rowheader', { name: 'Reinhardt' })).toBeDefined();
 		});
@@ -564,21 +564,27 @@ describe('Insights', () => {
 				})
 			);
 
-		it('should render bars by game number with counts', () => {
+		it('should chart the win rate by game number', () => {
 			vi.mocked(Store.loadGameRecords).mockReturnValue(
 				timedRecords(['VICTORY', 'DEFEAT', 'VICTORY'])
 			);
 			renderInsights();
 
 			expect(screen.getByRole('heading', { name: 'Sessions' })).toBeDefined();
-			const list = screen.getByRole('list', { name: 'Win rate by game number' });
-			const rows = list.querySelectorAll('.insights-bars__row');
-			expect(rows).toHaveLength(5);
-			expect(rows[0].textContent).toContain('Game 1');
-			expect(rows[0].textContent).toContain('100% (1)');
-			expect(rows[1].textContent).toContain('0% (1)');
-			expect(rows[4].textContent).toContain('Game 5+');
-			expect(rows[4].textContent).toContain('— (0)');
+			const chart = screen.getByRole('img', { name: /^Win rate by game in session/ });
+			expect(chart.getAttribute('aria-label')).toContain('Game 1 to Game 5+');
+			const labels = [...chart.querySelectorAll('text')].map((t) => t.textContent);
+			expect(labels).toEqual(
+				expect.arrayContaining(['Game 1', 'Game 2', 'Game 3', 'Game 4', 'Game 5+'])
+			);
+			const titles = [...chart.querySelectorAll('circle title')].map(
+				(t) => t.textContent
+			);
+			expect(titles).toEqual([
+				'Game 1: 100% (1 game)',
+				'Game 2: 0% (1 game)',
+				'Game 3: 100% (1 game)',
+			]);
 		});
 
 		it('should show after-win and after-loss rates, session count and length', () => {
@@ -621,12 +627,12 @@ describe('Insights', () => {
 			).toBeDefined();
 		});
 
-		it('should show a hint instead of bars when no game has a time', () => {
+		it('should show a hint instead of a chart when no game has a time', () => {
 			renderInsights();
 
 			expect(screen.getByRole('heading', { name: 'Sessions' })).toBeDefined();
 			expect(screen.getByText(/No games have a readable time/)).toBeDefined();
-			expect(screen.queryByRole('list', { name: 'Win rate by game number' })).toBeNull();
+			expect(screen.queryByRole('img', { name: /by game in session/ })).toBeNull();
 		});
 
 		it('should write the session fatigue finding', () => {
@@ -694,23 +700,30 @@ describe('Insights', () => {
 			makeRecord({ id: 't1', hero: 'Reinhardt', withMate: true }),
 		];
 
-		it('should render one headed group per role with games', () => {
+		it('should render one row per stat across all roles, without role groups', () => {
 			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 5));
 			const { container } = renderInsights();
 
-			const headings = [...container.querySelectorAll('.insights-lobby__role')];
-			expect(headings.map((h) => h.textContent)).toEqual(['Tank', 'Damage']);
-			expect(container.querySelectorAll('.insights-lobby__group')).toHaveLength(2);
+			const stats = [...container.querySelectorAll('.insights-lobby__stat')];
+			expect(stats.map((s) => s.textContent)).toEqual([
+				'Eliminations',
+				'Assists',
+				'Deaths',
+				'Healing',
+				'Damage',
+			]);
+			expect(container.querySelector('.insights-lobby__role')).toBeNull();
 		});
 
 		it('should show the above/below line with win rates and counts', () => {
 			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 5));
 			const { container } = renderInsights();
 
+			// The tank game (also above on kills) counts with the damage games
 			const lines = [...container.querySelectorAll('.insights-lobby__split')];
 			expect(lines).toHaveLength(1);
 			expect(lines[0].textContent?.replace(/\s+/g, ' ')).toBe(
-				'Above team avg: 100% (5) · Below: 0% (5)'
+				'Above team avg: 100% (6) · Below: 0% (5)'
 			);
 		});
 
@@ -756,41 +769,68 @@ describe('Insights', () => {
 				});
 			});
 
-		it('should list allies who help and enemies who hurt, with the hint', () => {
+		/** Cell texts of each body row of a matchup table */
+		const tableRows = (name: string) =>
+			[
+				...screen
+					.getByRole('region', { name: `${name} table` })
+					.querySelectorAll('tbody tr'),
+			].map((tr) =>
+				[...tr.querySelectorAll('th, td')].map((c) => c.textContent?.trim() ?? '')
+			);
+
+		it('should show ally and enemy tables of heroes by frequency, with the hint', () => {
 			vi.mocked(Store.loadGameRecords).mockReturnValue(matchupRecords());
 			renderInsights();
 
 			expect(screen.getByRole('heading', { name: 'Synergies & counters' })).toBeDefined();
-			const allies = screen.getByRole('list', { name: 'Allies who help you' });
-			const enemies = screen.getByRole('list', { name: 'Enemies who hurt you' });
-			expect(
-				[...allies.querySelectorAll('.insights-matchup__text')].map((p) => p.textContent)
-			).toEqual(['Ally Mercy: you win 75% vs 25%.']);
-			expect(
-				[...enemies.querySelectorAll('.insights-matchup__text')].map((p) => p.textContent)
-			).toEqual(['Enemy Widowmaker: you win 25% vs 75%; your deaths/10 rise by 4.0.']);
-			expect(
-				screen.getByText(/Based on the hero each player finished on\./)
-			).toBeDefined();
+			expect(screen.getByRole('heading', { name: 'Allies' })).toBeDefined();
+			expect(screen.getByRole('heading', { name: 'Enemies' })).toBeDefined();
+			// Ties on games are by name; Lucio and Mercy both have 20 games
+			expect(tableRows('Allies').map((r) => r[0])).toEqual(['Lucio', 'Mercy']);
+			expect(tableRows('Enemies').map((r) => r[0])).toEqual(['Widowmaker', 'Winston']);
+			expect(screen.getByText(/by the hero each player finished on\./)).toBeDefined();
 		});
 
-		it('should show a confidence badge on each item', () => {
+		it('should show win rates with and without, and the stat changes', () => {
 			vi.mocked(Store.loadGameRecords).mockReturnValue(matchupRecords());
 			renderInsights();
 
-			const enemies = screen.getByRole('list', { name: 'Enemies who hurt you' });
-			const badge = enemies.querySelector('.insights-finding__confidence');
-			expect(badge?.textContent).toBe('Medium confidence');
-			expect(badge?.classList.contains('insights-finding__confidence--medium')).toBe(
-				true
-			);
+			const widow = tableRows('Enemies')[0];
+			expect(widow.slice(0, 4)).toEqual(['Widowmaker', '20', '25%▼ −50 pts', '75%']);
+			expect(widow[4]).toBe('▲ +4.0');
+			const mercy = tableRows('Allies')[1];
+			expect(mercy.slice(0, 4)).toEqual(['Mercy', '20', '75%▲ +50 pts', '25%']);
 		});
 
-		it('should hide the section when no matchup stands out', () => {
+		it('should colour only significant differences', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(matchupRecords());
 			renderInsights();
 
-			expect(screen.queryByRole('heading', { name: 'Synergies & counters' })).toBeNull();
-			expect(screen.queryByText(/Based on the hero each player finished on/)).toBeNull();
+			const region = screen.getByRole('region', { name: 'Enemies table' });
+			const [widow] = region.querySelectorAll('tbody tr');
+			const cells = widow.querySelectorAll('td');
+			// Fewer deaths is better, so more deaths is bad
+			expect(cells[1].querySelector('.insights-delta--bad')).not.toBeNull();
+			expect(cells[3].querySelector('.insights-delta--bad')).not.toBeNull();
+			// Damage and healing do not change, so their deltas are zero and neutral
+			expect(cells[4].querySelector('.insights-delta--neutral')).not.toBeNull();
+		});
+
+		it('should say when no ally or enemy heroes were read', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(
+				RECORDS.map((r) => ({
+					...r,
+					players: r.players.map((p) => ({ ...p, hero: '' })),
+				}))
+			);
+			renderInsights();
+
+			expect(screen.getByRole('heading', { name: 'Synergies & counters' })).toBeDefined();
+			expect(
+				screen.getByText('No ally or enemy heroes were read for these games.')
+			).toBeDefined();
+			expect(screen.queryByRole('region', { name: 'Allies table' })).toBeNull();
 		});
 	});
 

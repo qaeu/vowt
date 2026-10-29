@@ -191,6 +191,15 @@ export interface InsightsHeadline {
 	deaths10: InsightsMetric;
 }
 
+/** One point of a line chart, with the games behind it */
+export interface ChartPoint {
+	/** X-axis label */
+	label: string;
+	games: number;
+	/** Null if the point has no data */
+	value: number | null;
+}
+
 export interface WeeklyTrendPoint {
 	/** Monday (local midnight) of the week */
 	weekStart: Date;
@@ -241,12 +250,6 @@ export interface LobbyComparisonRow {
 	/** Win percentage 0-100 over decided games on that side; null if none were decided */
 	winRateAbove: number | null;
 	winRateBelow: number | null;
-}
-
-/** Lobby comparison rows for the games played in one role */
-export interface RoleLobbyComparison {
-	role: OverFastHeroRole | 'unknown';
-	rows: LobbyComparisonRow[];
 }
 
 /** Median deaths per 10 minutes of the games played in one role */
@@ -366,8 +369,8 @@ export interface HeroMatchupRow {
 	present: number;
 	/** Games without it (with at least one other hero read on that side) */
 	absent: number;
-	/** Win percentages 0-100 over decided games; 0 for a side with none decided */
-	winRate: { present: number; absent: number };
+	/** Win percentages 0-100 over decided games; null for a side with none decided */
+	winRate: { present: number | null; absent: number | null };
 	statDeltas: MatchupStatDelta[];
 	/** Whether the win-rate gap is significant */
 	significant: boolean;
@@ -410,13 +413,13 @@ export interface InsightsSummary {
 	trend: Record<TrendMetric, WeeklyTrendPoint[]>;
 	recentForm: RecentForm;
 	heroPool: HeroPoolRow[];
-	lobby: RoleLobbyComparison[];
+	lobby: LobbyComparisonRow[];
 	maps: MapStatsRow[];
 	modes: ModeStatsRow[];
 	personalBests: PersonalBests;
 	findings: InsightFinding[];
 	sessions: SessionStats;
-	/** Ally synergies and enemy counters, by impact */
+	/** Most frequent allies then enemies, compared with and without each hero */
 	matchups: HeroMatchupRow[];
 }
 

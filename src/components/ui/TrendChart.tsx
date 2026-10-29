@@ -1,16 +1,20 @@
 /**
- * Weekly trend line with point markers, optional reference line and games-per-week bars
+ * Trend line with point markers, optional reference line and games-per-point bars
  */
 
 import type { Component } from 'solid-js';
 import { For, Show, createMemo } from 'solid-js';
 
-import type { WeeklyTrendPoint } from '#types';
+import type { ChartPoint } from '#types';
 
 interface TrendChartProps {
-	points: WeeklyTrendPoint[];
+	points: ChartPoint[];
 	/** Metric name used in the accessible description */
 	label: string;
+	/** What each point is, e.g. "week", used in the accessible description */
+	axisLabel: string;
+	/** Label every point on the x axis instead of the first, middle and last */
+	labelAll?: boolean;
 	format: (value: number) => string;
 	/** Fixed value range; defaults to 0 up to just above the highest value */
 	domain?: [number, number];
@@ -18,7 +22,7 @@ interface TrendChartProps {
 	referenceLine?: number;
 }
 
-interface WeekLabel {
+interface AxisLabel {
 	x: number;
 	text: string;
 	anchor: 'start' | 'middle' | 'end';
@@ -33,9 +37,6 @@ const BASELINE = PAD.top + PLOT_HEIGHT;
 const MAX_BAR_HEIGHT = PLOT_HEIGHT * 0.18;
 const MAX_BAR_WIDTH = 24;
 const DOMAIN_HEADROOM = 1.1;
-
-const formatWeek = (date: Date) =>
-	date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 const TrendChart: Component<TrendChartProps> = (props) => {
 	const values = createMemo(() =>
@@ -59,14 +60,14 @@ const TrendChart: Component<TrendChartProps> = (props) => {
 		return PAD.top + PLOT_HEIGHT - ((clamped - min) / (max - min)) * PLOT_HEIGHT;
 	};
 
-	/** Weeks that have a value, as chart coordinates */
+	/** Points that have a value, as chart coordinates */
 	const plotted = createMemo(() =>
 		props.points.flatMap((point, i) =>
 			point.value === null ? [] : [{ index: i, x: x(i), y: y(point.value) }]
 		)
 	);
 
-	/** Line segments between plotted weeks; bridged ones skip weeks without a value */
+	/** Line segments between plotted points; bridged ones skip points without a value */
 	const segmentPath = (bridged: boolean) =>
 		plotted()
 			.slice(1)
@@ -89,13 +90,16 @@ const TrendChart: Component<TrendChartProps> = (props) => {
 		});
 	});
 
-	const weekLabels = createMemo(() => {
+	const axisLabels = createMemo(() => {
 		const last = props.points.length - 1;
 		if (last < 0) return [];
-		const indices = [...new Set([0, Math.floor(last / 2), last])];
-		return indices.map((i): WeekLabel => ({
+		const indices =
+			props.labelAll ?
+				props.points.map((_, i) => i)
+			:	[...new Set([0, Math.floor(last / 2), last])];
+		return indices.map((i): AxisLabel => ({
 			x: x(i),
-			text: formatWeek(props.points[i].weekStart),
+			text: props.points[i].label,
 			anchor:
 				i === 0 && last > 0 ? 'start'
 				: i === last && last > 0 ? 'end'
@@ -105,10 +109,13 @@ const TrendChart: Component<TrendChartProps> = (props) => {
 
 	const description = createMemo(() => {
 		const vs = values();
-		if (!vs.length) return `${props.label} by week: no data`;
+		const by = `${props.label} by ${props.axisLabel}`;
+		if (!vs.length) return `${by}: no data`;
+		const first = props.points[0].label;
+		const last = props.points[props.points.length - 1].label;
 		const latest = vs[vs.length - 1];
 		return (
-			`${props.label} by week over ${props.points.length} weeks: latest `
+			`${by}, ${first} to ${last}: latest `
 			+ `${props.format(latest)}, lowest ${props.format(Math.min(...vs))}, `
 			+ `highest ${props.format(Math.max(...vs))}`
 		);
@@ -173,9 +180,20 @@ const TrendChart: Component<TrendChartProps> = (props) => {
 					{(d) => <path class="trend-chart__line trend-chart__line--gap" d={d()} />}
 				</Show>
 				<For each={plotted()}>
-					{(p) => <circle class="trend-chart__point" cx={p.x} cy={p.y} r="3.5" />}
+					{(p) => {
+						const point = props.points[p.index];
+						return (
+							<circle class="trend-chart__point" cx={p.x} cy={p.y} r="3.5">
+								<title>
+									{`${point.label}: ${props.format(point.value!)} (${point.games} ${
+										point.games === 1 ? 'game' : 'games'
+									})`}
+								</title>
+							</circle>
+						);
+					}}
 				</For>
-				<For each={weekLabels()}>
+				<For each={axisLabels()}>
 					{(label) => (
 						<text
 							class="trend-chart__axis-label"

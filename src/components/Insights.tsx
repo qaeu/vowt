@@ -17,6 +17,7 @@ import {
 } from 'lucide-solid';
 
 import type {
+	ChartPoint,
 	GameRecord,
 	FindingConfidence,
 	HeroMatchupRow,
@@ -39,6 +40,7 @@ import * as Store from '#utils/storage';
 import { loadOverFastData } from '#utils/overfastApi';
 import { getHeroDisplayName } from '#utils/gameData';
 import {
+	MAX_MATCHUP_HEROES,
 	MIN_TEAM_SPLIT_GAMES,
 	buildInsightsSummary,
 	getPlayerNameCounts,
@@ -57,11 +59,9 @@ interface ChipGroupProps {
 	onSelect: (value: string) => void;
 }
 
-interface MatchupListProps {
+interface MatchupTableProps {
 	title: string;
 	rows: HeroMatchupRow[];
-	/** True for heroes who help you, false for heroes who hurt you */
-	helps: boolean;
 }
 
 interface HeadlineCardConfig {
@@ -102,8 +102,6 @@ const NO_VALUE = '—';
 const UP_ARROW = '▲';
 const DOWN_ARROW = '▼';
 const MAPS_COLLAPSED_COUNT = 8;
-/** Allies and enemies listed in Synergies & counters, each */
-const MATCHUPS_SHOWN = 3;
 
 const _formatNumber = (value: number | null, digits = 0): string =>
 	value === null ? NO_VALUE : (
@@ -265,57 +263,33 @@ const ROLE_LABELS: Record<RoleDeathsMedian['role'], string> = {
 	unknown: 'Unknown role',
 };
 
-/** Wording and format of each matchup stat; `plural` picks "rise" over "rises" */
+/** Column header and format of each matchup stat delta */
 const MATCHUP_STATS: Record<
 	MatchupStat,
-	{ label: string; digits: number; lowerIsBetter: boolean; plural: boolean }
+	{ label: string; digits: number; lowerIsBetter: boolean }
 > = {
-	d: { label: 'deaths/10', digits: 1, lowerIsBetter: true, plural: true },
-	dmg: { label: 'damage/10', digits: 0, lowerIsBetter: false, plural: false },
-	h: { label: 'healing/10', digits: 0, lowerIsBetter: false, plural: false },
+	d: { label: 'Deaths /10', digits: 1, lowerIsBetter: true },
+	dmg: { label: 'Dmg /10', digits: 0, lowerIsBetter: false },
+	h: { label: 'Heal /10', digits: 0, lowerIsBetter: false },
 };
 
-/** Whether a significant stat delta is good or bad for you; null if not significant */
-const _deltaTone = (d: MatchupStatDelta): 'good' | 'bad' | null =>
-	!d.significant || !d.delta ? null
-	: d.delta > 0 !== MATCHUP_STATS[d.stat].lowerIsBetter ? 'good'
-	: 'bad';
-
-/**
- * Whether a hero's presence helps (or, with `helps` false, hurts) you: by the win-rate
- * gap when it is significant, otherwise by a significant stat delta
- */
-const _matchupMatches = (row: HeroMatchupRow, helps: boolean): boolean => {
-	if (row.significant) {
-		const gap = row.winRate.present - row.winRate.absent;
-		return helps ? gap > 0 : gap < 0;
-	}
-	return row.statDeltas.some((d) => _deltaTone(d) === (helps ? 'good' : 'bad'));
+/** Win-rate gap with the hero vs without; toned only when significant */
+const _matchupWinDelta = (row: HeroMatchupRow): DeltaDisplay | null => {
+	const { present, absent } = row.winRate;
+	if (present === null || absent === null) return null;
+	const delta = _describeDelta(present - absent, 0, ' pts');
+	return delta && !row.significant ? { ...delta, tone: 'neutral' } : delta;
 };
 
-/** e.g. "your deaths/10 rise by 2.1" for a delta with a value */
-const _statChangeText = (d: MatchupStatDelta): string => {
-	const { label, digits, plural } = MATCHUP_STATS[d.stat];
-	const verb = (d.delta! > 0 ? 'rise' : 'fall') + (plural ? '' : 's');
-	return `your ${label} ${verb} by ${_formatNumber(Math.abs(d.delta!), digits)}`;
+/** Stat change with the hero vs without; toned only when significant */
+const _matchupStatDelta = (d: MatchupStatDelta): DeltaDisplay | null => {
+	const { digits, lowerIsBetter } = MATCHUP_STATS[d.stat];
+	const delta = _describeDelta(d.delta, digits, '', lowerIsBetter);
+	return delta && !d.significant ? { ...delta, tone: 'neutral' } : delta;
 };
 
-/** e.g. "Enemy Widowmaker: you win 31% vs 52%; your deaths/10 rise by 2.1." */
-const _matchupText = (row: HeroMatchupRow, helps: boolean): string => {
-	const wanted = helps ? 'good' : 'bad';
-	const [stat] = row.statDeltas
-		.filter((d) => _deltaTone(d) !== null)
-		.sort(
-			(a, b) =>
-				Number(_deltaTone(b) === wanted) - Number(_deltaTone(a) === wanted)
-				|| Math.abs(b.delta!) - Math.abs(a.delta!)
-		);
-	return (
-		`${row.side === 'ally' ? 'Ally' : 'Enemy'} ${row.hero}: you win `
-		+ `${_formatPercent(row.winRate.present)} vs ${_formatPercent(row.winRate.absent)}`
-		+ `${stat ? `; ${_statChangeText(stat)}` : ''}.`
-	);
-};
+const _formatWeek = (date: Date): string =>
+	date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 const _formatMedians = (medians: RoleDeathsMedian[]): string =>
 	medians.map((m) => `${ROLE_LABELS[m.role]} ${m.medianDeaths10.toFixed(1)}`).join(', ');
@@ -392,25 +366,72 @@ const ChipGroup: Component<ChipGroupProps> = (props) => (
 	</div>
 );
 
-const MatchupList: Component<MatchupListProps> = (props) => (
-	<div class="insights-matchups__group">
-		<h3 class="insights-matchups__title">{props.title}</h3>
-		<ul class="insights-matchups__list" aria-label={props.title}>
-			<For each={props.rows}>
-				{(row) => (
-					<li class={`insights-matchup insights-matchup--${row.side}`}>
-						<p class="insights-matchup__text">{_matchupText(row, props.helps)}</p>
-						<span
-							class={`insights-finding__confidence insights-finding__confidence--${row.confidence}`}
-						>
-							{CONFIDENCE_LABELS[row.confidence]}
-						</span>
-					</li>
-				)}
-			</For>
-		</ul>
-	</div>
+const DeltaText: Component<{ delta: DeltaDisplay | null }> = (props) => (
+	<Show when={props.delta}>
+		{(d) => <span class={`insights-delta insights-delta--${d().tone}`}>{d().text}</span>}
+	</Show>
 );
+
+const MatchupTable: Component<MatchupTableProps> = (props) => {
+	const maxGames = () => Math.max(1, ...props.rows.map((r) => r.present));
+	return (
+		<div class="insights-matchups__group">
+			<h3 class="insights-matchups__title">{props.title}</h3>
+			<div
+				class="insights-table-scroll"
+				role="region"
+				aria-label={`${props.title} table`}
+				tabindex="0"
+			>
+				<table class="insights-table">
+					<thead>
+						<tr>
+							<th scope="col">Hero</th>
+							<th scope="col">Games</th>
+							<th scope="col">Win % with</th>
+							<th scope="col">Without</th>
+							<For each={Object.values(MATCHUP_STATS)}>
+								{(stat) => <th scope="col">{stat.label}</th>}
+							</For>
+						</tr>
+					</thead>
+					<tbody>
+						<For each={props.rows}>
+							{(row) => (
+								<tr>
+									<th scope="row">{row.hero}</th>
+									<td>
+										<div class="insights-table__games">
+											<span>{row.present}</span>
+											<BarMeter
+												segments={[{ value: row.present, tone: 'primary' }]}
+												max={maxGames()}
+											/>
+										</div>
+									</td>
+									<td>
+										{_formatPercent(row.winRate.present)}
+										<DeltaText delta={_matchupWinDelta(row)} />
+									</td>
+									<td>{_formatPercent(row.winRate.absent)}</td>
+									<For each={row.statDeltas}>
+										{(d) => (
+											<td>
+												<Show when={_matchupStatDelta(d)} fallback={NO_VALUE}>
+													{(delta) => <DeltaText delta={delta()} />}
+												</Show>
+											</td>
+										)}
+									</For>
+								</tr>
+							)}
+						</For>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	);
+};
 
 const Insights: Component<InsightsProps> = (props) => {
 	const records: GameRecord[] = Store.loadGameRecords();
@@ -446,6 +467,18 @@ const Insights: Component<InsightsProps> = (props) => {
 	const headline = (): InsightsHeadline => summary().headline;
 	const hasGames = () => headline().games.value! > 0;
 	const trend = () => TREND_METRICS.find((m) => m.key === trendMetric())!;
+	const trendPoints = (): ChartPoint[] =>
+		summary().trend[trendMetric()].map((p) => ({
+			label: _formatWeek(p.weekStart),
+			games: p.games,
+			value: p.value,
+		}));
+	const sessionPoints = (): ChartPoint[] =>
+		summary().sessions.byGameNumber.map((row) => ({
+			label: `Game ${row.label}`,
+			games: row.games,
+			value: row.winRate,
+		}));
 	const visibleMaps = () =>
 		showAllMaps() ? summary().maps : summary().maps.slice(0, MAPS_COLLAPSED_COUNT);
 	const maxHeroGames = () => Math.max(1, ...summary().heroPool.map((h) => h.games));
@@ -455,14 +488,10 @@ const Insights: Component<InsightsProps> = (props) => {
 		...summary().availableModes.map((m) => ({ value: m, text: _titleCase(m) })),
 	];
 
-	const matchups = createMemo(() => {
-		const pick = (side: HeroMatchupRow['side'], helps: boolean) =>
-			summary()
-				.matchups.filter((r) => r.side === side && _matchupMatches(r, helps))
-				.slice(0, MATCHUPS_SHOWN);
-		return { allies: pick('ally', true), enemies: pick('enemy', false) };
-	});
-	const hasMatchups = () => matchups().allies.length > 0 || matchups().enemies.length > 0;
+	const matchups = createMemo(() => ({
+		allies: summary().matchups.filter((r) => r.side === 'ally'),
+		enemies: summary().matchups.filter((r) => r.side === 'enemy'),
+	}));
 
 	const recordsById = createMemo(() => new Map(records.map((r) => [r.id, r])));
 
@@ -669,8 +698,9 @@ const Insights: Component<InsightsProps> = (props) => {
 								</div>
 							</div>
 							<TrendChart
-								points={summary().trend[trendMetric()]}
+								points={trendPoints()}
 								label={trend().label}
+								axisLabel="week"
 								format={trend().format}
 								domain={trend().domain}
 								referenceLine={trend().referenceLine}
@@ -842,55 +872,46 @@ const Insights: Component<InsightsProps> = (props) => {
 
 						<section class="insights-panel" aria-labelledby="lobby-h">
 							<h2 id="lobby-h">You vs the lobby</h2>
-							<For each={summary().lobby}>
-								{(group) => (
-									<div class="insights-lobby__group">
-										<h3 class="insights-lobby__role">{ROLE_LABELS[group.role]}</h3>
-										<ul class="insights-lobby">
-											<For each={group.rows}>
-												{(row) => {
-													const max = () =>
-														Math.max(row.you ?? 0, row.team ?? 0, row.enemy ?? 0);
-													return (
-														<li class="insights-lobby__row" aria-label={lobbyLabel(row)}>
-															<span class="insights-lobby__stat">
-																{LOBBY_LABELS[row.stat]}
-															</span>
-															<For
-																each={
-																	[
-																		['You', row.you, 'primary'],
-																		['Team avg', row.team, 'neutral'],
-																		['Enemy avg', row.enemy, 'error'],
-																	] as const
-																}
-															>
-																{([text, value, tone]) => (
-																	<div class="insights-lobby__line" aria-hidden="true">
-																		<span>{text}</span>
-																		<BarMeter
-																			segments={[{ value: value ?? 0, tone }]}
-																			max={max()}
-																		/>
-																		<span>{_formatNumber(value, 1)}</span>
-																	</div>
-																)}
-															</For>
-															<Show when={showTeamSplit(row)}>
-																<p class="insights-lobby__split">
-																	Above team avg: {_formatPercent(row.winRateAbove)} (
-																	{row.gamesAbove}) · Below:{' '}
-																	{_formatPercent(row.winRateBelow)} ({row.gamesBelow})
-																</p>
-															</Show>
-														</li>
-													);
-												}}
-											</For>
-										</ul>
-									</div>
-								)}
-							</For>
+							<ul class="insights-lobby">
+								<For each={summary().lobby}>
+									{(row) => {
+										const max = () =>
+											Math.max(row.you ?? 0, row.team ?? 0, row.enemy ?? 0);
+										return (
+											<li class="insights-lobby__row" aria-label={lobbyLabel(row)}>
+												<span class="insights-lobby__stat">{LOBBY_LABELS[row.stat]}</span>
+												<For
+													each={
+														[
+															['You', row.you, 'primary'],
+															['Team avg', row.team, 'neutral'],
+															['Enemy avg', row.enemy, 'error'],
+														] as const
+													}
+												>
+													{([text, value, tone]) => (
+														<div class="insights-lobby__line" aria-hidden="true">
+															<span>{text}</span>
+															<BarMeter
+																segments={[{ value: value ?? 0, tone }]}
+																max={max()}
+															/>
+															<span>{_formatNumber(value, 1)}</span>
+														</div>
+													)}
+												</For>
+												<Show when={showTeamSplit(row)}>
+													<p class="insights-lobby__split">
+														Above team avg: {_formatPercent(row.winRateAbove)} (
+														{row.gamesAbove}) · Below: {_formatPercent(row.winRateBelow)}{' '}
+														({row.gamesBelow})
+													</p>
+												</Show>
+											</li>
+										);
+									}}
+								</For>
+							</ul>
 							<p class="insights-note">
 								Per 10 minutes. Above/below: win rate in games where you were above or
 								below your team's average.
@@ -898,34 +919,35 @@ const Insights: Component<InsightsProps> = (props) => {
 						</section>
 					</div>
 
-					<Show when={hasMatchups()}>
-						<div class="insights-row">
-							<section class="insights-panel" aria-labelledby="matchups-h">
-								<h2 id="matchups-h">Synergies &amp; counters</h2>
+					<div class="insights-row">
+						<section class="insights-panel" aria-labelledby="matchups-h">
+							<h2 id="matchups-h">Synergies &amp; counters</h2>
+							<Show
+								when={summary().matchups.length > 0}
+								fallback={
+									<p class="insights-note">
+										No ally or enemy heroes were read for these games.
+									</p>
+								}
+							>
 								<div class="insights-matchups">
 									<Show when={matchups().allies.length > 0}>
-										<MatchupList
-											title="Allies who help you"
-											rows={matchups().allies}
-											helps
-										/>
+										<MatchupTable title="Allies" rows={matchups().allies} />
 									</Show>
 									<Show when={matchups().enemies.length > 0}>
-										<MatchupList
-											title="Enemies who hurt you"
-											rows={matchups().enemies}
-											helps={false}
-										/>
+										<MatchupTable title="Enemies" rows={matchups().enemies} />
 									</Show>
 								</div>
 								<p class="insights-note">
-									Win rate with the hero in the game vs without; stats are compared with
-									your usual numbers for the role you played. Based on the hero each
-									player finished on.
+									The {MAX_MATCHUP_HEROES} most frequent heroes on each side, by the hero
+									each player finished on. Win rate with the hero in the game vs without;
+									stat columns show how your numbers change with the hero, against your
+									usual numbers for the role you played. Coloured differences are
+									significant.
 								</p>
-							</section>
-						</div>
-					</Show>
+							</Show>
+						</section>
+					</div>
 
 					<div class="insights-row">
 						<section class="insights-panel" aria-labelledby="maps-h">
@@ -1012,29 +1034,15 @@ const Insights: Component<InsightsProps> = (props) => {
 								}
 							>
 								<div class="insights-sessions">
-									<ul class="insights-bars" aria-label="Win rate by game number">
-										<For each={summary().sessions.byGameNumber}>
-											{(row) => (
-												<li class="insights-bars__row">
-													<span class="insights-bars__name">Game {row.label}</span>
-													<BarMeter
-														segments={[
-															{
-																value: row.winRate ?? 0,
-																tone: (row.winRate ?? 0) >= 50 ? 'success' : 'error',
-															},
-														]}
-														max={100}
-														marker={50}
-														label={`Game ${row.label} win rate ${_formatPercent(row.winRate)}`}
-													/>
-													<span class="insights-bars__value">
-														{_formatPercent(row.winRate)} ({row.games})
-													</span>
-												</li>
-											)}
-										</For>
-									</ul>
+									<TrendChart
+										points={sessionPoints()}
+										label="Win rate"
+										axisLabel="game in session"
+										format={_formatPercent}
+										domain={[0, 100]}
+										referenceLine={50}
+										labelAll
+									/>
 									<dl class="insights-mini-stats">
 										<div>
 											<dt>After a win</dt>
@@ -1061,8 +1069,9 @@ const Insights: Component<InsightsProps> = (props) => {
 									</dl>
 								</div>
 								<p class="insights-note">
-									Win rate by game number within a session; a break of over an hour starts
-									a new one. After a win/loss: the next game in the same session.
+									Win rate by game number within a session, with games played as bars; a
+									break of over two hours starts a new one. After a win/loss: the next
+									game in the same session.
 								</p>
 							</Show>
 							<Show when={summary().sessions.untimedGames > 0}>

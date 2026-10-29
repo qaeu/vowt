@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@solidjs/testing-library';
 
-import type { WeeklyTrendPoint } from '#types';
+import type { ChartPoint } from '#types';
 import TrendChart from '#c/ui/TrendChart';
 
-const week = (index: number, games: number, value: number | null): WeeklyTrendPoint => ({
-	weekStart: new Date(2025, 0, 6 + index * 7),
+const week = (index: number, games: number, value: number | null): ChartPoint => ({
+	label: `W${index + 1}`,
 	games,
 	value,
 });
@@ -17,10 +17,12 @@ describe('TrendChart', () => {
 		const points = [week(0, 3, 40), week(1, 5, 60), week(2, 4, 80)];
 
 		it('should describe the chart for assistive technology', () => {
-			render(() => <TrendChart points={points} label="Win rate" format={format} />);
+			render(() => (
+				<TrendChart points={points} label="Win rate" axisLabel="week" format={format} />
+			));
 
 			const label = screen.getByRole('img').getAttribute('aria-label');
-			expect(label).toContain('Win rate by week over 3 weeks');
+			expect(label).toContain('Win rate by week, W1 to W3');
 			expect(label).toContain('latest 80%');
 			expect(label).toContain('lowest 40%');
 			expect(label).toContain('highest 80%');
@@ -28,7 +30,7 @@ describe('TrendChart', () => {
 
 		it('should draw one point per week and a connected line', () => {
 			const { container } = render(() => (
-				<TrendChart points={points} label="Win rate" format={format} />
+				<TrendChart points={points} label="Win rate" axisLabel="week" format={format} />
 			));
 
 			expect(container.querySelectorAll('circle')).toHaveLength(3);
@@ -37,7 +39,7 @@ describe('TrendChart', () => {
 
 		it('should draw a games bar per week', () => {
 			const { container } = render(() => (
-				<TrendChart points={points} label="Win rate" format={format} />
+				<TrendChart points={points} label="Win rate" axisLabel="week" format={format} />
 			));
 
 			expect(container.querySelectorAll('rect.trend-chart__bar')).toHaveLength(3);
@@ -48,6 +50,7 @@ describe('TrendChart', () => {
 				<TrendChart
 					points={points}
 					label="Win rate"
+					axisLabel="week"
 					format={format}
 					domain={[0, 100]}
 					referenceLine={50}
@@ -57,14 +60,20 @@ describe('TrendChart', () => {
 			unmount();
 
 			const { container: other } = render(() => (
-				<TrendChart points={points} label="Win rate" format={format} />
+				<TrendChart points={points} label="Win rate" axisLabel="week" format={format} />
 			));
 			expect(other.querySelector('.trend-chart__reference')).toBeNull();
 		});
 
 		it('should label the axis with formatted values', () => {
 			const { container } = render(() => (
-				<TrendChart points={points} label="Win rate" format={format} domain={[0, 100]} />
+				<TrendChart
+					points={points}
+					label="Win rate"
+					axisLabel="week"
+					format={format}
+					domain={[0, 100]}
+				/>
 			));
 
 			const labels = Array.from(container.querySelectorAll('text')).map(
@@ -73,9 +82,49 @@ describe('TrendChart', () => {
 			expect(labels).toEqual(expect.arrayContaining(['0%', '50%', '100%']));
 		});
 
+		it('should label the first, middle and last points by default', () => {
+			const five = [1, 2, 3, 4, 5].map((v, i) => week(i, 1, v));
+			const { container } = render(() => (
+				<TrendChart points={five} label="KDA" axisLabel="week" format={format} />
+			));
+
+			const labels = Array.from(container.querySelectorAll('text')).map(
+				(t) => t.textContent
+			);
+			expect(labels).toEqual(expect.arrayContaining(['W1', 'W3', 'W5']));
+			expect(labels).not.toContain('W2');
+		});
+
+		it('should label every point when asked', () => {
+			const five = [1, 2, 3, 4, 5].map((v, i) => week(i, 1, v));
+			const { container } = render(() => (
+				<TrendChart points={five} label="KDA" axisLabel="week" format={format} labelAll />
+			));
+
+			const labels = Array.from(container.querySelectorAll('text')).map(
+				(t) => t.textContent
+			);
+			expect(labels).toEqual(expect.arrayContaining(['W1', 'W2', 'W3', 'W4', 'W5']));
+		});
+
+		it('should give each point a tooltip with its value and games', () => {
+			const { container } = render(() => (
+				<TrendChart points={points} label="Win rate" axisLabel="week" format={format} />
+			));
+
+			const titles = Array.from(container.querySelectorAll('circle title')).map(
+				(t) => t.textContent
+			);
+			expect(titles).toEqual([
+				'W1: 40% (3 games)',
+				'W2: 60% (5 games)',
+				'W3: 80% (4 games)',
+			]);
+		});
+
 		it('should not use inline styles', () => {
 			const { container } = render(() => (
-				<TrendChart points={points} label="Win rate" format={format} />
+				<TrendChart points={points} label="Win rate" axisLabel="week" format={format} />
 			));
 
 			expect(container.querySelector('[style]')).toBeNull();
@@ -92,7 +141,7 @@ describe('TrendChart', () => {
 				week(4, 2, 70),
 			];
 			const { container } = render(() => (
-				<TrendChart points={points} label="KDA" format={format} />
+				<TrendChart points={points} label="KDA" axisLabel="week" format={format} />
 			));
 
 			const solid = container.querySelector(
@@ -107,7 +156,7 @@ describe('TrendChart', () => {
 		it('should join isolated weeks with a dashed line', () => {
 			const points = [week(0, 1, 50), week(1, 0, null), week(2, 1, 60), week(3, 0, null)];
 			const { container } = render(() => (
-				<TrendChart points={points} label="KDA" format={format} />
+				<TrendChart points={points} label="KDA" axisLabel="week" format={format} />
 			));
 
 			expect(container.querySelectorAll('circle')).toHaveLength(2);
@@ -118,7 +167,12 @@ describe('TrendChart', () => {
 
 		it('should handle a single week', () => {
 			const { container } = render(() => (
-				<TrendChart points={[week(0, 3, 50)]} label="KDA" format={format} />
+				<TrendChart
+					points={[week(0, 3, 50)]}
+					label="KDA"
+					axisLabel="week"
+					format={format}
+				/>
 			));
 
 			expect(container.querySelectorAll('circle')).toHaveLength(1);
@@ -128,7 +182,12 @@ describe('TrendChart', () => {
 	describe('without data', () => {
 		it('should show a message instead of a chart when no week has a value', () => {
 			render(() => (
-				<TrendChart points={[week(0, 0, null)]} label="KDA" format={format} />
+				<TrendChart
+					points={[week(0, 0, null)]}
+					label="KDA"
+					axisLabel="week"
+					format={format}
+				/>
 			));
 
 			expect(screen.getByText('No data for this period')).toBeDefined();
@@ -136,7 +195,9 @@ describe('TrendChart', () => {
 		});
 
 		it('should show the message for no points', () => {
-			render(() => <TrendChart points={[]} label="KDA" format={format} />);
+			render(() => (
+				<TrendChart points={[]} label="KDA" axisLabel="week" format={format} />
+			));
 
 			expect(screen.getByText('No data for this period')).toBeDefined();
 		});

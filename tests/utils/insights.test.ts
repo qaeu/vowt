@@ -14,6 +14,7 @@ import {
 	SESSION_BREAK_MINUTES,
 	MIN_TEAM_SPLIT_GAMES,
 	MIN_MATCHUP_GAMES,
+	MAX_MATCHUP_HEROES,
 	parseResult,
 	parseMatchDate,
 	parseGameLengthSeconds,
@@ -824,33 +825,23 @@ describe('insights', () => {
 
 	describe('buildLobbyComparison', () => {
 		const statsOf = (e: number | null) => ({ e, a: 0, d: 0, dmg: 0, h: 0, mit: 0 });
-		const rowOf = (groups: ReturnType<typeof buildLobbyComparison>, role: string) =>
-			groups.find((g) => g.role === role)!.rows;
 		const eRow = (g: PlayerGame[]) =>
-			rowOf(buildLobbyComparison(g), 'damage').find((r) => r.stat === 'e')!;
+			buildLobbyComparison(g).find((r) => r.stat === 'e')!;
 
-		describe('role grouping', () => {
-			it('returns no groups for no games', () => {
+		describe('rows', () => {
+			it('returns no rows for no games', () => {
 				expect(buildLobbyComparison([])).toEqual([]);
 			});
 
-			it('lists only roles with games, in a stable order', () => {
-				const groups = buildLobbyComparison([
-					game({ role: 'unknown' }),
-					game({ role: 'support' }),
-					game({ role: 'tank' }),
-					game({ role: 'tank' }),
-				]);
-				expect(groups.map((g) => g.role)).toEqual(['tank', 'support', 'unknown']);
-				expect(groups[0].rows.map((r) => r.stat)).toEqual(['e', 'a', 'd', 'h', 'dmg']);
+			it('lists one row per stat in a stable order', () => {
+				const rows = buildLobbyComparison([game()]);
+				expect(rows.map((r) => r.stat)).toEqual(['e', 'a', 'd', 'h', 'dmg']);
 			});
 
-			it('computes each role from its own games only', () => {
+			it('pools the games of every role', () => {
 				const mk = (role: PlayerGame['role'], e: number) =>
 					game({ role, stats: statsOf(e), teamAvg: statsOf(e), enemyAvg: statsOf(e) });
-				const groups = buildLobbyComparison([mk('tank', 10), mk('damage', 30)]);
-				expect(rowOf(groups, 'tank')[0].you).toBe(10);
-				expect(rowOf(groups, 'damage')[0].you).toBe(30);
+				expect(eRow([mk('tank', 10), mk('damage', 30)]).you).toBe(20);
 			});
 		});
 
@@ -1390,18 +1381,18 @@ describe('insights', () => {
 			results.map((r, i) => timed(at(day, 10, i * 20), r));
 
 		it('exports the break length', () => {
-			expect(SESSION_BREAK_MINUTES).toBe(60);
+			expect(SESSION_BREAK_MINUTES).toBe(120);
 		});
 
 		describe('session splitting', () => {
-			it('keeps a gap of exactly 60 minutes in one session', () => {
-				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 11, 0))]);
+			it('keeps a gap of exactly 120 minutes in one session', () => {
+				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 12, 0))]);
 				expect(stats.sessionCount).toBe(1);
 				expect(stats.averageLength).toBe(2);
 			});
 
-			it('starts a new session after 61 minutes', () => {
-				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 11, 1))]);
+			it('starts a new session after 121 minutes', () => {
+				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 12, 1))]);
 				expect(stats.sessionCount).toBe(2);
 				expect(stats.averageLength).toBe(1);
 			});
@@ -1412,7 +1403,7 @@ describe('insights', () => {
 			});
 
 			it('sorts games before splitting', () => {
-				const stats = buildSessionStats([timed(at(1, 12, 0)), timed(at(1, 10, 0))]);
+				const stats = buildSessionStats([timed(at(1, 13, 0)), timed(at(1, 10, 0))]);
 				expect(stats.sessionCount).toBe(2);
 			});
 
@@ -1656,7 +1647,7 @@ describe('insights', () => {
 			expect(buildHeroMatchups(games(20))).toEqual([]);
 		});
 
-		describe('present/absent thresholds', () => {
+		describe('present/absent counts', () => {
 			/** Present games all lost, absent games all won */
 			const split = (present: number, absent: number) =>
 				withEnemy('Widowmaker', present, absent, (_, isPresent) => ({
@@ -1667,12 +1658,15 @@ describe('insights', () => {
 				expect(MIN_MATCHUP_GAMES).toBe(5);
 			});
 
-			it('skips a hero present in fewer than 5 games', () => {
-				expect(find(buildHeroMatchups(split(4, 10)), 'Widowmaker')).toBeUndefined();
+			it('keeps a hero present in fewer than 5 games without a stat delta', () => {
+				const row = find(buildHeroMatchups(split(4, 10)), 'Widowmaker');
+				expect(row).toMatchObject({ present: 4, absent: 10, significant: false });
+				expect(row?.statDeltas.every((d) => d.delta === null)).toBe(true);
 			});
 
-			it('skips a hero absent from fewer than 5 games', () => {
-				expect(find(buildHeroMatchups(split(5, 4)), 'Widowmaker')).toBeUndefined();
+			it('keeps a hero absent from fewer than 5 games without significance', () => {
+				const row = find(buildHeroMatchups(split(5, 4)), 'Widowmaker');
+				expect(row).toMatchObject({ present: 5, absent: 4, significant: false });
 			});
 
 			it('includes a hero with 5 games each side when significant', () => {
@@ -1687,8 +1681,13 @@ describe('insights', () => {
 				});
 			});
 
-			it('skips a hero present in every game', () => {
-				expect(find(buildHeroMatchups(split(5, 5)), 'Filler')).toBeUndefined();
+			it('has no win rate without a hero present in every game', () => {
+				expect(find(buildHeroMatchups(split(5, 5)), 'Filler')).toMatchObject({
+					present: 10,
+					absent: 0,
+					winRate: { present: 50, absent: null },
+					significant: false,
+				});
 			});
 
 			it('counts a hero listed twice in a game once', () => {
@@ -1724,10 +1723,14 @@ describe('insights', () => {
 					result: i < 10 ? 'win' : 'loss',
 				}));
 				const rows = buildHeroMatchups(list);
-				expect(rows.filter((r) => r.hero === 'Mercy').map((r) => r.side)).toEqual([
-					'ally',
-				]);
-				expect(find(rows, 'Mercy')?.winRate).toEqual({ present: 100, absent: 0 });
+				const mercy = rows.filter((r) => r.hero === 'Mercy');
+				expect(mercy.map((r) => r.side)).toEqual(['ally', 'enemy']);
+				expect(mercy[0].winRate).toEqual({ present: 100, absent: 0 });
+				expect(mercy[1]).toMatchObject({
+					present: 20,
+					absent: 0,
+					winRate: { present: 50, absent: null },
+				});
 				expect(find(rows, 'Lucio')).toMatchObject({
 					side: 'ally',
 					winRate: { present: 0, absent: 100 },
@@ -1761,7 +1764,7 @@ describe('insights', () => {
 				expect(d.significant).toBe(true);
 			});
 
-			it('keeps a hero with only a significant stat delta', () => {
+			it('flags a significant stat delta without a win-rate gap', () => {
 				const list = withEnemy('Widowmaker', 10, 10, (i, isPresent) => ({
 					result: i % 2 ? 'win' : 'loss',
 					stats: {
@@ -1793,7 +1796,9 @@ describe('insights', () => {
 						mit: 0,
 					},
 				}));
-				expect(find(buildHeroMatchups(list), 'Widowmaker')).toBeUndefined();
+				const row = find(buildHeroMatchups(list), 'Widowmaker')!;
+				expect(row.significant).toBe(false);
+				expect(row.statDeltas.some((d) => d.significant)).toBe(false);
 			});
 
 			it('does not flag a stat with no spread on either side', () => {
@@ -1801,7 +1806,8 @@ describe('insights', () => {
 					result: i % 2 ? 'win' : 'loss',
 					stats: { e: 10, a: 5, d: isPresent ? 9 : 4, dmg: 6000, h: 0, mit: 0 },
 				}));
-				expect(find(buildHeroMatchups(list), 'Widowmaker')).toBeUndefined();
+				const d = find(buildHeroMatchups(list), 'Widowmaker')!.statDeltas[0];
+				expect(d).toMatchObject({ stat: 'd', delta: 5, significant: false });
 			});
 
 			it('leaves a stat delta null when either side has too few usable games', () => {
@@ -1843,7 +1849,9 @@ describe('insights', () => {
 			});
 
 			it('removes the role-mix effect', () => {
-				expect(find(buildHeroMatchups(list), 'Reinhardt')).toBeUndefined();
+				const d = find(buildHeroMatchups(list), 'Reinhardt')!.statDeltas[0];
+				expect(d.delta).toBeCloseTo(0);
+				expect(d.significant).toBe(false);
 			});
 
 			it('compares residuals within each role', () => {
@@ -1866,41 +1874,39 @@ describe('insights', () => {
 			});
 		});
 
-		describe('sort order', () => {
-			/** Games 0-9 and 10-14 are losses, 15-29 wins */
+		describe('sort order and limit', () => {
 			const list = games(30, (i) => ({
-				result: i < 15 ? 'loss' : 'win',
 				allyHeroes: i < 10 ? ['Ana'] : ['Kiriko'],
 				enemyHeroes: [
-					'Filler',
 					...(i < 10 ? ['Zarya', 'Ana'] : []),
 					...(i >= 10 && i < 15 ? ['Sombra'] : []),
+					...(i >= 15 ? ['Winston'] : []),
 				],
 			}));
 
-			it('orders by win-rate gap weighted by how often the hero appears', () => {
-				const rows = buildHeroMatchups(list);
-				// Zarya: 0% vs 75% over 10/30 games = 25; Sombra: 0% vs 60% over 5/30 = 10
-				const order = rows.map((r) => `${r.side}:${r.hero}`);
-				expect(order.indexOf('enemy:Zarya')).toBeLessThan(order.indexOf('enemy:Sombra'));
-				const impacts = rows.map(
-					(r) =>
-						(Math.abs(r.winRate.present - r.winRate.absent) * r.present)
-						/ (r.present + r.absent)
-				);
-				expect(impacts).toEqual([...impacts].sort((a, b) => b - a));
-			});
-
-			it('breaks ties by hero name, then ally before enemy', () => {
-				// Kiriko: 75% vs 0% over 20/30 = 50; Ana (both sides) and Zarya tie at 25
+			it('lists allies then enemies, most frequent first, ties by name', () => {
 				const order = buildHeroMatchups(list).map((r) => `${r.side}:${r.hero}`);
 				expect(order).toEqual([
 					'ally:Kiriko',
 					'ally:Ana',
+					'enemy:Winston',
 					'enemy:Ana',
 					'enemy:Zarya',
 					'enemy:Sombra',
 				]);
+			});
+
+			it(`keeps the ${MAX_MATCHUP_HEROES} most frequent heroes per side`, () => {
+				expect(MAX_MATCHUP_HEROES).toBe(15);
+				// Hero h0 is in 20 games, h1 in 19 and so on down to h19 in 1
+				const many = games(20, (i) => ({
+					allyHeroes: ['Ana'],
+					enemyHeroes: Array.from({ length: i + 1 }, (_, h) => `h${h}`),
+				}));
+				const enemies = buildHeroMatchups(many).filter((r) => r.side === 'enemy');
+				expect(enemies).toHaveLength(MAX_MATCHUP_HEROES);
+				expect(enemies[0]).toMatchObject({ hero: 'h0', present: 20 });
+				expect(enemies.at(-1)).toMatchObject({ hero: 'h14', present: 6 });
 			});
 		});
 	});
@@ -1943,7 +1949,10 @@ describe('insights', () => {
 			expect(s.heroPool.map((r) => r.hero).sort()).toEqual(['Ana', 'Tracer']);
 			expect(s.personalBests.kills?.value).toBe(10);
 			expect(s.modes.map((m) => m.mode)).toEqual(['PUSH', 'CONTROL']);
-			expect(s.matchups).toEqual([]);
+			expect(s.matchups.map((r) => `${r.side}:${r.hero}`)).toEqual([
+				'ally:Tracer',
+				'enemy:Tracer',
+			]);
 			expect(s.filters).toBe(FILTERS);
 		});
 
