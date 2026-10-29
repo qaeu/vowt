@@ -17,7 +17,9 @@ import { Search, Trash2 } from 'lucide-solid';
 
 import type { TextRegion, DrawnRegion } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
+import RecordFieldSelect from '#c/ui/RecordFieldSelect';
 import { isSameRegion } from '#utils/regionEditor';
+import { REGION_NAME_GROUPS } from '#utils/postprocess';
 
 interface RegionInspectorProps {
 	profileId: string;
@@ -36,7 +38,7 @@ interface RegisteredField {
 }
 
 interface TextFieldSpec {
-	key: 'name' | 'charSet' | 'imgHashSet' | 'group';
+	key: 'charSet' | 'imgHashSet' | 'group';
 	label: string;
 	listId?: string;
 }
@@ -88,6 +90,7 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 
 	// The selected region as its inputs last reported it
 	let working: DrawnRegion | undefined;
+	let listRef: HTMLUListElement | undefined;
 	let justSavedTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
 	onCleanup(() => clearTimeout(justSavedTimeoutId));
@@ -101,6 +104,19 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 	const savedById = createMemo(
 		() => new Map(props.savedRegions.map((r) => [r.id, r] as const))
 	);
+
+	// Names held by more than one region; their OCR results would overwrite each other
+	const duplicateNames = createMemo(() => {
+		const seen = new Set<string>();
+		const duplicates = new Set<string>();
+		for (const { name } of props.currentRegions) {
+			if (seen.has(name)) duplicates.add(name);
+			seen.add(name);
+		}
+		return duplicates;
+	});
+
+	const isDuplicate = (region: DrawnRegion) => duplicateNames().has(region.name);
 
 	const isChanged = (region: DrawnRegion) => {
 		const saved = savedById().get(region.id);
@@ -173,6 +189,29 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 		})
 	);
 
+	// Bring the selected region into view in the list, e.g. after a click on the canvas.
+	// Only the list scrolls, so the page stays where it is.
+	createEffect(
+		on(
+			() => props.selectedId,
+			(id) => {
+				if (!id || !listRef) return;
+				const item = Array.from(
+					listRef.querySelectorAll<HTMLElement>('[data-region-id]')
+				).find((el) => el.dataset.regionId === id);
+				if (!item) return;
+
+				const listRect = listRef.getBoundingClientRect();
+				const itemRect = item.getBoundingClientRect();
+				if (itemRect.top < listRect.top) {
+					listRef.scrollTop -= listRect.top - itemRect.top;
+				} else if (itemRect.bottom > listRect.bottom) {
+					listRef.scrollTop += itemRect.bottom - listRect.bottom;
+				}
+			}
+		)
+	);
+
 	// On save, flash the fields that were modified; on profile change, start fresh
 	createEffect(
 		on(
@@ -227,9 +266,7 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 					staticListId={spec.listId}
 					initialValue={region[spec.key] ?? ''}
 					baseline={() => baselineRegion()[spec.key] ?? ''}
-					onInput={(value) =>
-						updateField(spec.key, spec.key === 'name' ? value : value || undefined)
-					}
+					onInput={(value) => updateField(spec.key, value || undefined)}
 					initialIsJustSaved={isFieldJustSaved(fieldId(region.id, spec.key))}
 					staticRegisterField={registerField}
 				/>
@@ -260,7 +297,18 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 
 		return (
 			<div class="region-inspector__fields">
-				{textField({ key: 'name', label: 'Name' })}
+				<div class="region-inspector__field">
+					<label for={fieldId(region.id, 'name')}>Name</label>
+					<RecordFieldSelect
+						staticId={fieldId(region.id, 'name')}
+						groups={REGION_NAME_GROUPS}
+						initialValue={region.name}
+						baseline={() => baselineRegion().name}
+						onChange={(value) => updateField('name', value)}
+						initialIsJustSaved={isFieldJustSaved(fieldId(region.id, 'name'))}
+						staticRegisterField={registerField}
+					/>
+				</div>
 
 				<div class="region-inspector__row region-inspector__row--position">
 					<For each={POSITION_FIELDS}>{numberField}</For>
@@ -325,13 +373,17 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 							<p class="region-inspector__empty">No regions match '{query().trim()}'.</p>
 						}
 					>
-						<ul class="region-inspector__list" aria-label="Regions">
+						<ul ref={listRef} class="region-inspector__list" aria-label="Regions">
 							<For each={filteredRegions()}>
 								{(region) => (
 									<li>
 										<button
 											class="region-inspector__item"
-											classList={{ 'region-inspector__item--changed': isChanged(region) }}
+											data-region-id={region.id}
+											classList={{
+												'region-inspector__item--changed': isChanged(region),
+												'region-inspector__item--duplicate': isDuplicate(region),
+											}}
 											aria-pressed={props.selectedId === region.id}
 											onClick={() => props.onSelect(region.id)}
 										>
@@ -341,6 +393,14 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 											</span>
 											<Show when={region.group}>
 												<span class="region-inspector__item-group">{region.group}</span>
+											</Show>
+											<Show when={isDuplicate(region)}>
+												<span
+													class="region-inspector__duplicate"
+													title="Another region has this name"
+												>
+													Duplicate
+												</span>
 											</Show>
 											<Show when={isChanged(region)}>
 												<span class="region-inspector__changed" title="Unsaved changes">

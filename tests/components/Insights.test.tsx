@@ -46,6 +46,12 @@ interface RecordOptions {
 	kills?: string;
 	deaths?: string;
 	withBob?: boolean;
+	/** Adds a blue teammate with 5 eliminations, 5 assists, 5 deaths, 3000 damage */
+	withMate?: boolean;
+	/** Teammate's hero; defaults to Tracer */
+	mateHero?: string;
+	/** Enemy FOE's hero; defaults to Winston */
+	foeHero?: string;
 }
 
 const makeRecord = (o: RecordOptions): GameRecord => ({
@@ -71,8 +77,23 @@ const makeRecord = (o: RecordOptions): GameRecord => ({
 			dmg: '4000',
 			h: '0',
 			mit: '0',
-			hero: 'Winston',
+			hero: o.foeHero ?? 'Winston',
 		},
+		...(o.withMate ?
+			[
+				{
+					name: 'MATE',
+					team: 'blue' as const,
+					e: '5',
+					a: '5',
+					d: '5',
+					dmg: '3000',
+					h: '0',
+					mit: '0',
+					hero: o.mateHero ?? 'Tracer',
+				},
+			]
+		:	[]),
 		...(o.withBob ?
 			[
 				{
@@ -200,6 +221,7 @@ describe('Insights', () => {
 				'You vs the lobby',
 				'Maps',
 				'Game modes',
+				'Sessions',
 				'Personal bests',
 			]) {
 				expect(screen.getByRole('heading', { name })).toBeDefined();
@@ -290,8 +312,32 @@ describe('Insights', () => {
 			expect(screen.getByText('What stands out')).toBeDefined();
 			expect(screen.getByText('Staying alive wins games')).toBeDefined();
 			expect(
-				screen.getByText(/You win 100% of games with 5.5 or fewer deaths, but only 0%/)
+				screen.getByText(
+					/You win 100% of games with deaths per 10 minutes at or below your role's typical level, but only 0% above it\. Typical: Damage 5\.5\./
+				)
 			).toBeDefined();
+		});
+
+		it('should show a confidence badge on each finding', () => {
+			const records = [
+				...Array.from({ length: 6 }, (_, i) =>
+					makeRecord({ id: `low${i}`, deaths: '2', date: `06/0${i + 1}/2025` })
+				),
+				...Array.from({ length: 6 }, (_, i) =>
+					makeRecord({
+						id: `high${i}`,
+						deaths: '9',
+						result: 'DEFEAT',
+						date: `06/1${i}/2025`,
+					})
+				),
+			];
+			vi.mocked(Store.loadGameRecords).mockReturnValue(records);
+			const { container } = renderInsights();
+
+			const badge = container.querySelector('.insights-finding__confidence');
+			expect(badge?.textContent).toBe('Low confidence');
+			expect(badge?.classList.contains('insights-finding__confidence--low')).toBe(true);
 		});
 
 		it('should omit the findings section when there are none', () => {
@@ -504,6 +550,247 @@ describe('Insights', () => {
 			fireEvent.click(best);
 
 			expect(onOpenRecord).toHaveBeenCalledWith('g3');
+		});
+	});
+
+	describe('sessions', () => {
+		/** One game per 5 minutes on 06/01/2025 starting at 10:00 */
+		const timedRecords = (results: string[], dayStart = 1): GameRecord[] =>
+			results.map((result, i) =>
+				makeRecord({
+					id: `s${dayStart}-${i}`,
+					result,
+					date: `06/0${dayStart}/2025 10:${String(i * 5).padStart(2, '0')}`,
+				})
+			);
+
+		it('should render bars by game number with counts', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(
+				timedRecords(['VICTORY', 'DEFEAT', 'VICTORY'])
+			);
+			renderInsights();
+
+			expect(screen.getByRole('heading', { name: 'Sessions' })).toBeDefined();
+			const list = screen.getByRole('list', { name: 'Win rate by game number' });
+			const rows = list.querySelectorAll('.insights-bars__row');
+			expect(rows).toHaveLength(5);
+			expect(rows[0].textContent).toContain('Game 1');
+			expect(rows[0].textContent).toContain('100% (1)');
+			expect(rows[1].textContent).toContain('0% (1)');
+			expect(rows[4].textContent).toContain('Game 5+');
+			expect(rows[4].textContent).toContain('— (0)');
+		});
+
+		it('should show after-win and after-loss rates, session count and length', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(
+				timedRecords(['VICTORY', 'DEFEAT', 'VICTORY'])
+			);
+			renderInsights();
+
+			const stat = (name: string) =>
+				screen.getByText(name, { selector: 'dt' }).parentElement?.querySelector('dd')
+					?.textContent;
+			expect(stat('After a win')).toMatch(/^0%/);
+			expect(stat('After a loss')).toMatch(/^100%/);
+			expect(stat('Sessions')).toBe('1');
+			expect(stat('Average length')).toBe('3.0 games');
+		});
+
+		it('should note games without a readable time', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue([
+				...timedRecords(['VICTORY', 'DEFEAT']),
+				makeRecord({ id: 'no-time', date: '06/05/2025' }),
+				makeRecord({ id: 'no-time2', date: '06/06/2025' }),
+			]);
+			renderInsights();
+
+			expect(
+				screen.getByText('2 games had no readable time and are left out.')
+			).toBeDefined();
+		});
+
+		it('should use the singular for one untimed game', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue([
+				...timedRecords(['VICTORY', 'DEFEAT']),
+				makeRecord({ id: 'no-time', date: '06/05/2025' }),
+			]);
+			renderInsights();
+
+			expect(
+				screen.getByText('1 game had no readable time and is left out.')
+			).toBeDefined();
+		});
+
+		it('should show a hint instead of bars when no game has a time', () => {
+			renderInsights();
+
+			expect(screen.getByRole('heading', { name: 'Sessions' })).toBeDefined();
+			expect(screen.getByText(/No games have a readable time/)).toBeDefined();
+			expect(screen.queryByRole('list', { name: 'Win rate by game number' })).toBeNull();
+		});
+
+		it('should write the session fatigue finding', () => {
+			const records = Array.from({ length: 10 }, (_, d) =>
+				timedRecords(['VICTORY', 'VICTORY', 'VICTORY', 'DEFEAT', 'DEFEAT'], 1).map(
+					(r, i) => ({
+						...r,
+						id: `f${d}-${i}`,
+						matchInfo: {
+							...r.matchInfo,
+							date: `06/${String(d + 1).padStart(2, '0')}/2025 10:${String(i * 5).padStart(2, '0')}`,
+						},
+					})
+				)
+			).flat();
+			vi.mocked(Store.loadGameRecords).mockReturnValue(records);
+			renderInsights();
+
+			expect(screen.getByText('You tire over a long session')).toBeDefined();
+			expect(
+				screen.getByText(
+					'You win 100% in your first 3 games but 0% after. Consider stopping after 3.'
+				)
+			).toBeDefined();
+		});
+
+		it('should write the tilt finding', () => {
+			const at = (d: number, i: number) =>
+				`06/${String(d).padStart(2, '0')}/2025 10:${String(i * 5).padStart(2, '0')}`;
+			const records = [
+				...[
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'VICTORY',
+					'DEFEAT',
+				].map((result, i) => makeRecord({ id: `a${i}`, result, date: at(1, i) })),
+				...Array.from({ length: 6 }, (_, i) =>
+					makeRecord({ id: `b${i}`, result: 'DEFEAT', date: at(2, i) })
+				),
+			];
+			vi.mocked(Store.loadGameRecords).mockReturnValue(records);
+			renderInsights();
+
+			expect(screen.getByText('Losses carry over')).toBeDefined();
+			expect(
+				screen.getByText(
+					'After a loss you win 0%, vs 83% after a win. Take a break before re-queueing.'
+				)
+			).toBeDefined();
+		});
+	});
+
+	describe('lobby comparison', () => {
+		/** Tracer games: `damageAbove` above and `damageBelow` below the team on kills */
+		const lobbyRecords = (above: number, below: number): GameRecord[] => [
+			...Array.from({ length: above }, (_, i) =>
+				makeRecord({ id: `a${i}`, kills: '9', withMate: true })
+			),
+			...Array.from({ length: below }, (_, i) =>
+				makeRecord({ id: `b${i}`, kills: '1', result: 'DEFEAT', withMate: true })
+			),
+			makeRecord({ id: 't1', hero: 'Reinhardt', withMate: true }),
+		];
+
+		it('should render one headed group per role with games', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 5));
+			const { container } = renderInsights();
+
+			const headings = [...container.querySelectorAll('.insights-lobby__role')];
+			expect(headings.map((h) => h.textContent)).toEqual(['Tank', 'Damage']);
+			expect(container.querySelectorAll('.insights-lobby__group')).toHaveLength(2);
+		});
+
+		it('should show the above/below line with win rates and counts', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 5));
+			const { container } = renderInsights();
+
+			const lines = [...container.querySelectorAll('.insights-lobby__split')];
+			expect(lines).toHaveLength(1);
+			expect(lines[0].textContent?.replace(/\s+/g, ' ')).toBe(
+				'Above team avg: 100% (5) · Below: 0% (5)'
+			);
+		});
+
+		it('should hide the line when either side has fewer than 5 games', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 4));
+			const { container } = renderInsights();
+
+			expect(container.querySelectorAll('.insights-lobby__split')).toHaveLength(0);
+			// The stat rows themselves stay
+			expect(screen.getAllByText('Eliminations').length).toBeGreaterThan(0);
+		});
+	});
+
+	describe('synergies and counters', () => {
+		/**
+		 * 40 games: Mercy on your team in games 0-19, Widowmaker against you in even games.
+		 * You win Mercy games without Widowmaker, lose Widowmaker games without Mercy and
+		 * win half of the rest, so with Mercy you win 75% vs 25% and with Widowmaker 25% vs
+		 * 75%. Widowmaker games have 8.5 deaths on average vs 4.5.
+		 */
+		const matchupRecords = (): GameRecord[] =>
+			Array.from({ length: 40 }, (_, i) => {
+				const mercy = i < 20;
+				const widow = i % 2 === 0;
+				const won =
+					mercy && widow ? i < 10
+					: mercy ? true
+					: widow ? false
+					: i < 30;
+				return makeRecord({
+					id: `m${i}`,
+					result: won ? 'VICTORY' : 'DEFEAT',
+					withMate: true,
+					mateHero: mercy ? 'Mercy' : 'Lucio',
+					foeHero: widow ? 'Widowmaker' : 'Winston',
+					deaths:
+						widow ?
+							i % 4 === 0 ?
+								'8'
+							:	'9'
+						: i % 4 === 1 ? '4'
+						: '5',
+				});
+			});
+
+		it('should list allies who help and enemies who hurt, with the hint', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(matchupRecords());
+			renderInsights();
+
+			expect(screen.getByRole('heading', { name: 'Synergies & counters' })).toBeDefined();
+			const allies = screen.getByRole('list', { name: 'Allies who help you' });
+			const enemies = screen.getByRole('list', { name: 'Enemies who hurt you' });
+			expect(
+				[...allies.querySelectorAll('.insights-matchup__text')].map((p) => p.textContent)
+			).toEqual(['Ally Mercy: you win 75% vs 25%.']);
+			expect(
+				[...enemies.querySelectorAll('.insights-matchup__text')].map((p) => p.textContent)
+			).toEqual(['Enemy Widowmaker: you win 25% vs 75%; your deaths/10 rise by 4.0.']);
+			expect(
+				screen.getByText(/Based on the hero each player finished on\./)
+			).toBeDefined();
+		});
+
+		it('should show a confidence badge on each item', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(matchupRecords());
+			renderInsights();
+
+			const enemies = screen.getByRole('list', { name: 'Enemies who hurt you' });
+			const badge = enemies.querySelector('.insights-finding__confidence');
+			expect(badge?.textContent).toBe('Medium confidence');
+			expect(badge?.classList.contains('insights-finding__confidence--medium')).toBe(
+				true
+			);
+		});
+
+		it('should hide the section when no matchup stands out', () => {
+			renderInsights();
+
+			expect(screen.queryByRole('heading', { name: 'Synergies & counters' })).toBeNull();
+			expect(screen.queryByText(/Based on the hero each player finished on/)).toBeNull();
 		});
 	});
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { extractGameStats, formatResults } from '#utils/postprocess';
+import { extractGameStats, formatResults, REGION_NAME_GROUPS } from '#utils/postprocess';
+import { DEFAULT_PROFILES } from '#data/profiles';
 import type { OverFastStore, RecognitionResult } from '#types';
 
 const MOCK_REGION_RESULTS = new Map<string, string>([
@@ -358,5 +359,38 @@ describe('extractGameStats knownNames', () => {
 			const result = extractGameStats(regionResults, null, []);
 			expect(result.players[0].name).toBe('PLAYER0NE');
 		});
+	});
+});
+
+describe('REGION_NAME_GROUPS', () => {
+	const allNames = REGION_NAME_GROUPS.flatMap((group) => group.names);
+
+	it('should group each player and the match info', () => {
+		expect(REGION_NAME_GROUPS).toHaveLength(11);
+		expect(REGION_NAME_GROUPS[0]).toEqual({
+			label: 'Blue player 1',
+			names: [
+				'blue_player1_hero',
+				'blue_player1_name',
+				'blue_player1_e',
+				'blue_player1_a',
+				'blue_player1_d',
+				'blue_player1_dmg',
+				'blue_player1_h',
+				'blue_player1_mit',
+			],
+		});
+		expect(REGION_NAME_GROUPS.at(-1)!.label).toBe('Match info');
+	});
+
+	it('should not repeat a name', () => {
+		expect(new Set(allNames).size).toBe(allNames.length);
+	});
+
+	it('should include every region name in the bundled profiles', () => {
+		const profileNames = DEFAULT_PROFILES.flatMap((p) =>
+			p.profile.regions.map((r) => r.name)
+		);
+		expect(profileNames.filter((name) => !allNames.includes(name))).toEqual([]);
 	});
 });

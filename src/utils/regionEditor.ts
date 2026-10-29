@@ -19,6 +19,8 @@ export interface RegionEditorOptions {
 	getRegions?: () => DrawnRegion[];
 	/** Called in select mode with the clicked region's ID, or null for empty space */
 	onRegionSelect?: (id: string | null) => void;
+	/** Stops the editor when aborted, e.g. before restarting it on a new image */
+	signal?: AbortSignal;
 }
 
 const REGION_COLOUR_NEW = '#FF0000';
@@ -114,7 +116,7 @@ export function isSameRegion(a: TextRegion, b: TextRegion): boolean {
  * @param imageUrl - URL of the image to draw regions on
  * @param onRegionComplete - Callback when a region is drawn in draw mode
  * @param options - Initial regions, mode and selection callbacks
- * @returns Promise that resolves when the editor is stopped with Escape
+ * @returns Promise that resolves when the editor is stopped with Escape or the signal
  */
 export async function startRegionEditor(
 	canvasElement: HTMLCanvasElement,
@@ -122,14 +124,25 @@ export async function startRegionEditor(
 	onRegionComplete: (region: DrawnRegion) => void,
 	options: RegionEditorOptions = {}
 ): Promise<void> {
-	const { initialRegions = [], onRegionSelect } = options;
+	const { initialRegions = [], onRegionSelect, signal } = options;
 	const getMode = options.mode ?? (() => 'draw' as const);
 	const getRegions = options.getRegions ?? (() => initialRegions);
 
 	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			resolve();
+			return;
+		}
+
 		const img = new Image();
 
 		img.onload = () => {
+			// Aborted while the image was loading
+			if (signal?.aborted) {
+				resolve();
+				return;
+			}
+
 			const ctx = canvasElement.getContext('2d');
 			if (!ctx) {
 				reject(new Error('Failed to get canvas context'));
@@ -222,16 +235,21 @@ export async function startRegionEditor(
 				}
 			};
 
-			const handleKeyDown = (e: KeyboardEvent) => {
-				if (e.key === 'Escape') {
-					canvasElement.removeEventListener('mousedown', handleMouseDown);
-					canvasElement.removeEventListener('mousemove', handleMouseMove);
-					canvasElement.removeEventListener('mouseup', handleMouseUp);
-					canvasElement.removeEventListener('keydown', handleKeyDown);
-					canvasElement.classList.remove(HOVER_CLASS);
-					resolve();
-				}
+			const stop = () => {
+				canvasElement.removeEventListener('mousedown', handleMouseDown);
+				canvasElement.removeEventListener('mousemove', handleMouseMove);
+				canvasElement.removeEventListener('mouseup', handleMouseUp);
+				canvasElement.removeEventListener('keydown', handleKeyDown);
+				canvasElement.classList.remove(HOVER_CLASS);
+				signal?.removeEventListener('abort', stop);
+				resolve();
 			};
+
+			const handleKeyDown = (e: KeyboardEvent) => {
+				if (e.key === 'Escape') stop();
+			};
+
+			signal?.addEventListener('abort', stop);
 
 			canvasElement.addEventListener('mousedown', handleMouseDown);
 			canvasElement.addEventListener('mousemove', handleMouseMove);

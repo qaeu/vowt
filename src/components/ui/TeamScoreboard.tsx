@@ -60,7 +60,11 @@ const TeamScoreboard: Component<TeamScoreboardProps> = (props) => {
 										</th>
 										<td>{player.hero || '-'}</td>
 										<For each={PLAYER_STATS_NUMBER_FIELD_NAMES}>
-											{(field) => <td class="team-scoreboard__stat">{player[field]}</td>}
+											{(field) => (
+												<td class="team-scoreboard__stat">
+													{player[field].trim() || '0'}
+												</td>
+											)}
 										</For>
 									</tr>
 								)}

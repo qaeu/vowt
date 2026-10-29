@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@solidjs/testing-library';
+import { createSignal } from 'solid-js';
 
-import type { DrawnRegion, TextRegion } from '#types';
+import type { DrawnRegion, LearnedHash, TextRegion } from '#types';
 import type { RegionEditorOptions } from '#utils/regionEditor';
 
 import RegionProfileManager from '#c/RegionProfileManager';
 import * as regionProfiles from '#utils/regionProfiles';
 import * as regionEditor from '#utils/regionEditor';
 import * as regionAlignment from '#utils/regionAlignment';
+import * as storage from '#utils/storage';
 
 // Mock the region profiles utility
 vi.mock('#utils/regionProfiles', () => ({
@@ -24,7 +26,8 @@ vi.mock('#utils/regionProfiles', () => ({
 	importProfile: vi.fn(),
 	getActiveProfileAlignment: vi.fn(),
 	getProfileAlignment: vi.fn(),
-	countProfileHashes: vi.fn(),
+	listProfileHashes: vi.fn(),
+	removeProfileHash: vi.fn(),
 	clearProfileHashes: vi.fn(),
 	REFERENCE_WIDTH: 2560,
 	REFERENCE_HEIGHT: 1440,
@@ -46,9 +49,24 @@ vi.mock('#utils/regionEditor', async (importOriginal) => ({
 	drawRegions: vi.fn(),
 }));
 
+// Mock the file picker; keep the rest of storage
+vi.mock('#utils/storage', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#utils/storage')>()),
+	triggerUploadDialog: vi.fn(),
+}));
+
 type RegionCallback = (region: DrawnRegion) => void;
 
 const PREVIEW = 'data:image/png;base64,test';
+
+/** Learned hashes with distinct names, as many as requested */
+const makeLearnedHashes = (count: number): LearnedHash[] =>
+	Array.from({ length: count }, (_, i) => ({
+		name: `hero-${i}`,
+		hash: `hash-${i}`,
+		hashSetId: 'hero-portrait',
+		learnedAt: new Date(2026, 9, 29 - i, 14, 30),
+	}));
 
 const dialogContent = () =>
 	document.querySelector<HTMLElement>('[data-scope="dialog"][data-part="content"]')!;
@@ -128,7 +146,7 @@ describe('RegionProfileManager', () => {
 		vi.mocked(regionEditor.startRegionEditor).mockResolvedValue(undefined);
 		vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([]);
 		vi.mocked(regionProfiles.getProfileAlignment).mockReturnValue([]);
-		vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
+		vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([]);
 	});
 
 	afterEach(() => {
@@ -310,7 +328,7 @@ describe('RegionProfileManager', () => {
 			vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
 				{ name: 'blue' },
 			]);
-			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(3);
+			vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(makeLearnedHashes(3));
 			render(() => <RegionProfileManager previewImage={null} />);
 
 			expect(screen.getByRole('tab', { name: 'Regions (0)' })).toBeDefined();
@@ -345,11 +363,11 @@ describe('RegionProfileManager', () => {
 
 		describe('Learned portraits', () => {
 			it('should show the learned hash count for the editing profile', () => {
-				vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(3);
+				vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(makeLearnedHashes(3));
 				render(() => <RegionProfileManager previewImage={null} />);
 
 				expect(screen.getByText(/3 learned hashes/)).toBeDefined();
-				expect(regionProfiles.countProfileHashes).toHaveBeenCalledWith('profile2');
+				expect(regionProfiles.listProfileHashes).toHaveBeenCalledWith('profile2');
 			});
 
 			it('should disable Clear Learned Hashes when there are none', async () => {
@@ -363,16 +381,100 @@ describe('RegionProfileManager', () => {
 			});
 
 			it('should clear learned hashes after confirming', async () => {
-				vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(2);
+				vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(makeLearnedHashes(2));
 				render(() => <RegionProfileManager previewImage={null} />);
 				await openTab(/Learned portraits/);
 
 				fireEvent.click(screen.getByRole('button', { name: 'Clear Learned Hashes' }));
-				vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
+				vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([]);
 				fireEvent.click(await screen.findByRole('button', { name: 'Clear Hashes' }));
 
 				expect(regionProfiles.clearProfileHashes).toHaveBeenCalledWith('profile2');
 				await waitFor(() => expect(screen.getByText(/0 learned hashes/)).toBeDefined());
+			});
+
+			describe('List', () => {
+				const listItems = () =>
+					within(screen.getByRole('list', { name: 'Learned hashes' })).getAllByRole(
+						'listitem'
+					);
+
+				it('should not show a list when there are no learned hashes', async () => {
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					expect(screen.queryByRole('list', { name: 'Learned hashes' })).toBeNull();
+				});
+
+				it('should list each learned hash with its name, time and hash set', async () => {
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(
+						makeLearnedHashes(2)
+					);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					const items = listItems();
+					expect(items).toHaveLength(2);
+					expect(items[0].textContent).toContain('hero-0');
+					expect(items[0].textContent).toContain('hero-portrait');
+					const time = items[0].querySelector('time')!;
+					expect(time.textContent).toBe('Oct 29, 2026, 2:30 PM');
+					expect(time.getAttribute('datetime')).toBe(
+						new Date(2026, 9, 29, 14, 30).toISOString()
+					);
+					expect(items[1].textContent).toContain('hero-1');
+				});
+
+				it('should say when a learned time is unknown', async () => {
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([
+						{ name: 'ana', hash: 'hash-0', hashSetId: 'hero-portrait' },
+					]);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					expect(listItems()[0].textContent).toContain('Learned date unknown');
+					expect(listItems()[0].querySelector('time')).toBeNull();
+				});
+
+				it('should delete a single learned hash', async () => {
+					const hashes = makeLearnedHashes(2);
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(hashes);
+					vi.mocked(regionProfiles.removeProfileHash).mockReturnValue(true);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([hashes[0]]);
+					fireEvent.click(
+						screen.getByRole('button', { name: 'Delete learned hash for hero-1' })
+					);
+
+					expect(regionProfiles.removeProfileHash).toHaveBeenCalledWith(
+						'profile2',
+						'hero-portrait',
+						'hash-1'
+					);
+					await waitFor(() => expect(listItems()).toHaveLength(1));
+					expect(
+						screen.getByRole('tab', { name: 'Learned portraits (1)' })
+					).toBeDefined();
+				});
+
+				it('should leave the list unchanged when nothing was removed', async () => {
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(
+						makeLearnedHashes(1)
+					);
+					vi.mocked(regionProfiles.removeProfileHash).mockReturnValue(false);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+					const calls = vi.mocked(regionProfiles.listProfileHashes).mock.calls.length;
+
+					fireEvent.click(
+						screen.getByRole('button', { name: 'Delete learned hash for hero-0' })
+					);
+
+					expect(regionProfiles.listProfileHashes).toHaveBeenCalledTimes(calls);
+					expect(listItems()).toHaveLength(1);
+				});
 			});
 		});
 	});
@@ -462,7 +564,7 @@ describe('RegionProfileManager', () => {
 			options.onRegionSelect?.('profile2-1');
 
 			await waitFor(() => {
-				expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+				expect((screen.getByLabelText('Name') as HTMLSelectElement).value).toBe(
 					'red_score'
 				);
 			});
@@ -493,7 +595,7 @@ describe('RegionProfileManager', () => {
 			draw({ x: 10, y: 300, width: 40, height: 20 }, 'drawn-5');
 
 			await waitFor(() => {
-				expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+				expect((screen.getByLabelText('Name') as HTMLSelectElement).value).toBe(
 					'region_0'
 				);
 			});
@@ -526,7 +628,7 @@ describe('RegionProfileManager', () => {
 
 			options.onRegionSelect?.('profile2-0');
 			const name = await screen.findByDisplayValue('blue_score');
-			fireEvent.input(name, { target: { value: 'blue_final' } });
+			fireEvent.change(name, { target: { value: 'final_score' } });
 
 			expect(footer()?.textContent).toContain('2 unsaved changes to profile2');
 		});
@@ -574,11 +676,11 @@ describe('RegionProfileManager', () => {
 			options.onRegionSelect?.('profile2-0');
 
 			const name = await screen.findByDisplayValue('blue_score');
-			fireEvent.input(name, { target: { value: 'blue_final' } });
+			fireEvent.change(name, { target: { value: 'final_score' } });
 			fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
 			await waitFor(() => {
-				expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+				expect((screen.getByLabelText('Name') as HTMLSelectElement).value).toBe(
 					'blue_score'
 				);
 			});
@@ -624,6 +726,134 @@ describe('RegionProfileManager', () => {
 					'profile2'
 				);
 				expect(footer()).toBeNull();
+			});
+		});
+	});
+
+	describe('Screenshot preview', () => {
+		const SECOND_PREVIEW = 'data:image/png;base64,second';
+
+		/** Mocks Image so each source loads at its own size, or fails if it has none */
+		const mockImageSizes = (sizes: Record<string, [number, number]>) => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
+				const image = {
+					onload: null as (() => void) | null,
+					onerror: null as (() => void) | null,
+					width: 0,
+					height: 0,
+					set src(value: string) {
+						const size = sizes[value];
+						setTimeout(() => {
+							if (!size) return image.onerror?.();
+							[image.width, image.height] = size;
+							image.onload?.();
+						}, 0);
+					},
+				};
+				return image as unknown as HTMLImageElement;
+			});
+		};
+
+		const editorCalls = () => vi.mocked(regionEditor.startRegionEditor).mock.calls;
+
+		it('should prompt for a screenshot until one is loaded', () => {
+			render(() => <RegionProfileManager previewImage={null} />);
+
+			expect(screen.getByText(/Drop a scoreboard screenshot/)).toBeDefined();
+			expect(screen.getByRole('button', { name: 'Choose Screenshot' })).toBeDefined();
+			expect(document.querySelector('.canvas-wrapper--empty')).not.toBeNull();
+			expect(regionEditor.startRegionEditor).not.toHaveBeenCalled();
+		});
+
+		it('should load a screenshot dropped after the screen opened', async () => {
+			mockImageSizes({ [PREVIEW]: [1280, 720] });
+			const [preview, setPreview] = createSignal<string | null>(null);
+			render(() => <RegionProfileManager previewImage={preview()} />);
+
+			setPreview(PREVIEW);
+
+			await waitFor(() => expect(editorCalls()).toHaveLength(1));
+			expect(editorCalls()[0][1]).toBe(PREVIEW);
+			expect(screen.queryByText(/Drop a scoreboard screenshot/)).toBeNull();
+			expect(screen.getByRole('button', { name: 'Change Screenshot' })).toBeDefined();
+		});
+
+		it('should load a screenshot chosen from the file picker', async () => {
+			mockImageSizes({ [PREVIEW]: [1280, 720] });
+			vi.mocked(storage.triggerUploadDialog).mockImplementation((callback) =>
+				callback([PREVIEW, SECOND_PREVIEW])
+			);
+			render(() => <RegionProfileManager previewImage={null} />);
+
+			fireEvent.click(screen.getByRole('button', { name: 'Choose Screenshot' }));
+
+			await waitFor(() => expect(editorCalls()).toHaveLength(1));
+			expect(editorCalls()[0][1]).toBe(PREVIEW);
+		});
+
+		describe('replacing the screenshot', () => {
+			const renderWithPreview = async () => {
+				vi.mocked(regionProfiles.getActiveProfile).mockReturnValue(storedRegions);
+				mockImageSizes({ [PREVIEW]: [1280, 720], [SECOND_PREVIEW]: [2560, 1440] });
+				const [preview, setPreview] = createSignal<string | null>(PREVIEW);
+				render(() => <RegionProfileManager previewImage={preview()} />);
+				await waitFor(() => expect(editorCalls()).toHaveLength(1));
+				return setPreview;
+			};
+
+			const regionsList = () => within(screen.getByRole('list', { name: 'Regions' }));
+
+			it('should restart the editor on the new screenshot', async () => {
+				const setPreview = await renderWithPreview();
+				const firstSignal = editorCalls()[0][3]?.signal;
+
+				setPreview(SECOND_PREVIEW);
+
+				await waitFor(() => expect(editorCalls()).toHaveLength(2));
+				expect(editorCalls()[1][1]).toBe(SECOND_PREVIEW);
+				expect(firstSignal?.aborted).toBe(true);
+				expect(editorCalls()[1][3]?.signal?.aborted).toBe(false);
+			});
+
+			it('should rescale regions to the new screenshot without unsaved changes', async () => {
+				const setPreview = await renderWithPreview();
+
+				setPreview(SECOND_PREVIEW);
+
+				await waitFor(() =>
+					expect(regionsList().getByText('200×80 at (20, 20)')).toBeDefined()
+				);
+				expect(footer()).toBeNull();
+			});
+
+			it('should keep unsaved regions, rescaled to the new screenshot', async () => {
+				const setPreview = await renderWithPreview();
+				editorCalls()[0][2]({
+					id: 'drawn-0',
+					name: 'region_0',
+					x: 10,
+					y: 300,
+					width: 40,
+					height: 20,
+					colour: '#f00',
+				});
+
+				setPreview(SECOND_PREVIEW);
+
+				await waitFor(() =>
+					expect(regionsList().getByText('80×40 at (20, 600)')).toBeDefined()
+				);
+				expect(footer()?.textContent).toContain('1 unsaved change');
+			});
+
+			it('should show an error and keep the current screenshot if one fails to load', async () => {
+				const setPreview = await renderWithPreview();
+
+				setPreview('data:image/png;base64,broken');
+
+				expect(await screen.findByText("Couldn't load screenshot")).toBeDefined();
+				expect(editorCalls()).toHaveLength(1);
+				expect(editorCalls()[0][3]?.signal?.aborted).toBe(false);
 			});
 		});
 	});

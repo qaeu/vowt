@@ -9,6 +9,11 @@ import type {
 } from '#types';
 import {
 	MIN_FINDING_GAMES,
+	MIN_FATIGUE_GAP,
+	MIN_TILT_GAP,
+	SESSION_BREAK_MINUTES,
+	MIN_TEAM_SPLIT_GAMES,
+	MIN_MATCHUP_GAMES,
 	parseResult,
 	parseMatchDate,
 	parseGameLengthSeconds,
@@ -25,6 +30,8 @@ import {
 	buildModeStats,
 	buildPersonalBests,
 	buildFindings,
+	buildSessionStats,
+	buildHeroMatchups,
 	buildInsightsSummary,
 } from '#utils/insights';
 
@@ -95,6 +102,7 @@ const game = (o: Partial<PlayerGame> = {}): PlayerGame => ({
 	recordId: 'g',
 	date: new Date(2025, 5, 10),
 	createdAt: new Date(2025, 5, 10),
+	hasTime: false,
 	result: 'win',
 	team: 'blue',
 	lengthSeconds: 600,
@@ -105,6 +113,8 @@ const game = (o: Partial<PlayerGame> = {}): PlayerGame => ({
 	stats: { e: 10, a: 5, d: 5, dmg: 6000, h: 0, mit: 0 },
 	teamAvg: { e: null, a: null, d: null, dmg: null, h: null, mit: null },
 	enemyAvg: { e: null, a: null, d: null, dmg: null, h: null, mit: null },
+	allyHeroes: [],
+	enemyHeroes: [],
 	...o,
 });
 
@@ -152,13 +162,37 @@ describe('insights', () => {
 				expect(parseMatchDate(dated('03/07/2025'))).toEqual(new Date(2025, 2, 7));
 			});
 
-			it('ignores extra time text', () => {
-				expect(parseMatchDate(dated('03/07/2025 14:32'))).toEqual(new Date(2025, 2, 7));
-				expect(parseMatchDate(dated('3-7-2025'))).toEqual(new Date(2025, 2, 7));
+			it('reads the time after the date', () => {
+				expect(parseMatchDate(dated('03/07/2025 14:32'))).toEqual(
+					new Date(2025, 2, 7, 14, 32)
+				);
+				expect(parseMatchDate(dated('09/15/25 - 02:49'))).toEqual(
+					new Date(2025, 8, 15, 2, 49)
+				);
+				expect(parseMatchDate(dated('9/15/2025 2:05'))).toEqual(
+					new Date(2025, 8, 15, 2, 5)
+				);
 			});
+
+			it('uses midnight when the time is missing', () => {
+				expect(parseMatchDate(dated('3-7-2025'))).toEqual(new Date(2025, 2, 7));
+				expect(parseMatchDate(dated('03/07/2025 later'))).toEqual(new Date(2025, 2, 7));
+			});
+
+			it.each(['25:10', '10:75', '24:00'])(
+				'uses midnight for the invalid time %j',
+				(time) => {
+					expect(parseMatchDate(dated(`03/07/2025 - ${time}`))).toEqual(
+						new Date(2025, 2, 7)
+					);
+				}
+			);
 
 			it('accepts two-digit years', () => {
 				expect(parseMatchDate(dated('03/07/25'))).toEqual(new Date(2025, 2, 7));
+				expect(parseMatchDate(dated('03/07/25 - 08:15'))).toEqual(
+					new Date(2025, 2, 7, 8, 15)
+				);
 			});
 
 			it.each(['', 'yesterday', '13/40/2025', '02/30/2025', '12/2025'])(
@@ -191,7 +225,11 @@ describe('insights', () => {
 				expect(parseStat(' 12345 ')).toBe(12345);
 			});
 
-			it.each(['', 'abc', '1O', '-3', '1.5', '1,000'])('returns null for %j', (text) => {
+			it.each(['', '   '])('counts blank %j as 0', (text) => {
+				expect(parseStat(text)).toBe(0);
+			});
+
+			it.each(['abc', '1O', '-3', '1.5', '1,000'])('returns null for %j', (text) => {
 				expect(parseStat(text)).toBeNull();
 			});
 		});
@@ -248,6 +286,16 @@ describe('insights', () => {
 			expect(g.stats).toEqual({ e: 10, a: 5, d: 5, dmg: 6000, h: 0, mit: 0 });
 		});
 
+		it('flags hasTime only when a valid time was parsed', () => {
+			const hasTime = (date: string) =>
+				toPlayerGames([rec({ date })], 'alice', HEROES)[0].hasTime;
+			expect(hasTime('09/15/25 - 02:49')).toBe(true);
+			expect(hasTime('09/15/25')).toBe(false);
+			expect(hasTime('09/15/25 - 25:10')).toBe(false);
+			expect(hasTime('09/15/25 - 10:75')).toBe(false);
+			expect(hasTime('nonsense 10:15')).toBe(false);
+		});
+
 		it('averages teammates and enemies separately, excluding the player', () => {
 			const [g] = toPlayerGames([rec()], 'alice', HEROES);
 			expect(g.teamAvg.e).toBe(20);
@@ -292,14 +340,14 @@ describe('insights', () => {
 			expect(toPlayerGames([rec()], 'alice', [])[0].role).toBe('unknown');
 		});
 
-		it('nulls unreadable length and stats and labels empty mode/map', () => {
+		it('nulls unreadable length and stats, zeroes blank stats and labels empty mode/map', () => {
 			const [g] = toPlayerGames(
 				[rec({ length: 'x', mode: ' ', map: '', me: { e: '', dmg: 'abc' } })],
 				'alice',
 				HEROES
 			);
 			expect(g.lengthSeconds).toBeNull();
-			expect(g.stats.e).toBeNull();
+			expect(g.stats.e).toBe(0);
 			expect(g.stats.dmg).toBeNull();
 			expect(g.stats.a).toBe(5);
 			expect(g.mode).toBe('UNKNOWN');
@@ -323,6 +371,51 @@ describe('insights', () => {
 				HEROES
 			);
 			expect(out.map((g) => g.recordId)).toEqual(['tie1', 'tie2', 'late']);
+		});
+
+		describe('ally and enemy heroes', () => {
+			const record = rec({
+				players: [
+					player('ALICE', 'blue', { hero: 'ana' }),
+					player('MATE1', 'blue', { hero: 'dva' }),
+					player('MATE2', 'blue', { hero: '  ' }),
+					player('MATE3', 'blue', { hero: undefined }),
+					player('FOE1', 'red', { hero: 'tracer' }),
+					player('FOE2', 'red', { hero: '' }),
+					player('FOE3', 'red', { hero: ' Mystery ' }),
+					player('FOE4', 'red', { hero: 'Ana' }),
+				],
+			});
+
+			it('resolves display names and drops blank heroes', () => {
+				const [g] = toPlayerGames([record], 'alice', HEROES);
+				expect(g.allyHeroes).toEqual(['D.Va']);
+				expect(g.enemyHeroes).toEqual(['Tracer', 'Mystery', 'Ana']);
+			});
+
+			it('excludes your own hero and follows your team', () => {
+				const red = rec({
+					players: record.players.map((p) => ({
+						...p,
+						team: p.team === 'blue' ? ('red' as const) : ('blue' as const),
+					})),
+				});
+				const [g] = toPlayerGames([red], 'alice', HEROES);
+				expect(g.team).toBe('red');
+				expect(g.allyHeroes).toEqual(['D.Va']);
+				expect(g.allyHeroes).not.toContain('Ana');
+				expect(g.enemyHeroes).toEqual(['Tracer', 'Mystery', 'Ana']);
+			});
+
+			it('is empty when no other hero was read', () => {
+				const [g] = toPlayerGames(
+					[rec({ players: [player('ALICE', 'blue', { hero: 'ana' })] })],
+					'alice',
+					HEROES
+				);
+				expect(g.allyHeroes).toEqual([]);
+				expect(g.enemyHeroes).toEqual([]);
+			});
 		});
 	});
 
@@ -730,40 +823,129 @@ describe('insights', () => {
 	});
 
 	describe('buildLobbyComparison', () => {
-		it('returns null values for no games', () => {
-			const rows = buildLobbyComparison([]);
-			expect(rows.map((r) => r.stat)).toEqual(['e', 'a', 'd', 'h', 'dmg']);
-			expect(
-				rows.every((r) => r.you === null && r.team === null && r.enemy === null)
-			).toBe(true);
+		const statsOf = (e: number | null) => ({ e, a: 0, d: 0, dmg: 0, h: 0, mit: 0 });
+		const rowOf = (groups: ReturnType<typeof buildLobbyComparison>, role: string) =>
+			groups.find((g) => g.role === role)!.rows;
+		const eRow = (g: PlayerGame[]) =>
+			rowOf(buildLobbyComparison(g), 'damage').find((r) => r.stat === 'e')!;
+
+		describe('role grouping', () => {
+			it('returns no groups for no games', () => {
+				expect(buildLobbyComparison([])).toEqual([]);
+			});
+
+			it('lists only roles with games, in a stable order', () => {
+				const groups = buildLobbyComparison([
+					game({ role: 'unknown' }),
+					game({ role: 'support' }),
+					game({ role: 'tank' }),
+					game({ role: 'tank' }),
+				]);
+				expect(groups.map((g) => g.role)).toEqual(['tank', 'support', 'unknown']);
+				expect(groups[0].rows.map((r) => r.stat)).toEqual(['e', 'a', 'd', 'h', 'dmg']);
+			});
+
+			it('computes each role from its own games only', () => {
+				const mk = (role: PlayerGame['role'], e: number) =>
+					game({ role, stats: statsOf(e), teamAvg: statsOf(e), enemyAvg: statsOf(e) });
+				const groups = buildLobbyComparison([mk('tank', 10), mk('damage', 30)]);
+				expect(rowOf(groups, 'tank')[0].you).toBe(10);
+				expect(rowOf(groups, 'damage')[0].you).toBe(30);
+			});
 		});
 
-		it('computes per-10 for you, team and enemy', () => {
-			const g = game({
-				lengthSeconds: 1200,
-				stats: { e: 20, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				teamAvg: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				enemyAvg: { e: 30, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
+		describe('per 10 minutes', () => {
+			it('computes per-10 for you, team and enemy', () => {
+				const g = game({
+					lengthSeconds: 1200,
+					stats: statsOf(20),
+					teamAvg: statsOf(10),
+					enemyAvg: statsOf(30),
+				});
+				expect(eRow([g])).toMatchObject({ stat: 'e', you: 10, team: 5, enemy: 15 });
 			});
-			const row = buildLobbyComparison([g]).find((r) => r.stat === 'e')!;
-			expect(row).toEqual({ stat: 'e', you: 10, team: 5, enemy: 15 });
+
+			it('only uses games where all three values and the length are readable', () => {
+				const full = game({
+					stats: statsOf(10),
+					teamAvg: statsOf(10),
+					enemyAvg: statsOf(10),
+				});
+				const noEnemy = game({ stats: statsOf(999), teamAvg: statsOf(999) });
+				const noLength = { ...full, lengthSeconds: null };
+				expect(eRow([full, noEnemy, noLength])).toMatchObject({
+					you: 10,
+					team: 10,
+					enemy: 10,
+				});
+			});
 		});
 
-		it('only uses games where all three values and the length are readable', () => {
-			const full = game({
-				stats: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				teamAvg: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				enemyAvg: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
+		describe('above/below team average', () => {
+			/** Game with your e vs the team's e and a result */
+			const vs = (
+				you: number | null,
+				team: number | null,
+				result: PlayerGame['result']
+			) => game({ result, stats: statsOf(you), teamAvg: statsOf(team) });
+
+			it('splits win rates by your stat against the team average', () => {
+				const row = eRow([
+					vs(10, 5, 'win'),
+					vs(10, 5, 'win'),
+					vs(10, 5, 'loss'),
+					vs(2, 5, 'loss'),
+					vs(2, 5, 'win'),
+				]);
+				expect(row.gamesAbove).toBe(3);
+				expect(row.winRateAbove).toBeCloseTo(66.67, 1);
+				expect(row.gamesBelow).toBe(2);
+				expect(row.winRateBelow).toBe(50);
 			});
-			const noEnemy = game({
-				stats: { e: 999, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				teamAvg: { e: 999, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
+
+			it('counts exact ties on neither side', () => {
+				const row = eRow([vs(5, 5, 'win'), vs(6, 5, 'win'), vs(4, 5, 'loss')]);
+				expect(row).toMatchObject({ gamesAbove: 1, gamesBelow: 1 });
+				expect(row.winRateAbove).toBe(100);
+				expect(row.winRateBelow).toBe(0);
 			});
-			const noLength = { ...full, lengthSeconds: null };
-			const row = buildLobbyComparison([full, noEnemy, noLength]).find(
-				(r) => r.stat === 'e'
-			)!;
-			expect(row).toEqual({ stat: 'e', you: 10, team: 10, enemy: 10 });
+
+			it('counts games without a decided result in the games but not the rate', () => {
+				const row = eRow([vs(9, 5, 'unknown'), vs(9, 5, 'win'), vs(1, 5, 'unknown')]);
+				expect(row).toMatchObject({ gamesAbove: 2, gamesBelow: 1 });
+				expect(row.winRateAbove).toBe(100);
+				expect(row.winRateBelow).toBeNull();
+			});
+
+			it('skips games with a missing stat or team average', () => {
+				const row = eRow([vs(null, 5, 'win'), vs(9, null, 'win'), vs(9, 5, 'loss')]);
+				expect(row).toMatchObject({ gamesAbove: 1, gamesBelow: 0 });
+				expect(row.winRateAbove).toBe(0);
+				expect(row.winRateBelow).toBeNull();
+			});
+
+			it('does not need the enemy average or the game length', () => {
+				const noLength = game({
+					lengthSeconds: null,
+					stats: statsOf(9),
+					teamAvg: statsOf(5),
+				});
+				const row = eRow([noLength]);
+				expect(row).toMatchObject({ gamesAbove: 1, you: null });
+			});
+
+			it('is empty when no game has both values', () => {
+				expect(eRow([game()])).toMatchObject({
+					gamesAbove: 0,
+					gamesBelow: 0,
+					winRateAbove: null,
+					winRateBelow: null,
+				});
+			});
+
+			it('exports the minimum games for showing the split', () => {
+				expect(MIN_TEAM_SPLIT_GAMES).toBe(5);
+			});
 		});
 	});
 
@@ -912,9 +1094,119 @@ describe('insights', () => {
 				const findings = buildFindings([...low, ...high]);
 				expect(findings).toContainEqual({
 					kind: 'deathsSplit',
-					medianDeaths: 6,
+					medians: [{ role: 'damage', medianDeaths10: 6 }],
+					confidence: 'low',
 					lowDeaths: { games: 5, winRate: 100 },
 					highDeaths: { games: 5, winRate: 0 },
+				});
+			});
+
+			describe('per-role split', () => {
+				const mk = (role: PlayerGame['role'], d: number, result: PlayerGame['result']) =>
+					game({ role, result, ...deaths(d) });
+
+				it('splits at each role median, not the pooled one', () => {
+					// Tanks die a lot (10-12), DPS rarely (2-4); pooled median would put
+					// every tank in "high" and every DPS in "low" regardless of role.
+					// Within role, the lower-death half wins and the other half loses.
+					const tank = [
+						...results(5, 0).map((r) => mk('tank', 10, r)),
+						...results(0, 5).map((r) => mk('tank', 12, r)),
+					];
+					const dps = [
+						...results(5, 0).map((r) => mk('damage', 2, r)),
+						...results(0, 5).map((r) => mk('damage', 4, r)),
+					];
+					const finding = buildFindings([...tank, ...dps]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						medians: [
+							{ role: 'tank', medianDeaths10: 11 },
+							{ role: 'damage', medianDeaths10: 3 },
+						],
+						lowDeaths: { games: 10, winRate: 100 },
+						highDeaths: { games: 10, winRate: 0 },
+					});
+				});
+
+				it('does not fire when only the role mix explains the wins', () => {
+					// Tanks (high deaths) lose, DPS (low deaths) win, but within each role
+					// low and high deaths win equally
+					const tank = [
+						...results(1, 4).map((r) => mk('tank', 10, r)),
+						...results(1, 4).map((r) => mk('tank', 12, r)),
+					];
+					const dps = [
+						...results(4, 1).map((r) => mk('damage', 2, r)),
+						...results(4, 1).map((r) => mk('damage', 4, r)),
+					];
+					expect(buildFindings([...tank, ...dps]).map((f) => f.kind)).not.toContain(
+						'deathsSplit'
+					);
+				});
+
+				it('treats unknown as its own role and orders medians stably', () => {
+					const unknown = [
+						...results(5, 0).map((r) => mk('unknown', 1, r)),
+						...results(0, 5).map((r) => mk('unknown', 9, r)),
+					];
+					const support = [mk('support', 3, 'win'), mk('support', 3, 'loss')];
+					const finding = buildFindings([...unknown, ...support]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						medians: [
+							{ role: 'support', medianDeaths10: 3 },
+							{ role: 'unknown', medianDeaths10: 5 },
+						],
+					});
+				});
+			});
+
+			describe('game length', () => {
+				it('uses deaths per 10 minutes', () => {
+					// 10 deaths in 20 minutes is 5 per 10; 4 deaths in 5 minutes is 8 per 10
+					const slow = results(5, 0).map((result) =>
+						game({ result, lengthSeconds: 1200, ...deaths(10) })
+					);
+					const fast = results(0, 5).map((result) =>
+						game({ result, lengthSeconds: 300, ...deaths(4) })
+					);
+					const finding = buildFindings([...slow, ...fast]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						medians: [{ role: 'damage', medianDeaths10: 6.5 }],
+						lowDeaths: { games: 5, winRate: 100 },
+					});
+				});
+
+				it('skips games without a length', () => {
+					const low = results(5, 0).map((result) => game({ result, ...deaths(2) }));
+					const high = results(0, 5).map((result) => game({ result, ...deaths(10) }));
+					const noLength = results(0, 10).map((result) =>
+						game({ result, lengthSeconds: null, ...deaths(2) })
+					);
+					const finding = buildFindings([...low, ...high, ...noLength]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						lowDeaths: { games: 5, winRate: 100 },
+						highDeaths: { games: 5, winRate: 0 },
+					});
+				});
+
+				it('does not fire when too few games have a length', () => {
+					const all = [
+						...results(5, 0).map((result) =>
+							game({ result, lengthSeconds: null, ...deaths(2) })
+						),
+						...results(0, 5).map((result) =>
+							game({ result, lengthSeconds: null, ...deaths(10) })
+						),
+					];
+					expect(buildFindings(all)).toEqual([]);
 				});
 			});
 
@@ -958,11 +1250,46 @@ describe('insights', () => {
 				const findings = buildFindings([...mk('Ana', 5, 0), ...mk('Tracer', 0, 5)]);
 				expect(findings).toContainEqual({
 					kind: 'bestHero',
+					confidence: 'low',
 					hero: 'Ana',
 					games: 5,
 					winRate: 100,
-					overallWinRate: 50,
+					restWinRate: 0,
+					restGames: 5,
 				});
+			});
+
+			it('compares against the other games, not overall', () => {
+				// Ana 25-0 (100%), Tracer 20-5 (80%): overall is 45/55 = 82%.
+				// The gap is 18 points vs overall but 20 vs the rest.
+				const findings = buildFindings([...mk('Ana', 25, 0), ...mk('Tracer', 20, 5)]);
+				const f = findings.find((x) => x.kind === 'bestHero');
+				expect(f).toMatchObject({ restWinRate: 80, restGames: 25 });
+			});
+
+			it('excludes the hero itself from the comparison', () => {
+				// Ana 5-0 vs overall 5/10 would be 50 points; rest is 0%
+				const f = buildFindings([...mk('Ana', 5, 0), ...mk('Tracer', 0, 5)]).find(
+					(x) => x.kind === 'bestHero'
+				);
+				expect(f).toMatchObject({ winRate: 100, restWinRate: 0, restGames: 5 });
+			});
+
+			it('does not fire when only the overall gap is large enough', () => {
+				// Ana 7-3 (70%) vs Tracer 5-5 (50%) rest: gap 20 vs rest, 10 vs overall,
+				// but not significant at this size
+				const findings = buildFindings([...mk('Ana', 7, 3), ...mk('Tracer', 5, 5)]);
+				expect(findings.map((f) => f.kind)).not.toContain('bestHero');
+			});
+
+			it('needs the gap to be significant: same gap, small vs large n', () => {
+				const gap = (scale: number) =>
+					buildFindings([
+						...mk('Ana', 7 * scale, 3 * scale),
+						...mk('Tracer', 5 * scale, 5 * scale),
+					]).map((f) => f.kind);
+				expect(gap(1)).not.toContain('bestHero');
+				expect(gap(5)).toContain('bestHero');
 			});
 
 			it('needs the minimum games', () => {
@@ -989,12 +1316,33 @@ describe('insights', () => {
 				const f = findings.find((x) => x.kind === 'weakestMode');
 				expect(f).toEqual({
 					kind: 'weakestMode',
+					confidence: 'low',
 					mode: 'CONTROL',
 					games: 5,
 					winRate: 40,
-					overallWinRate: 70,
+					restWinRate: 100,
+					restGames: 5,
 					worstMap: { map: 'B', games: 3, wins: 0, losses: 3, draws: 0, winRate: 0 },
 				});
+			});
+
+			it('compares against the other modes, not overall', () => {
+				// CONTROL 0-5 vs PUSH 20-5 (80%): overall 20/30 = 67%
+				const f = buildFindings([
+					...mk('PUSH', 'A', 20, 5),
+					...mk('CONTROL', 'B', 0, 5),
+				]).find((x) => x.kind === 'weakestMode');
+				expect(f).toMatchObject({ winRate: 0, restWinRate: 80, restGames: 25 });
+			});
+
+			it('needs the gap to be significant: same gap, small vs large n', () => {
+				const gap = (scale: number) =>
+					buildFindings([
+						...mk('PUSH', 'A', 7 * scale, 3 * scale),
+						...mk('CONTROL', 'B', 5 * scale, 5 * scale),
+					]).map((f) => f.kind);
+				expect(gap(1)).not.toContain('weakestMode');
+				expect(gap(5)).toContain('weakestMode');
 			});
 
 			it('has a null worst map when no map has enough games', () => {
@@ -1025,6 +1373,538 @@ describe('insights', () => {
 		});
 	});
 
+	describe('buildSessionStats', () => {
+		const at = (day: number, hour: number, minute: number) =>
+			new Date(2025, 5, day, hour, minute);
+		/** Timed game at the given time; id taken from the clock for stable ordering */
+		const timed = (date: Date, result: PlayerGame['result'] = 'win') =>
+			game({
+				recordId: `t${date.getTime()}`,
+				date,
+				createdAt: date,
+				hasTime: true,
+				result,
+			});
+		/** n consecutive timed games 20 minutes apart starting on the given day */
+		const run = (day: number, results: PlayerGame['result'][]) =>
+			results.map((r, i) => timed(at(day, 10, i * 20), r));
+
+		it('exports the break length', () => {
+			expect(SESSION_BREAK_MINUTES).toBe(60);
+		});
+
+		describe('session splitting', () => {
+			it('keeps a gap of exactly 60 minutes in one session', () => {
+				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 11, 0))]);
+				expect(stats.sessionCount).toBe(1);
+				expect(stats.averageLength).toBe(2);
+			});
+
+			it('starts a new session after 61 minutes', () => {
+				const stats = buildSessionStats([timed(at(1, 10, 0)), timed(at(1, 11, 1))]);
+				expect(stats.sessionCount).toBe(2);
+				expect(stats.averageLength).toBe(1);
+			});
+
+			it('keeps a session that spans midnight together', () => {
+				const stats = buildSessionStats([timed(at(1, 23, 30)), timed(at(2, 0, 15))]);
+				expect(stats.sessionCount).toBe(1);
+			});
+
+			it('sorts games before splitting', () => {
+				const stats = buildSessionStats([timed(at(1, 12, 0)), timed(at(1, 10, 0))]);
+				expect(stats.sessionCount).toBe(2);
+			});
+
+			it('reports no sessions for no games', () => {
+				const stats = buildSessionStats([]);
+				expect(stats.sessionCount).toBe(0);
+				expect(stats.averageLength).toBeNull();
+				expect(stats.timedGames).toBe(0);
+				expect(stats.afterWin.games).toBe(0);
+				expect(stats.byGameNumber.map((b) => b.games)).toEqual([0, 0, 0, 0, 0]);
+			});
+		});
+
+		describe('games without a time', () => {
+			it('excludes them and counts them as untimed', () => {
+				const stats = buildSessionStats([
+					timed(at(1, 10, 0)),
+					game({ recordId: 'x', date: at(1, 10, 20) }),
+					game({ recordId: 'y', date: at(1, 10, 40) }),
+				]);
+				expect(stats.timedGames).toBe(1);
+				expect(stats.untimedGames).toBe(2);
+				expect(stats.sessionCount).toBe(1);
+			});
+		});
+
+		describe('byGameNumber', () => {
+			it('buckets by position with 5+ pooling the rest', () => {
+				const stats = buildSessionStats([
+					...run(1, ['win', 'win', 'loss', 'loss', 'win', 'loss', 'loss']),
+					...run(2, ['loss', 'win']),
+				]);
+				expect(stats.byGameNumber.map((b) => b.label)).toEqual([
+					'1',
+					'2',
+					'3',
+					'4',
+					'5+',
+				]);
+				expect(stats.byGameNumber.map((b) => b.games)).toEqual([2, 2, 1, 1, 3]);
+				expect(stats.byGameNumber[0]).toMatchObject({ wins: 1, losses: 1, winRate: 50 });
+				expect(stats.byGameNumber[4]).toMatchObject({ wins: 1, losses: 2 });
+			});
+
+			it('keeps empty buckets with a null win rate', () => {
+				const stats = buildSessionStats(run(1, ['win', 'win']));
+				expect(stats.byGameNumber[3]).toMatchObject({ games: 0, winRate: null });
+			});
+		});
+
+		describe('afterWin and afterLoss', () => {
+			it('records the next game after each result', () => {
+				const stats = buildSessionStats(run(1, ['win', 'win', 'loss', 'win']));
+				expect(stats.afterWin).toMatchObject({ games: 2, wins: 1, losses: 1 });
+				expect(stats.afterLoss).toMatchObject({ games: 1, wins: 1 });
+			});
+
+			it('does not pair games across sessions', () => {
+				const stats = buildSessionStats([
+					timed(at(1, 10, 0), 'loss'),
+					timed(at(1, 15, 0), 'win'),
+				]);
+				expect(stats.afterLoss.games).toBe(0);
+				expect(stats.afterWin.games).toBe(0);
+			});
+
+			it('ignores draws and unknown results as the previous game', () => {
+				const stats = buildSessionStats(
+					run(1, ['draw', 'win', 'unknown', 'loss', 'win'])
+				);
+				expect(stats.afterWin.games).toBe(1);
+				expect(stats.afterLoss.games).toBe(1);
+			});
+		});
+	});
+
+	describe('session findings', () => {
+		/** One session per day, 20 minutes apart, with the given result sequence */
+		const sessionsOf = (days: PlayerGame['result'][][]) =>
+			days.flatMap((results, d) =>
+				results.map((result, i) => {
+					const date = new Date(2025, 5, 1 + d, 10, i * 20);
+					return game({
+						recordId: `s${d}-${i}`,
+						date,
+						createdAt: date,
+						hasTime: true,
+						result,
+					});
+				})
+			);
+		const W = 'win' as const;
+		const L = 'loss' as const;
+		const kinds = (g: PlayerGame[]) => buildFindings(g).map((f) => f.kind);
+
+		it('exports the gaps', () => {
+			expect(MIN_FATIGUE_GAP).toBe(10);
+			expect(MIN_TILT_GAP).toBe(10);
+		});
+
+		describe('sessionFatigue', () => {
+			// 10 sessions of WWW then LL: early 100% (30), late 0% (20)
+			const fatigued = sessionsOf(Array.from({ length: 10 }, () => [W, W, W, L, L]));
+
+			it('fires when early games win much more than late ones', () => {
+				const found = buildFindings(fatigued).find((f) => f.kind === 'sessionFatigue');
+				expect(found).toEqual({
+					kind: 'sessionFatigue',
+					confidence: 'medium',
+					early: { games: 30, winRate: 100 },
+					late: { games: 20, winRate: 0 },
+				});
+			});
+
+			it('does not fire when the gap is too small', () => {
+				// early 60%, late 50% in 10 sessions (30 vs 20 games)
+				const g = sessionsOf(
+					Array.from({ length: 10 }, (_, i) => [i % 5 < 3 ? W : L, W, L, W, L])
+				);
+				expect(kinds(g)).not.toContain('sessionFatigue');
+			});
+
+			it('does not fire when the gap is not significant', () => {
+				// early 2/3, late 1/3 over only 6 + 6 games
+				const g = sessionsOf([
+					[W, W, L, L, W, L],
+					[W, W, L, L, L, W],
+				]);
+				const found = buildFindings(g).find((f) => f.kind === 'sessionFatigue');
+				expect(found).toBeUndefined();
+			});
+
+			it('does not fire with too few late games', () => {
+				const g = sessionsOf(Array.from({ length: 10 }, () => [W, W, W, L]).slice(0, 4));
+				expect(kinds(g)).not.toContain('sessionFatigue');
+			});
+
+			it('ignores games without a time', () => {
+				const untimed = fatigued.map((x) => ({ ...x, hasTime: false }));
+				expect(kinds(untimed)).not.toContain('sessionFatigue');
+			});
+		});
+
+		describe('tilt', () => {
+			it('fires when games after a loss win far less than after a win', () => {
+				// Session 1 gives 6 after-win games (5W 1L); session 2 gives 5 after-loss games (0W)
+				const g = sessionsOf([
+					[W, W, W, W, W, W, L],
+					[L, L, L, L, L, L],
+				]);
+				const found = buildFindings(g).find((f) => f.kind === 'tilt');
+				expect(found).toMatchObject({
+					kind: 'tilt',
+					afterWin: { games: 6, winRate: (5 / 6) * 100 },
+					afterLoss: { games: 5, winRate: 0 },
+				});
+				expect(found?.confidence).toBe('low');
+			});
+
+			it('does not fire when afterLoss is not lower by the gap', () => {
+				const g = sessionsOf(Array.from({ length: 8 }, () => [W, L, W, L, W, L]));
+				expect(kinds(g)).not.toContain('tilt');
+			});
+
+			it('does not fire with too few games after a loss', () => {
+				const g = sessionsOf([[W, W, W, W, W, W, W, W, L, L]]);
+				expect(kinds(g)).not.toContain('tilt');
+			});
+
+			it('does not pair across sessions', () => {
+				// Each session is a single game, so no pairs exist
+				const g = sessionsOf(Array.from({ length: 12 }, (_, i) => [i % 2 ? L : W]));
+				expect(kinds(g)).not.toContain('tilt');
+			});
+		});
+	});
+
+	describe('buildFindings confidence', () => {
+		/** Hero 'Ana' wins every game, 'Tracer' (the rest) loses all of them */
+		const tier = (n: number) =>
+			buildFindings([
+				...games(n, () => ({ hero: 'Ana', result: 'win' as const })),
+				...games(n, () => ({ hero: 'Tracer', result: 'loss' as const })),
+			]).find((f) => f.kind === 'bestHero')?.confidence;
+
+		it.each([
+			[5, 'low'],
+			[9, 'low'],
+			[10, 'medium'],
+			[24, 'medium'],
+			[25, 'high'],
+		])('uses the smaller group size %i for a %s tier', (n, expected) => {
+			expect(tier(n)).toBe(expected);
+		});
+
+		it('uses the smaller of the two groups', () => {
+			const findings = buildFindings([
+				...games(30, () => ({ hero: 'Ana', result: 'win' as const })),
+				...games(6, () => ({ hero: 'Tracer', result: 'loss' as const })),
+			]);
+			expect(findings.find((f) => f.kind === 'bestHero')?.confidence).toBe('low');
+		});
+
+		it('gives every finding a confidence', () => {
+			const low = games(10, () => ({
+				result: 'win' as const,
+				...{ stats: { e: 0, a: 0, d: 1, dmg: 0, h: 0, mit: 0 } },
+			}));
+			const high = games(10, () => ({
+				result: 'loss' as const,
+				stats: { e: 0, a: 0, d: 9, dmg: 0, h: 0, mit: 0 },
+			}));
+			const findings = buildFindings([...low, ...high]);
+			expect(findings.length).toBeGreaterThan(0);
+			for (const f of findings) expect(f.confidence).toBe('medium');
+		});
+	});
+
+	describe('buildHeroMatchups', () => {
+		/** Deaths that vary around `base` so neither side has zero spread */
+		const deaths = (i: number, base: number) => base + (i % 3) - 1;
+		/** Games where an enemy hero (and a filler seen in every game) may be present */
+		const withEnemy = (
+			hero: string,
+			present: number,
+			absent: number,
+			o: (i: number, isPresent: boolean) => Partial<PlayerGame> = () => ({})
+		) =>
+			games(present + absent, (i) => {
+				const isPresent = i < present;
+				return {
+					enemyHeroes: isPresent ? ['Filler', hero] : ['Filler'],
+					...o(i, isPresent),
+				};
+			});
+		const find = (rows: ReturnType<typeof buildHeroMatchups>, hero: string) =>
+			rows.find((r) => r.hero === hero);
+
+		it('returns nothing without games or heroes', () => {
+			expect(buildHeroMatchups([])).toEqual([]);
+			expect(buildHeroMatchups(games(20))).toEqual([]);
+		});
+
+		describe('present/absent thresholds', () => {
+			/** Present games all lost, absent games all won */
+			const split = (present: number, absent: number) =>
+				withEnemy('Widowmaker', present, absent, (_, isPresent) => ({
+					result: isPresent ? 'loss' : 'win',
+				}));
+
+			it('exports the threshold', () => {
+				expect(MIN_MATCHUP_GAMES).toBe(5);
+			});
+
+			it('skips a hero present in fewer than 5 games', () => {
+				expect(find(buildHeroMatchups(split(4, 10)), 'Widowmaker')).toBeUndefined();
+			});
+
+			it('skips a hero absent from fewer than 5 games', () => {
+				expect(find(buildHeroMatchups(split(5, 4)), 'Widowmaker')).toBeUndefined();
+			});
+
+			it('includes a hero with 5 games each side when significant', () => {
+				const row = find(buildHeroMatchups(split(5, 5)), 'Widowmaker');
+				expect(row).toMatchObject({
+					side: 'enemy',
+					present: 5,
+					absent: 5,
+					winRate: { present: 0, absent: 100 },
+					significant: true,
+					confidence: 'low',
+				});
+			});
+
+			it('skips a hero present in every game', () => {
+				expect(find(buildHeroMatchups(split(5, 5)), 'Filler')).toBeUndefined();
+			});
+
+			it('counts a hero listed twice in a game once', () => {
+				const doubled = split(5, 5).map((g, i) =>
+					i < 5 ? { ...g, enemyHeroes: [...g.enemyHeroes, 'Widowmaker'] } : g
+				);
+				expect(find(buildHeroMatchups(doubled), 'Widowmaker')?.present).toBe(5);
+			});
+
+			it('leaves out games where no hero was read on that side', () => {
+				const unread = games(5, () => ({ enemyHeroes: [], result: 'loss' }));
+				const row = find(buildHeroMatchups([...split(5, 5), ...unread]), 'Widowmaker');
+				expect(row?.absent).toBe(5);
+			});
+
+			it('counts games with an unreadable result but rates only decided games', () => {
+				const unknown = games(3, (i) => ({
+					recordId: `u${i}`,
+					enemyHeroes: ['Filler', 'Widowmaker'],
+					result: 'unknown',
+				}));
+				const row = find(buildHeroMatchups([...split(5, 5), ...unknown]), 'Widowmaker');
+				expect(row?.present).toBe(8);
+				expect(row?.winRate.present).toBe(0);
+			});
+		});
+
+		describe('allies and enemies', () => {
+			it('tests the two sides separately', () => {
+				const list = games(20, (i) => ({
+					allyHeroes: i < 10 ? ['Mercy'] : ['Lucio'],
+					enemyHeroes: ['Mercy'],
+					result: i < 10 ? 'win' : 'loss',
+				}));
+				const rows = buildHeroMatchups(list);
+				expect(rows.filter((r) => r.hero === 'Mercy').map((r) => r.side)).toEqual([
+					'ally',
+				]);
+				expect(find(rows, 'Mercy')?.winRate).toEqual({ present: 100, absent: 0 });
+				expect(find(rows, 'Lucio')).toMatchObject({
+					side: 'ally',
+					winRate: { present: 0, absent: 100 },
+				});
+			});
+		});
+
+		describe('significance', () => {
+			it('detects a counter with a win-rate drop and a deaths rise', () => {
+				const list = withEnemy('Widowmaker', 10, 10, (i, isPresent) => ({
+					result:
+						(
+							isPresent ? i < 2 : i < 18
+						) ?
+							'win'
+						:	'loss',
+					stats: {
+						e: 10,
+						a: 5,
+						d: deaths(i, isPresent ? 8 : 5),
+						dmg: 6000,
+						h: 0,
+						mit: 0,
+					},
+				}));
+				const row = find(buildHeroMatchups(list), 'Widowmaker')!;
+				expect(row.significant).toBe(true);
+				expect(row.winRate).toEqual({ present: 20, absent: 80 });
+				const d = row.statDeltas.find((s) => s.stat === 'd')!;
+				expect(d.delta).toBeCloseTo(2.9);
+				expect(d.significant).toBe(true);
+			});
+
+			it('keeps a hero with only a significant stat delta', () => {
+				const list = withEnemy('Widowmaker', 10, 10, (i, isPresent) => ({
+					result: i % 2 ? 'win' : 'loss',
+					stats: {
+						e: 10,
+						a: 5,
+						d: deaths(i, isPresent ? 9 : 5),
+						dmg: 6000,
+						h: 0,
+						mit: 0,
+					},
+				}));
+				const row = find(buildHeroMatchups(list), 'Widowmaker')!;
+				expect(row.significant).toBe(false);
+				expect(row.statDeltas.find((s) => s.stat === 'd')?.significant).toBe(true);
+			});
+
+			it('ignores noise', () => {
+				// 50% vs 60%, deaths 0.3 higher and damage scattered
+				const won = (i: number, isPresent: boolean) =>
+					isPresent ? i % 2 === 0 : i % 5 < 3;
+				const list = withEnemy('Widowmaker', 10, 10, (i, isPresent) => ({
+					result: won(i, isPresent) ? 'win' : 'loss',
+					stats: {
+						e: 10,
+						a: 5,
+						d: deaths(i, 5) + (isPresent ? 0.3 : 0),
+						dmg: 6000 + ((i * 37) % 11) * 50,
+						h: 0,
+						mit: 0,
+					},
+				}));
+				expect(find(buildHeroMatchups(list), 'Widowmaker')).toBeUndefined();
+			});
+
+			it('does not flag a stat with no spread on either side', () => {
+				const list = withEnemy('Widowmaker', 10, 10, (i, isPresent) => ({
+					result: i % 2 ? 'win' : 'loss',
+					stats: { e: 10, a: 5, d: isPresent ? 9 : 4, dmg: 6000, h: 0, mit: 0 },
+				}));
+				expect(find(buildHeroMatchups(list), 'Widowmaker')).toBeUndefined();
+			});
+
+			it('leaves a stat delta null when either side has too few usable games', () => {
+				const list = withEnemy('Widowmaker', 6, 6, (i, isPresent) => ({
+					result: isPresent ? 'loss' : 'win',
+					lengthSeconds: isPresent && i < 2 ? null : 600,
+				}));
+				const row = find(buildHeroMatchups(list), 'Widowmaker')!;
+				expect(row.statDeltas.map((s) => s.delta)).toEqual([null, null, null]);
+				expect(row.statDeltas.every((s) => !s.significant)).toBe(true);
+			});
+		});
+
+		describe('role baseline', () => {
+			/** Tank games (all with Reinhardt as an enemy) die more than support games */
+			const list = [
+				...games(10, (i) => ({
+					recordId: `t${i}`,
+					role: 'tank',
+					hero: 'D.Va',
+					result: i % 2 ? 'win' : 'loss',
+					enemyHeroes: ['Filler', 'Reinhardt'],
+					stats: { e: 10, a: 5, d: deaths(i, 8), dmg: 6000, h: 0, mit: 0 },
+				})),
+				...games(10, (i) => ({
+					recordId: `s${i}`,
+					role: 'support',
+					hero: 'Ana',
+					result: i % 2 ? 'win' : 'loss',
+					enemyHeroes: ['Filler'],
+					stats: { e: 10, a: 5, d: deaths(i, 3), dmg: 6000, h: 0, mit: 0 },
+				})),
+			];
+
+			it('would show a deaths gap without the role adjustment', () => {
+				const mean = (gs: PlayerGame[]) =>
+					gs.reduce((sum, g) => sum + g.stats.d!, 0) / gs.length;
+				expect(mean(list.slice(0, 10)) - mean(list.slice(10))).toBeCloseTo(5);
+			});
+
+			it('removes the role-mix effect', () => {
+				expect(find(buildHeroMatchups(list), 'Reinhardt')).toBeUndefined();
+			});
+
+			it('compares residuals within each role', () => {
+				// Within tanks, Reinhardt games now die 3 more than the other tank games
+				const mixed = [
+					...list,
+					...games(10, (i) => ({
+						recordId: `o${i}`,
+						role: 'tank',
+						hero: 'D.Va',
+						result: i % 2 ? 'win' : 'loss',
+						enemyHeroes: ['Filler'],
+						stats: { e: 10, a: 5, d: deaths(i, 5), dmg: 6000, h: 0, mit: 0 },
+					})),
+				];
+				const d = find(buildHeroMatchups(mixed), 'Reinhardt')!.statDeltas[0];
+				// Tank baseline 6.4: Reinhardt +1.5; other tank games -1.5, support 0
+				expect(d.delta).toBeCloseTo(1.5 - (-1.5 * 10 + 0 * 10) / 20);
+				expect(d.significant).toBe(true);
+			});
+		});
+
+		describe('sort order', () => {
+			/** Games 0-9 and 10-14 are losses, 15-29 wins */
+			const list = games(30, (i) => ({
+				result: i < 15 ? 'loss' : 'win',
+				allyHeroes: i < 10 ? ['Ana'] : ['Kiriko'],
+				enemyHeroes: [
+					'Filler',
+					...(i < 10 ? ['Zarya', 'Ana'] : []),
+					...(i >= 10 && i < 15 ? ['Sombra'] : []),
+				],
+			}));
+
+			it('orders by win-rate gap weighted by how often the hero appears', () => {
+				const rows = buildHeroMatchups(list);
+				// Zarya: 0% vs 75% over 10/30 games = 25; Sombra: 0% vs 60% over 5/30 = 10
+				const order = rows.map((r) => `${r.side}:${r.hero}`);
+				expect(order.indexOf('enemy:Zarya')).toBeLessThan(order.indexOf('enemy:Sombra'));
+				const impacts = rows.map(
+					(r) =>
+						(Math.abs(r.winRate.present - r.winRate.absent) * r.present)
+						/ (r.present + r.absent)
+				);
+				expect(impacts).toEqual([...impacts].sort((a, b) => b - a));
+			});
+
+			it('breaks ties by hero name, then ally before enemy', () => {
+				// Kiriko: 75% vs 0% over 20/30 = 50; Ana (both sides) and Zarya tie at 25
+				const order = buildHeroMatchups(list).map((r) => `${r.side}:${r.hero}`);
+				expect(order).toEqual([
+					'ally:Kiriko',
+					'ally:Ana',
+					'enemy:Ana',
+					'enemy:Zarya',
+					'enemy:Sombra',
+				]);
+			});
+		});
+	});
+
 	describe('buildInsightsSummary', () => {
 		const records = [
 			rec({ id: 'a', date: '06/01/2025', result: 'VICTORY' }),
@@ -1048,6 +1928,8 @@ describe('insights', () => {
 			expect(s.trend.winRate).toEqual([]);
 			expect(s.heroPool).toEqual([]);
 			expect(s.findings).toEqual([]);
+			expect(s.sessions.sessionCount).toBe(0);
+			expect(s.matchups).toEqual([]);
 			expect(s.generatedAt).toBe(NOW);
 		});
 
@@ -1061,6 +1943,7 @@ describe('insights', () => {
 			expect(s.heroPool.map((r) => r.hero).sort()).toEqual(['Ana', 'Tracer']);
 			expect(s.personalBests.kills?.value).toBe(10);
 			expect(s.modes.map((m) => m.mode)).toEqual(['PUSH', 'CONTROL']);
+			expect(s.matchups).toEqual([]);
 			expect(s.filters).toBe(FILTERS);
 		});
 

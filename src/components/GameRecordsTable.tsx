@@ -2,7 +2,7 @@ import type { Component } from 'solid-js';
 import { createSignal, createMemo, onMount, For, Show, batch } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { Menu } from '@ark-ui/solid/menu';
-import { ChevronDown, Ellipsis, Search } from 'lucide-solid';
+import { ArrowDown, ArrowUp, ChevronDown, Ellipsis, Search } from 'lucide-solid';
 
 import type {
 	ScreenAction,
@@ -19,6 +19,7 @@ import AlertDialog from '#c/ui/AlertDialog';
 import Toaster, { toast } from '#c/ui/Toaster';
 import * as Store from '#utils/storage';
 import { updateOverFastData } from '#utils/overfastApi';
+import { parseGameLengthSeconds, parseMatchDate } from '#utils/insights';
 
 interface GameRecordsTableProps {
 	/** Opens the screenshot file picker (also used by the empty-state Choose Files) */
@@ -29,12 +30,84 @@ interface GameRecordsTableProps {
 
 type ResultFilter = 'all' | 'victory' | 'defeat';
 
+type SortKey = 'played' | 'result' | 'score' | 'mode' | 'map' | 'length';
+
+type SortDirection = 'asc' | 'desc';
+
+interface SortState {
+	key: SortKey;
+	direction: SortDirection;
+}
+
+interface SortColumn {
+	key: SortKey;
+	text: string;
+	/** Direction applied on the first click */
+	defaultDirection: SortDirection;
+	/** Value to sort by; null for blanks, which always sort last */
+	value: (record: GameRecord) => number | string | null;
+}
+
 const RECORD_TOGGLE_ANIM_DUR_MS = 240;
 
 const RESULT_FILTERS: { value: ResultFilter; text: string }[] = [
 	{ value: 'all', text: 'All' },
 	{ value: 'victory', text: 'Victories' },
 	{ value: 'defeat', text: 'Defeats' },
+];
+
+const RESULT_RANKS: Record<string, number> = { VICTORY: 2, DRAW: 1, DEFEAT: 0 };
+
+/** Parses a team score, or null if it isn't a number */
+const parseScore = (text: string): number | null => {
+	const trimmed = (text ?? '').trim();
+	return /^\d+$/.test(trimmed) ? Number(trimmed) : null;
+};
+
+const textOrNull = (text: string | undefined): string | null => text?.trim() || null;
+
+const SORT_COLUMNS: SortColumn[] = [
+	{
+		key: 'played',
+		text: 'Played',
+		defaultDirection: 'desc',
+		value: (record) => parseMatchDate(record).getTime(),
+	},
+	{
+		key: 'result',
+		text: 'Result',
+		defaultDirection: 'desc',
+		value: (record) => RESULT_RANKS[record.matchInfo.result] ?? null,
+	},
+	{
+		key: 'score',
+		text: 'Score',
+		defaultDirection: 'desc',
+		// Sorts by margin, so the biggest wins come first
+		value: (record) => {
+			const blue = parseScore(record.matchInfo.final_score.blue);
+			const red = parseScore(record.matchInfo.final_score.red);
+			return blue === null || red === null ? null : blue - red;
+		},
+	},
+	{
+		key: 'mode',
+		text: 'Mode',
+		defaultDirection: 'asc',
+		value: (record) => textOrNull(record.matchInfo.game_mode),
+	},
+	{
+		key: 'map',
+		text: 'Map',
+		defaultDirection: 'asc',
+		value: (record) => textOrNull(record.matchInfo.map),
+	},
+	{
+		key: 'length',
+		text: 'Length',
+		defaultDirection: 'desc',
+		value: (record) => parseGameLengthSeconds(record.matchInfo.game_length),
+	},
 ];
 
 const RELATIVE_TIME_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -57,10 +130,29 @@ const formatRelativeTime = (iso: string, now = Date.now()): string => {
 	return formatter.format(0, 'minute');
 };
 
-/** The date a game was played, or the record's creation time if it is unreadable */
-const getPlayedDate = (record: GameRecord): Date => {
-	const played = new Date(record.matchInfo.date);
-	return Number.isNaN(played.getTime()) ? record.createdAt : played;
+/** Sorts records by a column, keeping blanks last in either direction */
+const sortRecords = (
+	records: GameRecord[],
+	column: SortColumn,
+	direction: SortDirection
+): GameRecord[] => {
+	const values = new Map(records.map((record) => [record, column.value(record)]));
+	return [...records].sort((a, b) => {
+		const va = values.get(a) ?? null;
+		const vb = values.get(b) ?? null;
+		if (va === null || vb === null) {
+			return (
+				va === vb ? 0
+				: va === null ? 1
+				: -1
+			);
+		}
+		const order =
+			typeof va === 'number' && typeof vb === 'number' ?
+				va - vb
+			:	String(va).localeCompare(String(vb), undefined, { sensitivity: 'base' });
+		return direction === 'asc' ? order : -order;
+	});
 };
 
 /** Returns a css class for the result */
@@ -84,6 +176,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	const [searchQuery, setSearchQuery] = createSignal('');
 	const [resultFilter, setResultFilter] = createSignal<ResultFilter>('all');
 	const [modeFilter, setModeFilter] = createSignal('all');
+	const [sort, setSort] = createSignal<SortState | null>(null);
 
 	let openDialog: ((options: AlertDialogOptions) => void) | null = null;
 
@@ -114,6 +207,39 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 		});
 	});
 
+	const sortedRecords = createMemo(() => {
+		const state = sort();
+		const column = state && SORT_COLUMNS.find((c) => c.key === state.key);
+		return column ?
+				sortRecords(filteredRecords(), column, state.direction)
+			:	filteredRecords();
+	});
+
+	/** Cycles a column through its default direction, the reverse, then unsorted */
+	const toggleSort = (column: SortColumn) => {
+		setSort((prev) => {
+			if (prev?.key !== column.key) {
+				return { key: column.key, direction: column.defaultDirection };
+			}
+			if (prev.direction === column.defaultDirection) {
+				return { key: column.key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+			}
+			return null;
+		});
+	};
+
+	const sortDirectionFor = (key: SortKey): SortDirection | null => {
+		const state = sort();
+		return state?.key === key ? state.direction : null;
+	};
+
+	/** Accessible name announcing the sort direction; unset on unsorted columns */
+	const sortLabelFor = (column: SortColumn): string | undefined => {
+		const direction = sortDirectionFor(column.key);
+		if (!direction) return undefined;
+		return `${column.text} (sorted ${direction === 'asc' ? 'ascending' : 'descending'})`;
+	};
+
 	const hasActiveFilters = () =>
 		searchQuery() !== '' || resultFilter() !== 'all' || modeFilter() !== 'all';
 
@@ -126,10 +252,12 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 	};
 
 	const subtitle = () => {
-		const count = records().length;
+		const total = records().length;
+		const shown = filteredRecords().length;
 		const backup = lastExportedAt();
+		const noun = (hasActiveFilters() ? total : shown) === 1 ? 'record' : 'records';
 		return [
-			`${count} ${count === 1 ? 'record' : 'records'}`,
+			hasActiveFilters() ? `${shown} of ${total} ${noun}` : `${total} ${noun}`,
 			'stored in this browser',
 			backup ? `last backup ${formatRelativeTime(backup)}` : 'no backup yet',
 		].join(' · ');
@@ -415,15 +543,34 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 					<div class="records-table-wrapper">
 						<div class="records-list">
 							<div class="records-header">
-								<div>Played</div>
-								<div>Result</div>
-								<div>Score</div>
-								<div>Mode</div>
-								<div>Map</div>
-								<div>Length</div>
+								<For each={SORT_COLUMNS}>
+									{(column) => (
+										<div>
+											<button
+												type="button"
+												class="records-header__sort"
+												classList={{
+													'records-header__sort--active':
+														sortDirectionFor(column.key) !== null,
+												}}
+												aria-label={sortLabelFor(column)}
+												onClick={() => toggleSort(column)}
+											>
+												{column.text}
+												<Show when={sortDirectionFor(column.key)}>
+													{(direction) =>
+														direction() === 'asc' ?
+															<ArrowUp size={12} aria-hidden="true" />
+														:	<ArrowDown size={12} aria-hidden="true" />
+													}
+												</Show>
+											</button>
+										</div>
+									)}
+								</For>
 								<div />
 							</div>
-							<For each={filteredRecords()}>
+							<For each={sortedRecords()}>
 								{(record) => (
 									<div
 										id={`record-${record.id}`}
@@ -436,7 +583,7 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 											onClick={() => toggleExpanded(record)}
 										>
 											<span class="record-cell">
-												{getPlayedDate(record).toLocaleDateString()}
+												{parseMatchDate(record).toLocaleDateString()}
 											</span>
 											<span class="record-cell">
 												<span
@@ -479,6 +626,9 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 															<>
 																<TeamScoreboard players={record.players} />
 																<div class="expanded-details__actions">
+																	<span class="expanded-details__uploaded">
+																		Uploaded {new Date(record.createdAt).toLocaleString()}
+																	</span>
 																	<button
 																		type="button"
 																		class="danger"

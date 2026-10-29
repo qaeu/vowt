@@ -9,14 +9,22 @@ import {
 	createMemo,
 	createEffect,
 	batch,
+	on,
 	For,
 	Show,
-	onMount,
+	onCleanup,
 } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { Menu } from '@ark-ui/solid/menu';
 import { Tabs } from '@ark-ui/solid/tabs';
-import { Check, Ellipsis, MousePointer2, SquareDashed } from 'lucide-solid';
+import {
+	Check,
+	Ellipsis,
+	ImageUp,
+	MousePointer2,
+	SquareDashed,
+	Trash2,
+} from 'lucide-solid';
 
 import type {
 	TextRegion,
@@ -25,6 +33,7 @@ import type {
 	AlignmentGroup,
 	AlignmentDrawTarget,
 	GrayImage,
+	LearnedHash,
 } from '#types';
 import type { RegionEditorMode } from '#utils/regionEditor';
 import Screen from '#c/ui/Screen';
@@ -34,6 +43,8 @@ import RegionInspector from '#c/ui/RegionInspector';
 import AlignmentGroupsEditor from '#c/ui/AlignmentGroupsEditor';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions, isSameRegion } from '#utils/regionEditor';
+import { templateToDataURL } from '#utils/imageRecognition';
+import { triggerUploadDialog } from '#utils/storage';
 import {
 	ALIGN_SCALE,
 	createAnchor,
@@ -43,7 +54,13 @@ import {
 } from '#utils/regionAlignment';
 
 interface RegionProfileManagerProps {
+	/** Latest screenshot dropped or uploaded in the app, used to guide drawing */
 	previewImage: string | null;
+}
+
+interface ImageSize {
+	width: number;
+	height: number;
 }
 
 type ProfileTab = 'regions' | 'alignment' | 'portraits';
@@ -91,6 +108,32 @@ const countRegionChanges = (current: DrawnRegion[], saved: DrawnRegion[]) => {
 const plural = (count: number, word: string, suffix = 's') =>
 	`${count} ${word}${count === 1 ? '' : suffix}`;
 
+const formatLearnedAt = (date: Date) =>
+	date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+const loadImage = (src: string) =>
+	new Promise<HTMLImageElement>((resolve, reject) => {
+		const img = new Image();
+		img.onload = () => resolve(img);
+		img.onerror = () => reject(new Error('Failed to load image'));
+		img.src = src;
+	});
+
+/** Moves regions drawn on one image size onto another, keeping their IDs */
+const scaleRegions = (regions: DrawnRegion[], from: ImageSize, to: ImageSize) => {
+	const sx = to.width / from.width;
+	const sy = to.height / from.height;
+	if (sx === 1 && sy === 1) return regions;
+
+	return regions.map((r) => ({
+		...r,
+		x: Math.round(r.x * sx),
+		y: Math.round(r.y * sy),
+		width: Math.round(r.width * sx),
+		height: Math.round(r.height * sy),
+	}));
+};
+
 const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const initialProfileList = Profiles.listProfiles();
 	const { id: initialActiveProfileId, description: initialActiveProfileDesc } =
@@ -115,14 +158,18 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const [selectedRegionId, setSelectedRegionId] = createSignal<string | null>(null);
 	const [canvasMode, setCanvasMode] = createSignal<RegionEditorMode>('select');
 	const [activeTab, setActiveTab] = createSignal<ProfileTab>('regions');
-	const [editorReady, setEditorReady] = createSignal(false);
+	// Screenshot to show, from the app or picked here; replaced by each new drop
+	const [previewSrc, setPreviewSrc] = createSignal<string | null>(null);
+	// The screenshot the editor has loaded and sized the canvas for
+	const [editorImage, setEditorImage] = createSignal<string | null>(null);
 	// Bumped when stored hashes change, since they're read from storage
 	const [hashesVersion, setHashesVersion] = createSignal(0);
 
-	const learnedHashCount = createMemo(() => {
+	const learnedHashes = createMemo(() => {
 		hashesVersion();
-		return Profiles.countProfileHashes(editingProfileId());
+		return Profiles.listProfileHashes(editingProfileId());
 	});
+	const learnedHashCount = () => learnedHashes().length;
 
 	const regionCounts = createMemo(() => {
 		const counts: Record<string, number> = {};
@@ -153,53 +200,90 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	// Profile to return to when discarding a new, unsaved profile
 	let profileBeforeNew = initialActiveProfileId;
 
-	onMount(async () => {
-		if (!canvasRef) return;
+	let editorController: AbortController | undefined;
+	// Size of the loaded screenshot, which the region coordinates are in
+	let imageSize: ImageSize | null = null;
+	let previewLoadId = 0;
 
-		const imageSource = getImageSource();
-		if (!imageSource) return;
+	// Show the app's screenshot, and each one dropped on the page after it
+	createEffect(
+		on(
+			() => props.previewImage,
+			(src) => src && setPreviewSrc(src)
+		)
+	);
 
-		// Load image to get dimensions for denormalisation
-		const img = new Image();
-		img.src = imageSource;
-		await new Promise<void>((resolve, reject) => {
-			img.onload = () => resolve();
-			img.onerror = () => reject(new Error('Failed to load image'));
-		});
+	createEffect(on(previewSrc, (src) => src && void loadPreview(src)));
 
-		// Size the canvas now so alignment overlays scale correctly
-		canvasRef.width = img.width;
-		canvasRef.height = img.height;
-
-		const activeRegions = Profiles.getActiveProfile(img.width, img.height);
-		const drawnRegions = makeDrawnRegions(activeRegions, editingProfileId());
-
-		batch(() => {
-			setSavedRegions(drawnRegions);
-			setEditingRegions(drawnRegions);
-		});
-
-		startRegionEditor(canvasRef, imageSource, handleRegionComplete, {
-			initialRegions: [...drawnRegions, ...alignmentOverlays()],
-			mode: canvasMode,
-			getRegions: editingRegions,
-			onRegionSelect: handleCanvasSelect,
-		}).catch((err) => console.error('Region editor error:', err));
-
-		setEditorReady(true);
-	});
+	onCleanup(() => editorController?.abort());
 
 	// Redraw the canvas whenever regions, overlays or the selection change
 	createEffect(() => {
 		const regions = [...editingRegions(), ...alignmentOverlays()];
 		const selectedId = selectedRegionId();
-		const imageSource = getImageSource();
-		if (!editorReady() || !canvasRef || !imageSource) return;
+		const imageSource = editorImage();
+		if (!canvasRef || !imageSource) return;
 
 		drawRegions(canvasRef, regions, imageSource, selectedId);
 	});
 
-	const getImageSource = () => props.previewImage;
+	/** Loads a screenshot into the editor, rescaling any regions to its size */
+	const loadPreview = async (imageSource: string) => {
+		const loadId = ++previewLoadId;
+
+		let img: HTMLImageElement;
+		try {
+			img = await loadImage(imageSource);
+		} catch (error) {
+			console.error('Preview load error:', error);
+			if (loadId === previewLoadId) {
+				openDialog?.({
+					title: "Couldn't load screenshot",
+					description: 'The image could not be read. Try a PNG or JPEG screenshot.',
+					actionText: 'Close',
+				});
+			}
+			return;
+		}
+
+		// A newer screenshot replaced this one while it loaded
+		if (loadId !== previewLoadId || !canvasRef) return;
+
+		const previousSize = imageSize;
+		const size = { width: img.width, height: img.height };
+		imageSize = size;
+
+		// Size the canvas now so alignment overlays scale correctly
+		canvasRef.width = size.width;
+		canvasRef.height = size.height;
+
+		batch(() => {
+			if (previousSize) {
+				setSavedRegions((prev) => scaleRegions(prev, previousSize, size));
+				setEditingRegions((prev) => scaleRegions(prev, previousSize, size));
+			} else {
+				const activeRegions = Profiles.getActiveProfile(size.width, size.height);
+				const drawnRegions = makeDrawnRegions(activeRegions, editingProfileId());
+				setSavedRegions(drawnRegions);
+				setEditingRegions(drawnRegions);
+			}
+			setEditorImage(imageSource);
+		});
+
+		editorController?.abort();
+		editorController = new AbortController();
+		startRegionEditor(canvasRef, imageSource, handleRegionComplete, {
+			initialRegions: [...editingRegions(), ...alignmentOverlays()],
+			mode: canvasMode,
+			getRegions: editingRegions,
+			onRegionSelect: handleCanvasSelect,
+			signal: editorController.signal,
+		}).catch((err) => console.error('Region editor error:', err));
+	};
+
+	const handleChooseScreenshot = () => {
+		triggerUploadDialog((images) => setPreviewSrc(images[0]));
+	};
 
 	const makeDrawnRegions = (
 		textRegions: (TextRegion & Partial<Pick<DrawnRegion, 'id'>>)[],
@@ -302,7 +386,7 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 
 	/** Turns a rectangle drawn on the canvas into an anchor or row bands for a group */
 	const applyAlignmentRect = async (target: AlignmentDrawTarget, region: DrawnRegion) => {
-		const imageSource = getImageSource();
+		const imageSource = editorImage();
 		const group = alignment().find((g) => g.name === target.group);
 		if (!imageSource || !group) return;
 
@@ -697,6 +781,12 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 	};
 
+	const handleRemoveHash = (profileId: string, learned: LearnedHash) => {
+		if (!Profiles.removeProfileHash(profileId, learned.hashSetId, learned.hash)) return;
+		setHashesVersion((v) => v + 1);
+		toast('Learned hash deleted', `Portrait hash for '${learned.name}' removed.`);
+	};
+
 	const handleMenuSelect = (action: MenuAction) => {
 		switch (action) {
 			case 'clear-regions':
@@ -891,9 +981,26 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 									</button>
 								</div>
 								<span class="canvas-card__hint">{canvasHint()}</span>
+								<button class="canvas-card__choose" onClick={handleChooseScreenshot}>
+									<ImageUp size={14} />
+									{editorImage() ? 'Change Screenshot' : 'Choose Screenshot'}
+								</button>
 							</div>
 
-							<div class="canvas-wrapper">
+							<Show when={!editorImage()}>
+								<div class="canvas-placeholder">
+									<ImageUp size={32} class="canvas-placeholder__icon" />
+									<p class="canvas-placeholder__text">
+										Drop a scoreboard screenshot anywhere on this page to draw regions on
+										it.
+									</p>
+								</div>
+							</Show>
+
+							<div
+								class="canvas-wrapper"
+								classList={{ 'canvas-wrapper--empty': !editorImage() }}
+							>
 								<canvas ref={canvasRef} data-mode={canvasMode()} />
 							</div>
 						</div>
@@ -938,6 +1045,55 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 								>
 									Clear Learned Hashes
 								</button>
+
+								<Show when={learnedHashCount() > 0}>
+									<ul class="learned-portraits__list" aria-label="Learned hashes">
+										<For each={learnedHashes()}>
+											{(learned) => {
+												const preview = templateToDataURL(learned.hash);
+												return (
+													<li class="learned-hash">
+														<Show
+															when={preview}
+															fallback={<span class="learned-hash__preview" />}
+														>
+															{(src) => (
+																<img class="learned-hash__preview" src={src()} alt="" />
+															)}
+														</Show>
+														<div class="learned-hash__details">
+															<span class="learned-hash__name">{learned.name}</span>
+															<span class="learned-hash__meta">
+																<Show
+																	when={learned.learnedAt}
+																	fallback="Learned date unknown"
+																>
+																	{(learnedAt) => (
+																		<time datetime={learnedAt().toISOString()}>
+																			{formatLearnedAt(learnedAt())}
+																		</time>
+																	)}
+																</Show>
+																{' · '}
+																{learned.hashSetId}
+															</span>
+														</div>
+														<button
+															class="learned-hash__delete"
+															aria-label={`Delete learned hash for ${learned.name}`}
+															title="Delete"
+															onClick={() =>
+																handleRemoveHash(editingProfileId(), learned)
+															}
+														>
+															<Trash2 size={16} />
+														</button>
+													</li>
+												);
+											}}
+										</For>
+									</ul>
+								</Show>
 							</div>
 						</Tabs.Content>
 					</Tabs.Root>

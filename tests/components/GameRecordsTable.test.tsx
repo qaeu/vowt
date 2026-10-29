@@ -300,6 +300,19 @@ describe('GameRecordsTable', () => {
 			expect(screen.getByText('10:30')).toBeDefined();
 		});
 
+		it('should show the played date rather than the upload date', () => {
+			const records = [
+				{
+					...mockRecords[0],
+					matchInfo: { ...mockRecords[0].matchInfo, date: '09/15/25 - 02:49' },
+				},
+			];
+			vi.mocked(gameStorage.loadGameRecords).mockReturnValue(records);
+			renderTable();
+			expect(screen.getByText(new Date(2025, 8, 15).toLocaleDateString())).toBeDefined();
+			expect(screen.queryByText(records[0].createdAt.toLocaleDateString())).toBeNull();
+		});
+
 		it('should fall back to the creation time when the date is unreadable', () => {
 			const records = [
 				{
@@ -321,6 +334,105 @@ describe('GameRecordsTable', () => {
 		it('should have no per-row delete button', () => {
 			const { container } = renderTable();
 			expect(container.querySelector('.delete-button')).toBeNull();
+		});
+	});
+
+	describe('sorting', () => {
+		const makeRecord = (id: string, matchInfo: Partial<MatchInfo>): GameRecord => ({
+			...mockRecords[0],
+			id,
+			matchInfo: { ...mockRecords[0].matchInfo, ...matchInfo },
+		});
+		const rowIds = () =>
+			[...document.querySelectorAll('.record-group')].map((el) =>
+				el.id.replace('record-', '')
+			);
+		const sortBy = (name: string) =>
+			fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
+
+		const records = [
+			makeRecord('a', {
+				date: '10/20/2025',
+				result: 'DEFEAT',
+				final_score: { blue: '1', red: '3' },
+				game_mode: 'PUSH',
+				map: 'Colosseo',
+				game_length: '12:00',
+			}),
+			makeRecord('b', {
+				date: '10/22/2025',
+				result: 'VICTORY',
+				final_score: { blue: '3', red: '0' },
+				game_mode: 'CONTROL',
+				map: 'Busan',
+				game_length: '08:15',
+			}),
+			makeRecord('c', {
+				date: '10/21/2025',
+				result: 'DRAW',
+				final_score: { blue: '2', red: '2' },
+				game_mode: 'ESCORT',
+				map: '',
+				game_length: '',
+			}),
+		];
+
+		beforeEach(() => {
+			vi.mocked(gameStorage.loadGameRecords).mockReturnValue(records);
+		});
+
+		it('should keep storage order until a column is sorted', () => {
+			renderTable();
+			expect(rowIds()).toEqual(['a', 'b', 'c']);
+		});
+
+		it.each([
+			['Played', ['b', 'c', 'a']],
+			['Result', ['b', 'c', 'a']],
+			['Score', ['b', 'c', 'a']],
+			['Mode', ['b', 'c', 'a']],
+			['Map', ['b', 'a', 'c']],
+			['Length', ['a', 'b', 'c']],
+		])('should sort by %s in its default direction', (name, expected) => {
+			renderTable();
+			sortBy(name);
+			expect(rowIds()).toEqual(expected);
+		});
+
+		it('should reverse on the second click and reset on the third', () => {
+			renderTable();
+			sortBy('Played');
+			sortBy('Played');
+			expect(rowIds()).toEqual(['a', 'c', 'b']);
+			sortBy('Played');
+			expect(rowIds()).toEqual(['a', 'b', 'c']);
+		});
+
+		it('should keep blanks last in both directions', () => {
+			renderTable();
+			sortBy('Map');
+			expect(rowIds().at(-1)).toBe('c');
+			sortBy('Map');
+			expect(rowIds()).toEqual(['a', 'b', 'c']);
+		});
+
+		it('should announce the sort direction on the active column', () => {
+			renderTable();
+			sortBy('Played');
+			expect(
+				screen.getByRole('button', { name: 'Played (sorted descending)' })
+			).toBeDefined();
+			sortBy('Played');
+			expect(
+				screen.getByRole('button', { name: 'Played (sorted ascending)' })
+			).toBeDefined();
+		});
+
+		it('should sort only the filtered records', () => {
+			renderTable();
+			fireEvent.click(screen.getByRole('button', { name: 'Victories' }));
+			sortBy('Played');
+			expect(rowIds()).toEqual(['b']);
 		});
 	});
 
@@ -357,6 +469,15 @@ describe('GameRecordsTable', () => {
 			expect(screen.getByText('Player1')).toBeDefined();
 			expect(screen.getByText('Player2')).toBeDefined();
 			expect(screen.queryByTestId('editable-game-data')).toBeNull();
+		});
+
+		it('should show the upload date when opened', () => {
+			renderTable();
+			fireEvent.click(getRowButton('VICTORY'));
+
+			expect(
+				screen.getByText(`Uploaded ${mockRecords[0].createdAt.toLocaleString()}`)
+			).toBeDefined();
 		});
 
 		it('should expand the record given by initialExpandedId', () => {
@@ -513,6 +634,27 @@ describe('GameRecordsTable', () => {
 				fireEvent.change(screen.getByLabelText('Mode'), { target: { value: 'ESCORT' } });
 				expect(rowCount()).toBe(1);
 				expect(screen.getByText('VICTORY')).toBeDefined();
+			});
+		});
+
+		describe('record count', () => {
+			it('should show the filtered count out of the total', () => {
+				renderTable();
+				fireEvent.click(screen.getByText('Victories'));
+				expect(screen.getByText(/1 of 2 records · stored in this browser/)).toBeDefined();
+			});
+
+			it('should show zero when nothing matches', () => {
+				renderTable();
+				search('zzz');
+				expect(screen.getByText(/0 of 2 records/)).toBeDefined();
+			});
+
+			it('should return to the total once filters are cleared', () => {
+				renderTable();
+				search('zzz');
+				fireEvent.click(screen.getByText('Clear filters'));
+				expect(screen.getByText(/^2 records · stored in this browser/)).toBeDefined();
 			});
 		});
 

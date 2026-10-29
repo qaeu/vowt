@@ -12,6 +12,8 @@ import {
 	getActiveProfileHashSets,
 	addProfileHashes,
 	countProfileHashes,
+	listProfileHashes,
+	removeProfileHash,
 	clearProfileHashes,
 	getProfileAlignment,
 	getActiveProfileAlignment,
@@ -562,7 +564,7 @@ describe('Region Profiles', () => {
 			const hashSets = getProfileHashSets(profileId);
 			expect(hashSets).toHaveLength(1);
 			expect(hashSets![0].hashes).toEqual([
-				{ name: 'new-hero', hash: 'abcdef1234567890' },
+				{ name: 'new-hero', hash: 'abcdef1234567890', learnedAt: expect.any(Date) },
 			]);
 		});
 
@@ -848,7 +850,7 @@ describe('Region Profiles', () => {
 			expect(hashSets).toHaveLength(1);
 			expect(hashSets[0].id).toBe(hashSetId);
 			expect(hashSets[0].hashes).toEqual([
-				{ name: 'new-hero', hash: 'abcdef1234567890' },
+				{ name: 'new-hero', hash: 'abcdef1234567890', learnedAt: expect.any(Date) },
 			]);
 		});
 
@@ -887,8 +889,43 @@ describe('Region Profiles', () => {
 
 			expect(changed).toBe(1);
 			expect(getProfileHashSets(profileId)![0].hashes).toEqual([
-				{ name: 'ashe', hash: '1111111111111111' },
+				{ name: 'ashe', hash: '1111111111111111', learnedAt: expect.any(Date) },
 			]);
+		});
+
+		it('should stamp added and renamed hashes with the time they were learned', () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			try {
+				const profileId = saveProfile(mockRegions, { description: 'Learning' });
+				vi.setSystemTime(new Date('2026-10-01T12:00:00.000Z'));
+				addProfileHashes(profileId, hashSetId, [
+					{ name: 'ana', hash: '1111111111111111' },
+				]);
+
+				vi.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+				addProfileHashes(profileId, hashSetId, [
+					{ name: 'ana', hash: '1111111111111111' },
+					{ name: 'ashe', hash: '2222222222222222' },
+				]);
+
+				const learnedAt = getProfileHashSets(profileId)![0].hashes.map((h) =>
+					h.learnedAt?.toISOString()
+				);
+				expect(learnedAt).toEqual([
+					'2026-10-01T12:00:00.000Z',
+					'2026-10-02T12:00:00.000Z',
+				]);
+
+				vi.setSystemTime(new Date('2026-10-03T12:00:00.000Z'));
+				addProfileHashes(profileId, hashSetId, [
+					{ name: 'baptiste', hash: '1111111111111111' },
+				]);
+				expect(getProfileHashSets(profileId)![0].hashes[0].learnedAt).toEqual(
+					new Date('2026-10-03T12:00:00.000Z')
+				);
+			} finally {
+				vi.useRealTimers();
+			}
 		});
 
 		it('should not change the profile updatedAt', () => {
@@ -951,6 +988,126 @@ describe('Region Profiles', () => {
 
 			expect(getProfileHashSets(profileId)).toEqual([]);
 			expect(countProfileHashes(profileId)).toBe(0);
+		});
+	});
+
+	describe('listProfileHashes', () => {
+		it('should return an empty array for a non-existent profile', () => {
+			expect(listProfileHashes('non_existent_id')).toEqual([]);
+		});
+
+		it('should list hashes from all sets with their set IDs, newest first', () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			try {
+				const profileId = saveProfile(mockRegions, { description: 'Learning' });
+				vi.setSystemTime(new Date('2026-10-01T12:00:00.000Z'));
+				addProfileHashes(profileId, 'hero-portrait', [
+					{ name: 'ana', hash: '1111111111111111' },
+				]);
+				vi.setSystemTime(new Date('2026-10-03T12:00:00.000Z'));
+				addProfileHashes(profileId, 'rank-icons', [
+					{ name: 'gold', hash: '3333333333333333' },
+				]);
+				vi.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+				addProfileHashes(profileId, 'hero-portrait', [
+					{ name: 'ashe', hash: '2222222222222222' },
+				]);
+
+				expect(listProfileHashes(profileId)).toEqual([
+					{
+						name: 'gold',
+						hash: '3333333333333333',
+						hashSetId: 'rank-icons',
+						learnedAt: new Date('2026-10-03T12:00:00.000Z'),
+					},
+					{
+						name: 'ashe',
+						hash: '2222222222222222',
+						hashSetId: 'hero-portrait',
+						learnedAt: new Date('2026-10-02T12:00:00.000Z'),
+					},
+					{
+						name: 'ana',
+						hash: '1111111111111111',
+						hashSetId: 'hero-portrait',
+						learnedAt: new Date('2026-10-01T12:00:00.000Z'),
+					},
+				]);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('should list hashes without a learned time last', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'ana', hash: '1111111111111111' },
+			]);
+			const storageKey = 'vowt_region_profiles';
+			const storage = JSON.parse(localStorage.getItem(storageKey)!);
+			const profile = storage.profiles.find((p: { id: string }) => p.id === profileId);
+			profile.hashSets[0].hashes.unshift({ name: 'legacy', hash: '0000000000000000' });
+			localStorage.setItem(storageKey, JSON.stringify(storage));
+
+			const hashes = listProfileHashes(profileId);
+			expect(hashes.map((h) => h.name)).toEqual(['ana', 'legacy']);
+			expect(hashes[0].learnedAt).toBeInstanceOf(Date);
+			expect(hashes[1].learnedAt).toBeUndefined();
+		});
+	});
+
+	describe('removeProfileHash', () => {
+		it('should remove only the matching hash', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'ana', hash: '1111111111111111' },
+				{ name: 'ashe', hash: '2222222222222222' },
+			]);
+
+			expect(removeProfileHash(profileId, 'hero-portrait', '1111111111111111')).toBe(
+				true
+			);
+
+			expect(getProfileHashSets(profileId)![0].hashes.map((h) => h.name)).toEqual([
+				'ashe',
+			]);
+		});
+
+		it('should drop a hash set once its last hash is removed', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'ana', hash: '1111111111111111' },
+			]);
+			addProfileHashes(profileId, 'rank-icons', [
+				{ name: 'gold', hash: '3333333333333333' },
+			]);
+
+			removeProfileHash(profileId, 'hero-portrait', '1111111111111111');
+
+			expect(getProfileHashSets(profileId)!.map((hs) => hs.id)).toEqual(['rank-icons']);
+		});
+
+		it('should not remove a matching hash from a different set', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'ana', hash: '1111111111111111' },
+			]);
+
+			expect(removeProfileHash(profileId, 'rank-icons', '1111111111111111')).toBe(false);
+			expect(countProfileHashes(profileId)).toBe(1);
+		});
+
+		it('should return false for an unknown hash or profile', () => {
+			const profileId = saveProfile(mockRegions, { description: 'Learning' });
+			addProfileHashes(profileId, 'hero-portrait', [
+				{ name: 'ana', hash: '1111111111111111' },
+			]);
+
+			expect(removeProfileHash(profileId, 'hero-portrait', 'ffffffffffffffff')).toBe(
+				false
+			);
+			expect(removeProfileHash('non_existent_id', 'hero-portrait', '1111')).toBe(false);
+			expect(countProfileHashes(profileId)).toBe(1);
 		});
 	});
 

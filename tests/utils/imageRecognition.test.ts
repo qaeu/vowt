@@ -6,6 +6,7 @@ import {
 	createTemplate,
 	recogniseImage,
 	mergeHashSets,
+	templateToImage,
 	TEMPLATE_SIZE,
 } from '#utils/imageRecognition';
 import { DEFAULT_HASH_SETS } from '#data/hashSets';
@@ -223,6 +224,39 @@ describe('imageRecognition', () => {
 				}
 			}
 		);
+	});
+
+	describe('templateToImage', () => {
+		it('should decode a template into an opaque square image', () => {
+			const image = templateToImage(
+				createTemplate(createImage(40, 40, () => [10, 20, 30]))
+			);
+
+			expect(image).not.toBeNull();
+			expect(image!.width).toBe(TEMPLATE_SIZE);
+			expect(image!.height).toBe(TEMPLATE_SIZE);
+			expect(image!.data).toHaveLength(TEMPLATE_SIZE ** 2 * 4);
+			expect([...image!.data.slice(0, 4)]).toEqual([10, 20, 30, 255]);
+			expect([...image!.data.slice(-4)]).toEqual([10, 20, 30, 255]);
+		});
+
+		it('should keep pixel positions', () => {
+			const topAndBottom: Pattern = (_x, y) => (y < 20 ? [200, 40, 40] : [30, 30, 160]);
+			const image = templateToImage(createTemplate(createImage(40, 40, topAndBottom)))!;
+			const pixel = (x: number, y: number) => {
+				const index = (y * TEMPLATE_SIZE + x) * 4;
+				return [...image.data.slice(index, index + 3)];
+			};
+
+			expect(pixel(0, 0)).toEqual([200, 40, 40]);
+			expect(pixel(TEMPLATE_SIZE - 1, 0)).toEqual([200, 40, 40]);
+			expect(pixel(0, TEMPLATE_SIZE - 1)).toEqual([30, 30, 160]);
+		});
+
+		it('should return null for a string that is not a template', () => {
+			expect(templateToImage('abcdef1234567890')).toBeNull();
+			expect(templateToImage('not base64!')).toBeNull();
+		});
 	});
 
 	describe('mergeHashSets', () => {

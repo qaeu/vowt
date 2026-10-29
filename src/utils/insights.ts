@@ -8,15 +8,20 @@
 import type {
 	GameRecord,
 	GameResult,
+	FindingConfidence,
 	InsightFinding,
 	InsightsFilters,
 	InsightsHeadline,
 	InsightsMetric,
 	InsightsSummary,
 	FilteredGames,
+	GameNumberRow,
+	HeroMatchupRow,
 	HeroPoolRow,
 	LobbyComparisonRow,
 	MapStatsRow,
+	MatchupStat,
+	MatchupStatDelta,
 	ModeStatsRow,
 	OverFastHero,
 	PersonalBest,
@@ -24,6 +29,9 @@ import type {
 	PlayerGame,
 	RecentForm,
 	RecordStatsRow,
+	RoleDeathsMedian,
+	RoleLobbyComparison,
+	SessionStats,
 	StatKey,
 	TrendMetric,
 	WeeklyTrendPoint,
@@ -38,14 +46,29 @@ export const MIN_FINDING_GAMES = 5;
 /** Minimum win-rate gap (points) between low- and high-death games */
 export const MIN_DEATHS_GAP = 10;
 
-/** Minimum win-rate gap (points) between the best hero and overall */
+/** Minimum win-rate gap (points) between the best hero and your other games */
 export const MIN_HERO_GAP = 5;
 
-/** Minimum win-rate gap (points) between the weakest mode and overall */
+/** Minimum win-rate gap (points) between the weakest mode and your other games */
 export const MIN_MODE_GAP = 10;
 
 /** Minimum games on a map for it to be named as a mode's worst map */
 export const MIN_WORST_MAP_GAMES = 3;
+
+/** Minimum win-rate gap (points) between games 1-3 and game 4 onwards of a session */
+export const MIN_FATIGUE_GAP = 10;
+
+/** Minimum win-rate gap (points) between the game after a win and after a loss */
+export const MIN_TILT_GAP = 10;
+
+/** A gap of more than this many minutes between games starts a new session */
+export const SESSION_BREAK_MINUTES = 60;
+
+/** Decided games in the smaller group at which confidence becomes medium */
+export const MEDIUM_CONFIDENCE_GAMES = 10;
+
+/** Decided games in the smaller group at which confidence becomes high */
+export const HIGH_CONFIDENCE_GAMES = 25;
 
 /** Default minimum games for a map to appear in the map stats */
 export const DEFAULT_MIN_MAP_GAMES = 4;
@@ -59,16 +82,59 @@ export const DEFAULT_TREND_WEEKS = 12;
 /** Mode and map name used when none was read */
 export const UNKNOWN_NAME = 'UNKNOWN';
 
+/** Minimum games on each side of the team-average split to show its win rates */
+export const MIN_TEAM_SPLIT_GAMES = 5;
+
+/** Minimum games with and without a hero (on one side) for its matchup to be tested */
+export const MIN_MATCHUP_GAMES = 5;
+
 /** Stats compared against the lobby, in display order */
 export const LOBBY_STATS = ['e', 'a', 'd', 'h', 'dmg'] as const;
 
 const STAT_KEYS: StatKey[] = ['e', 'a', 'd', 'dmg', 'h', 'mit'];
+const MINUTE_MS = 60 * 1000;
+/** Games per session counted as "early"; later games count as fatigued */
+const EARLY_SESSION_GAMES = 3;
+/** Game numbers at or above this share the last bucket */
+const LAST_GAME_BUCKET = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PERIOD_DAYS = { last30: 30, last90: 90 } as const;
 const SECONDS_PER_10_MINUTES = 600;
+/** Role display order for per-role groups */
+const ROLE_ORDER: PlayerGame['role'][] = ['tank', 'damage', 'support', 'unknown'];
+/** z for a two-sided 90% interval */
+const Z_90 = 1.645;
+/** |Welch t| for a significant matchup stat delta; stricter since many heroes are tested */
+const MATCHUP_T = 1.96;
+/** Stats compared in matchups, in display order */
+const MATCHUP_STATS: MatchupStat[] = ['d', 'dmg', 'h'];
+const MATCHUP_SIDES: HeroMatchupRow['side'][] = ['ally', 'enemy'];
 
 type DecidedResult = Exclude<GameResult, 'unknown'>;
 type PlayerRecord = Pick<GameRecord, 'players' | 'matchInfo' | 'createdAt'>;
+
+interface WilsonInterval {
+	low: number;
+	high: number;
+}
+
+interface RateComparison {
+	/** Win percentages 0-100 over decided games; 0 for an empty group */
+	aRate: number;
+	bRate: number;
+	/** Decided games in each group */
+	aGames: number;
+	bGames: number;
+	/** Whether the difference interval excludes 0 */
+	significant: boolean;
+	confidence: FindingConfidence;
+}
+
+interface ParsedMatchDate {
+	date: Date;
+	/** True only when a valid time of day was read from the date text */
+	hasTime: boolean;
+}
 
 const RESULT_BY_TEXT: Record<string, DecidedResult> = {
 	VICTORY: 'win',
@@ -88,27 +154,13 @@ export function parseResult(text: string): GameResult {
 
 /**
  * Parses the match date of a record
- * @param record - Record with `matchInfo.date` as `MM/DD/YYYY` (extra text is ignored)
- * @returns Local midnight of that date, or the record's createdAt if unparseable
+ * @param record - Record with `matchInfo.date` as `MM/DD/YYYY`, optionally followed by
+ * a 24-hour `HH:MM` (other text is ignored)
+ * @returns The date and time in local time (midnight without a valid time), or the
+ * record's createdAt if the date is unparseable
  */
 export function parseMatchDate(record: PlayerRecord): Date {
-	const match = /(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4}|\d{2})(?!\d)/.exec(
-		record.matchInfo.date ?? ''
-	);
-	if (match) {
-		const month = Number(match[1]);
-		const day = Number(match[2]);
-		const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
-		const date = new Date(year, month - 1, day);
-		if (
-			date.getFullYear() === year
-			&& date.getMonth() === month - 1
-			&& date.getDate() === day
-		) {
-			return date;
-		}
-	}
-	return new Date(record.createdAt);
+	return _parseMatchDateTime(record).date;
 }
 
 /**
@@ -128,15 +180,44 @@ export function parseGameLengthSeconds(text: string): number | null {
 }
 
 /**
- * Parses a stat value
+ * Parses a stat value; a blank stat counts as 0
  * @returns A non-negative integer, or null if the text is not all digits
  */
 export function parseStat(text: string): number | null {
 	const trimmed = (text ?? '').trim();
+	if (!trimmed) return 0;
 	return /^\d+$/.test(trimmed) ? Number(trimmed) : null;
 }
 
 // Local helpers
+
+/** Like parseMatchDate, but also reports whether a valid time was read */
+function _parseMatchDateTime(record: PlayerRecord): ParsedMatchDate {
+	const text = record.matchInfo.date ?? '';
+	const match = /(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4}|\d{2})(?!\d)/.exec(text);
+	if (match) {
+		const month = Number(match[1]);
+		const day = Number(match[2]);
+		const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
+		const midnight = new Date(year, month - 1, day);
+		if (
+			midnight.getFullYear() === year
+			&& midnight.getMonth() === month - 1
+			&& midnight.getDate() === day
+		) {
+			const time = /^[\s,@-]*(\d{1,2}):(\d{2})(?!\d)/.exec(
+				text.slice(match.index + match[0].length)
+			);
+			const hours = time ? Number(time[1]) : 0;
+			const minutes = time ? Number(time[2]) : 0;
+			if (time && hours < 24 && minutes < 60) {
+				return { date: new Date(year, month - 1, day, hours, minutes), hasTime: true };
+			}
+			return { date: midnight, hasTime: false };
+		}
+	}
+	return { date: new Date(record.createdAt), hasTime: false };
+}
 
 function _mean(values: (number | null)[]): number | null {
 	const valid = values.filter((v): v is number => v !== null);
@@ -212,9 +293,78 @@ function _recordStats(games: PlayerGame[]): RecordStatsRow {
 	return { games: games.length, wins, losses, draws, winRate };
 }
 
+/**
+ * Wilson score interval for a proportion
+ * @param wins - Successes
+ * @param n - Trials; 0 gives the uninformative interval 0 to 1
+ * @param z - Standard normal quantile for the confidence level
+ * @returns Bounds as proportions 0-1
+ */
+function _wilson(wins: number, n: number, z: number): WilsonInterval {
+	if (n <= 0) return { low: 0, high: 1 };
+	const p = wins / n;
+	const z2 = z * z;
+	const denominator = 1 + z2 / n;
+	const centre = (p + z2 / (2 * n)) / denominator;
+	const half = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / denominator;
+	return { low: Math.max(0, centre - half), high: Math.min(1, centre + half) };
+}
+
+/** Confidence tier from the decided games in the smaller group */
+function _confidence(smallerGames: number): FindingConfidence {
+	return (
+		smallerGames >= HIGH_CONFIDENCE_GAMES ? 'high'
+		: smallerGames >= MEDIUM_CONFIDENCE_GAMES ? 'medium'
+		: 'low'
+	);
+}
+
+/**
+ * Compares the win rates of two groups of games
+ * Draws count as decided non-wins, as in the win rate elsewhere. Significance is a
+ * Newcombe hybrid-score interval for the difference (a minus b) built from 90% Wilson
+ * intervals; it is significant when the interval excludes 0. Groups with fewer than
+ * MIN_FINDING_GAMES decided games are never significant.
+ */
+function _compareRates(a: PlayerGame[], b: PlayerGame[]): RateComparison {
+	const { wins: aWins, decided: aGames } = _countResults(a);
+	const { wins: bWins, decided: bGames } = _countResults(b);
+	const p1 = aGames ? aWins / aGames : 0;
+	const p2 = bGames ? bWins / bGames : 0;
+	const { low: l1, high: u1 } = _wilson(aWins, aGames, Z_90);
+	const { low: l2, high: u2 } = _wilson(bWins, bGames, Z_90);
+	const diff = p1 - p2;
+	const lower = diff - Math.sqrt((p1 - l1) ** 2 + (u2 - p2) ** 2);
+	const upper = diff + Math.sqrt((u1 - p1) ** 2 + (p2 - l2) ** 2);
+	const enough = Math.min(aGames, bGames) >= MIN_FINDING_GAMES;
+	return {
+		aRate: p1 * 100,
+		bRate: p2 * 100,
+		aGames,
+		bGames,
+		significant: enough && (lower > 0 || upper < 0),
+		confidence: _confidence(Math.min(aGames, bGames)),
+	};
+}
+
 /** Win percentage over games with a readable result; null if there are none */
 function _winRate(games: PlayerGame[]): number | null {
 	return _countResults(games).winRate;
+}
+
+/** One game's value per 10 minutes; null if the value or the game length is missing */
+function _gamePer10(game: PlayerGame, value: number | null): number | null {
+	if (value === null || game.lengthSeconds === null) return null;
+	return (value / game.lengthSeconds) * SECONDS_PER_10_MINUTES;
+}
+
+/** Games grouped by role, only roles with games, in ROLE_ORDER */
+function _byRole(games: PlayerGame[]): [PlayerGame['role'], PlayerGame[]][] {
+	const groups = _groupBy(games, (g) => g.role);
+	return ROLE_ORDER.filter((role) => groups.has(role)).map((role) => [
+		role,
+		groups.get(role)!,
+	]);
 }
 
 /** Sum of a stat per 10 minutes over games with both a valid length and stat */
@@ -280,6 +430,93 @@ function _weekStart(date: Date): Date {
 	return start;
 }
 
+/**
+ * Splits games into play sessions
+ * Only games with a readable time are used. A gap of more than SESSION_BREAK_MINUTES
+ * between consecutive games starts a new session (exactly that long stays in one).
+ * Dates carry the full date and time, so a session can span midnight.
+ * @returns Sessions oldest first, each oldest game first
+ */
+function _sessions(games: PlayerGame[]): PlayerGame[][] {
+	const sessions: PlayerGame[][] = [];
+	let previous: PlayerGame | null = null;
+	for (const game of _sorted(games.filter((g) => g.hasTime))) {
+		const gap = previous ? game.date.getTime() - previous.date.getTime() : 0;
+		if (previous && gap <= SESSION_BREAK_MINUTES * MINUTE_MS) {
+			sessions[sessions.length - 1].push(game);
+		} else {
+			sessions.push([game]);
+		}
+		previous = game;
+	}
+	return sessions;
+}
+
+/** Games that directly follow a win, and those that follow a loss, within sessions */
+function _afterResult(sessions: PlayerGame[][]): {
+	afterWin: PlayerGame[];
+	afterLoss: PlayerGame[];
+} {
+	const afterWin: PlayerGame[] = [];
+	const afterLoss: PlayerGame[] = [];
+	for (const session of sessions) {
+		for (let i = 1; i < session.length; i++) {
+			const before = session[i - 1].result;
+			if (before === 'win') afterWin.push(session[i]);
+			else if (before === 'loss') afterLoss.push(session[i]);
+		}
+	}
+	return { afterWin, afterLoss };
+}
+
+/** Sample variance (n - 1); needs at least two values */
+function _variance(values: number[], mean: number): number {
+	return values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1);
+}
+
+/**
+ * Welch's t statistic for the difference in means (a minus b)
+ * @returns null with fewer than two values in either group, or when both groups have
+ * (numerically) no spread, since the statistic is then undefined
+ */
+function _welchT(a: number[], b: number[]): number | null {
+	if (a.length < 2 || b.length < 2) return null;
+	const m1 = _mean(a)!;
+	const m2 = _mean(b)!;
+	const se = Math.sqrt(_variance(a, m1) / a.length + _variance(b, m2) / b.length);
+	// Rounding can leave a tiny spread in identical values; treat it as none
+	const scale = Math.max(1, Math.abs(m1), Math.abs(m2));
+	return se > scale * 1e-9 ? (m1 - m2) / se : null;
+}
+
+/** Compares residuals with and without a hero; needs MIN_MATCHUP_GAMES on each side */
+function _compareResiduals(
+	stat: MatchupStat,
+	present: number[],
+	absent: number[]
+): MatchupStatDelta {
+	if (Math.min(present.length, absent.length) < MIN_MATCHUP_GAMES) {
+		return { stat, delta: null, significant: false };
+	}
+	const t = _welchT(present, absent);
+	return {
+		stat,
+		delta: _mean(present)! - _mean(absent)!,
+		significant: t !== null && Math.abs(t) >= MATCHUP_T,
+	};
+}
+
+/** Impact used to rank matchups: win-rate gap weighted by how often the hero appears */
+function _matchupImpact(row: HeroMatchupRow): number {
+	const share = row.present / (row.present + row.absent);
+	return Math.abs(row.winRate.present - row.winRate.absent) * share;
+}
+
+/** Hero display name of a player, or null if none was read */
+function _heroName(raw: string | undefined, heroes: OverFastHero[]): string | null {
+	return raw?.trim() ? getHeroDisplayName(raw, heroes).trim() || null : null;
+}
+
 // Exported functions
 
 /**
@@ -306,6 +543,7 @@ export function getPlayerNameCounts(
  * Turns records into per-game rows from the tracked player's point of view
  * Records the player does not appear in are skipped. If a name appears twice in a
  * record, the first is used. A result read as VICTORY/DEFEAT is inverted for red.
+ * Ally and enemy heroes are display names, resolved like yours, with blanks dropped.
  * @param records - Saved game records
  * @param player - Tracked player name (trimmed, case-insensitive)
  * @param heroes - OverFast heroes, used to look up roles; may be empty
@@ -324,15 +562,22 @@ export function toPlayerGames(
 		const me = record.players.find((p) => normaliseName(p.name) === target);
 		if (!me) continue;
 
-		const heroName = me.hero?.trim() ? getHeroDisplayName(me.hero, heroes) : null;
-		const hero = heroName ? heroName.trim() : null;
+		const hero = _heroName(me.hero, heroes);
 		const matched = hero ? heroes.find((h) => h.name === hero) : undefined;
 		const others = record.players.filter((p) => p !== me);
+		const allies = others.filter((p) => p.team === me.team);
+		const enemies = others.filter((p) => p.team !== me.team);
+		const heroNames = (players: GameRecord['players']) =>
+			players
+				.map((p) => _heroName(p.hero, heroes))
+				.filter((name): name is string => name !== null);
 		const result = parseResult(record.matchInfo.result);
+		const dateTime = _parseMatchDateTime(record);
 
 		games.push({
 			recordId: record.id,
-			date: parseMatchDate(record),
+			date: dateTime.date,
+			hasTime: dateTime.hasTime,
 			createdAt: new Date(record.createdAt),
 			result: me.team === 'red' ? _invert(result) : result,
 			team: me.team,
@@ -342,8 +587,10 @@ export function toPlayerGames(
 			hero,
 			role: matched?.role ?? 'unknown',
 			stats: _avgStats([me]),
-			teamAvg: _avgStats(others.filter((p) => p.team === me.team)),
-			enemyAvg: _avgStats(others.filter((p) => p.team !== me.team)),
+			teamAvg: _avgStats(allies),
+			enemyAvg: _avgStats(enemies),
+			allyHeroes: heroNames(allies),
+			enemyHeroes: heroNames(enemies),
 		});
 	}
 	return _sorted(games);
@@ -529,24 +776,42 @@ export function buildHeroPool(games: PlayerGame[]): HeroPoolRow[] {
 }
 
 /**
- * Compares the player with the team average and enemy average per 10 minutes
- * Only games with a valid length and all three values read are used, so the columns
- * are measured over the same games.
+ * Compares the player with the team average and enemy average per 10 minutes, per role
+ * Only games with a valid length and all three values read are used for the per-10
+ * columns, so they are measured over the same games.
+ * The above/below split compares your stat with your team's average in the same game
+ * (teammates only, excluding you) and needs only those two values: games with either
+ * missing are skipped for that stat, and a tie (exactly equal) counts as neither above
+ * nor below. Win rates are over decided games; null if a side has none. For deaths,
+ * "above" is the worse side.
  * @param games - Games to compare
+ * @returns One group per role that has games (tank, damage, support, unknown)
  */
-export function buildLobbyComparison(games: PlayerGame[]): LobbyComparisonRow[] {
-	return LOBBY_STATS.map((stat) => {
-		const usable = games.filter(
-			(g) =>
-				g.stats[stat] !== null && g.teamAvg[stat] !== null && g.enemyAvg[stat] !== null
-		);
-		return {
-			stat,
-			you: _per10(usable, (g) => g.stats[stat]),
-			team: _per10(usable, (g) => g.teamAvg[stat]),
-			enemy: _per10(usable, (g) => g.enemyAvg[stat]),
-		};
-	});
+export function buildLobbyComparison(games: PlayerGame[]): RoleLobbyComparison[] {
+	return _byRole(games).map(([role, roleGames]) => ({
+		role,
+		rows: LOBBY_STATS.map((stat): LobbyComparisonRow => {
+			const usable = roleGames.filter(
+				(g) =>
+					g.stats[stat] !== null && g.teamAvg[stat] !== null && g.enemyAvg[stat] !== null
+			);
+			const compared = roleGames.filter(
+				(g) => g.stats[stat] !== null && g.teamAvg[stat] !== null
+			);
+			const above = compared.filter((g) => g.stats[stat]! > g.teamAvg[stat]!);
+			const below = compared.filter((g) => g.stats[stat]! < g.teamAvg[stat]!);
+			return {
+				stat,
+				you: _per10(usable, (g) => g.stats[stat]),
+				team: _per10(usable, (g) => g.teamAvg[stat]),
+				enemy: _per10(usable, (g) => g.enemyAvg[stat]),
+				gamesAbove: above.length,
+				gamesBelow: below.length,
+				winRateAbove: _winRate(above),
+				winRateBelow: _winRate(below),
+			};
+		}),
+	}));
 }
 
 /**
@@ -616,10 +881,19 @@ export function buildPersonalBests(games: PlayerGame[]): PersonalBests {
 
 /**
  * Reports notable patterns; each rule needs MIN_FINDING_GAMES in every bucket
- * - deathsSplit: win rate at or below the median deaths vs above it (MIN_DEATHS_GAP)
- * - bestHero: best win rate among heroes vs overall (MIN_HERO_GAP)
- * - weakestMode: lowest win rate among modes vs overall (MIN_MODE_GAP), with its worst map
- * Win rates are over games with a readable result.
+ * - deathsSplit: win rate at or below your role's median deaths per 10 minutes vs
+ *   above it (MIN_DEATHS_GAP); games without a length are skipped, and 'unknown' is
+ *   its own role
+ * - bestHero: best win rate among heroes vs all other games (MIN_HERO_GAP)
+ * - weakestMode: lowest win rate among modes vs all other games (MIN_MODE_GAP), with
+ *   its worst map
+ * - sessionFatigue: win rate in games 1-3 of a session vs game 4 onwards
+ *   (MIN_FATIGUE_GAP)
+ * - tilt: win rate in the game after a win vs after a loss, within a session
+ *   (MIN_TILT_GAP)
+ * Sessions only use games with a readable time (see buildSessionStats).
+ * Win rates are over games with a readable result. A finding also needs its gap to be
+ * statistically significant (see _compareRates), which sets its confidence.
  * @param games - Games to analyse
  * @returns Zero or more findings, in the order above
  */
@@ -627,22 +901,32 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 	const findings: InsightFinding[] = [];
 	const decided = games.filter((g) => g.result !== 'unknown');
 	if (decided.length < MIN_FINDING_GAMES) return findings;
-	const overallWinRate = _winRate(decided)!;
 
-	const withDeaths = decided.filter((g) => g.stats.d !== null);
+	const withDeaths = decided
+		.map((g) => ({ game: g, deaths10: _gamePer10(g, g.stats.d) }))
+		.filter((x): x is { game: PlayerGame; deaths10: number } => x.deaths10 !== null);
 	if (withDeaths.length) {
-		const medianDeaths = _median(withDeaths.map((g) => g.stats.d!));
-		const low = withDeaths.filter((g) => g.stats.d! <= medianDeaths);
-		const high = withDeaths.filter((g) => g.stats.d! > medianDeaths);
+		const medians: RoleDeathsMedian[] = [];
+		const low: PlayerGame[] = [];
+		const high: PlayerGame[] = [];
+		for (const role of ROLE_ORDER) {
+			const inRole = withDeaths.filter((x) => x.game.role === role);
+			if (!inRole.length) continue;
+			const medianDeaths10 = _median(inRole.map((x) => x.deaths10));
+			medians.push({ role, medianDeaths10 });
+			for (const { game, deaths10 } of inRole) {
+				(deaths10 <= medianDeaths10 ? low : high).push(game);
+			}
+		}
 		if (low.length >= MIN_FINDING_GAMES && high.length >= MIN_FINDING_GAMES) {
-			const lowRate = _winRate(low)!;
-			const highRate = _winRate(high)!;
-			if (lowRate - highRate >= MIN_DEATHS_GAP) {
+			const { aRate, bRate, significant, confidence } = _compareRates(low, high);
+			if (aRate - bRate >= MIN_DEATHS_GAP && significant) {
 				findings.push({
 					kind: 'deathsSplit',
-					medianDeaths,
-					lowDeaths: { games: low.length, winRate: lowRate },
-					highDeaths: { games: high.length, winRate: highRate },
+					confidence,
+					medians,
+					lowDeaths: { games: low.length, winRate: aRate },
+					highDeaths: { games: high.length, winRate: bRate },
 				});
 			}
 		}
@@ -652,14 +936,33 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 		.filter(([, heroGames]) => heroGames.length >= MIN_FINDING_GAMES)
 		.map(([hero, heroGames]) => ({
 			hero,
-			games: heroGames.length,
+			heroGames,
 			winRate: _winRate(heroGames)!,
 		}))
 		.sort(
-			(a, b) => b.winRate - a.winRate || b.games - a.games || a.hero.localeCompare(b.hero)
+			(a, b) =>
+				b.winRate - a.winRate
+				|| b.heroGames.length - a.heroGames.length
+				|| a.hero.localeCompare(b.hero)
 		);
-	if (heroes.length && heroes[0].winRate - overallWinRate >= MIN_HERO_GAP) {
-		findings.push({ kind: 'bestHero', ...heroes[0], overallWinRate });
+	if (heroes.length) {
+		const { hero, heroGames } = heroes[0];
+		const rest = decided.filter((g) => g.hero !== hero);
+		const { aRate, bRate, bGames, significant, confidence } = _compareRates(
+			heroGames,
+			rest
+		);
+		if (aRate - bRate >= MIN_HERO_GAP && significant) {
+			findings.push({
+				kind: 'bestHero',
+				confidence,
+				hero,
+				games: heroGames.length,
+				winRate: aRate,
+				restWinRate: bRate,
+				restGames: bGames,
+			});
+		}
 	}
 
 	const modes = [..._groupBy(decided, (g) => g.mode)]
@@ -671,28 +974,178 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 				|| b.modeGames.length - a.modeGames.length
 				|| a.mode.localeCompare(b.mode)
 		);
-	if (modes.length && overallWinRate - modes[0].winRate >= MIN_MODE_GAP) {
-		const { mode, modeGames, winRate } = modes[0];
-		const worstMap = [..._groupBy(modeGames, (g) => g.map)]
-			.filter(([, mapGames]) => mapGames.length >= MIN_WORST_MAP_GAMES)
-			.map(([map, mapGames]) => {
-				const { games, wins, losses, draws } = _recordStats(mapGames);
-				return { map, games, wins, losses, draws, winRate: _winRate(mapGames)! };
-			})
-			.sort(
-				(a, b) => a.winRate - b.winRate || b.games - a.games || a.map.localeCompare(b.map)
-			)[0];
+	if (modes.length) {
+		const { mode, modeGames } = modes[0];
+		const rest = decided.filter((g) => g.mode !== mode);
+		const { aRate, bRate, bGames, significant, confidence } = _compareRates(
+			modeGames,
+			rest
+		);
+		if (bRate - aRate >= MIN_MODE_GAP && significant) {
+			const worstMap = [..._groupBy(modeGames, (g) => g.map)]
+				.filter(([, mapGames]) => mapGames.length >= MIN_WORST_MAP_GAMES)
+				.map(([map, mapGames]) => {
+					const { games, wins, losses, draws } = _recordStats(mapGames);
+					return { map, games, wins, losses, draws, winRate: _winRate(mapGames)! };
+				})
+				.sort(
+					(a, b) =>
+						a.winRate - b.winRate || b.games - a.games || a.map.localeCompare(b.map)
+				)[0];
+			findings.push({
+				kind: 'weakestMode',
+				confidence,
+				mode,
+				games: modeGames.length,
+				winRate: aRate,
+				restWinRate: bRate,
+				restGames: bGames,
+				worstMap: worstMap ?? null,
+			});
+		}
+	}
+
+	const sessions = _sessions(games);
+	const fatigue = _compareRates(
+		sessions.flatMap((s) => s.slice(0, EARLY_SESSION_GAMES)),
+		sessions.flatMap((s) => s.slice(EARLY_SESSION_GAMES))
+	);
+	if (fatigue.aRate - fatigue.bRate >= MIN_FATIGUE_GAP && fatigue.significant) {
 		findings.push({
-			kind: 'weakestMode',
-			mode,
-			games: modeGames.length,
-			winRate,
-			overallWinRate,
-			worstMap: worstMap ?? null,
+			kind: 'sessionFatigue',
+			confidence: fatigue.confidence,
+			early: { games: fatigue.aGames, winRate: fatigue.aRate },
+			late: { games: fatigue.bGames, winRate: fatigue.bRate },
+		});
+	}
+
+	const next = _afterResult(sessions);
+	const tilt = _compareRates(next.afterWin, next.afterLoss);
+	if (tilt.aRate - tilt.bRate >= MIN_TILT_GAP && tilt.significant) {
+		findings.push({
+			kind: 'tilt',
+			confidence: tilt.confidence,
+			afterWin: { games: tilt.aGames, winRate: tilt.aRate },
+			afterLoss: { games: tilt.bGames, winRate: tilt.bRate },
 		});
 	}
 
 	return findings;
+}
+
+/**
+ * Builds session statistics from games with a readable time of day
+ * Games without one are left out and counted in `untimedGames`. Game-number buckets
+ * are 1, 2, 3, 4 and 5+, all always present (empty ones have 0 games). The after-win
+ * and after-loss rows cover the next game in the same session; a draw or unknown
+ * result as the previous game counts as neither, and pairs never cross sessions.
+ * @param games - Games in any order
+ */
+export function buildSessionStats(games: PlayerGame[]): SessionStats {
+	const sessions = _sessions(games);
+	const timedGames = sessions.reduce((sum, s) => sum + s.length, 0);
+	const { afterWin, afterLoss } = _afterResult(sessions);
+
+	const byGameNumber = Array.from({ length: LAST_GAME_BUCKET }, (_, i): GameNumberRow => {
+		const number = i + 1;
+		const inBucket = sessions.flatMap((s) =>
+			number === LAST_GAME_BUCKET ? s.slice(i) : s.slice(i, number)
+		);
+		return {
+			label: number === LAST_GAME_BUCKET ? `${number}+` : String(number),
+			..._recordStats(inBucket),
+		};
+	});
+
+	return {
+		byGameNumber,
+		afterWin: _recordStats(afterWin),
+		afterLoss: _recordStats(afterLoss),
+		sessionCount: sessions.length,
+		averageLength: sessions.length ? timedGames / sessions.length : null,
+		timedGames,
+		untimedGames: games.length - timedGames,
+	};
+}
+
+/**
+ * Finds heroes whose presence on your team (ally) or the other team (enemy) goes with a
+ * different win rate or different personal stats
+ * Each side is tested separately and only over games where at least one hero was read
+ * on that side, so an unread team does not count as "absent". A hero listed twice in a
+ * game counts once. A hero is tested when it is present in at least MIN_MATCHUP_GAMES of
+ * those games and absent from at least MIN_MATCHUP_GAMES; `present`/`absent` count all
+ * such games, including those with an unreadable result.
+ * - Win rate: present vs absent over decided games (see _compareRates), which sets
+ *   `significant` and `confidence`.
+ * - Stats (deaths, damage and healing per 10 minutes): each game's value minus your mean
+ *   for its role over all given games, so a hero that only shows up in one role's games
+ *   does not pick up that role's typical numbers. Games without a length or the stat are
+ *   skipped. The delta is the mean residual present minus absent; it needs
+ *   MIN_MATCHUP_GAMES usable games each side and is significant when |Welch t| >= 1.96.
+ * Rows with neither a significant win rate nor a significant stat delta are dropped.
+ * @param games - Games to analyse
+ * @returns Rows by impact (|win-rate gap| x share of games with the hero, descending),
+ * then hero name, then side (ally first)
+ */
+export function buildHeroMatchups(games: PlayerGame[]): HeroMatchupRow[] {
+	const baselines = new Map(
+		_byRole(games).map(([role, roleGames]) => [
+			role,
+			new Map(
+				MATCHUP_STATS.map((stat) => [
+					stat,
+					_mean(roleGames.map((g) => _gamePer10(g, g.stats[stat]))),
+				])
+			),
+		])
+	);
+	const residuals = (pool: PlayerGame[], stat: MatchupStat): number[] =>
+		pool.flatMap((g) => {
+			const value = _gamePer10(g, g.stats[stat]);
+			const baseline = baselines.get(g.role)?.get(stat) ?? null;
+			return value === null || baseline === null ? [] : [value - baseline];
+		});
+
+	const rows: HeroMatchupRow[] = [];
+	for (const side of MATCHUP_SIDES) {
+		const listed = games
+			.map((game) => ({
+				game,
+				heroes: new Set(side === 'ally' ? game.allyHeroes : game.enemyHeroes),
+			}))
+			.filter((x) => x.heroes.size > 0);
+		const names = new Set(listed.flatMap((x) => [...x.heroes]));
+
+		for (const hero of names) {
+			const present = listed.filter((x) => x.heroes.has(hero)).map((x) => x.game);
+			const absent = listed.filter((x) => !x.heroes.has(hero)).map((x) => x.game);
+			if (Math.min(present.length, absent.length) < MIN_MATCHUP_GAMES) continue;
+
+			const rates = _compareRates(present, absent);
+			const statDeltas = MATCHUP_STATS.map((stat) =>
+				_compareResiduals(stat, residuals(present, stat), residuals(absent, stat))
+			);
+			if (!rates.significant && !statDeltas.some((d) => d.significant)) continue;
+
+			rows.push({
+				hero,
+				side,
+				present: present.length,
+				absent: absent.length,
+				winRate: { present: rates.aRate, absent: rates.bRate },
+				statDeltas,
+				significant: rates.significant,
+				confidence: rates.confidence,
+			});
+		}
+	}
+	return rows.sort(
+		(a, b) =>
+			_matchupImpact(b) - _matchupImpact(a)
+			|| a.hero.localeCompare(b.hero)
+			|| MATCHUP_SIDES.indexOf(a.side) - MATCHUP_SIDES.indexOf(b.side)
+	);
 }
 
 /**
@@ -730,5 +1183,7 @@ export function buildInsightsSummary(
 		modes: buildModeStats(current),
 		personalBests: buildPersonalBests(current),
 		findings: buildFindings(current),
+		sessions: buildSessionStats(current),
+		matchups: buildHeroMatchups(current),
 	};
 }

@@ -20,6 +20,8 @@ import '#styles/App';
 const App: Component = () => {
 	const [viewMode, setViewMode] = createSignal<ViewMode>('records');
 	const [uploadBatch, setUploadBatch] = createSignal<UploadBatch | null>(null);
+	// Latest screenshot for the region editor; drops there skip the OCR queue
+	const [regionPreview, setRegionPreview] = createSignal<string | null>(null);
 	const [isDragging, setIsDragging] = createSignal(false);
 	const [openRecordId, setOpenRecordId] = createSignal<string | null>(null);
 
@@ -50,9 +52,10 @@ const App: Component = () => {
 		const images = await readImageFiles(e.dataTransfer?.files ?? []);
 		if (images.length === 0) return;
 
-		setUploadBatch({ images });
-		// If we're in regions view, stay in regions view; otherwise go to OCR
+		setRegionPreview(images[0]);
+		// Drops on the regions view only guide the editor; elsewhere they go to OCR
 		if (currentViewMode !== 'regions') {
+			setUploadBatch({ images });
 			setViewMode('ocr');
 		}
 	};
@@ -76,6 +79,7 @@ const App: Component = () => {
 	const handleUploadClick = () => {
 		triggerUploadDialog((images) => {
 			setUploadBatch({ images });
+			setRegionPreview(images[0]);
 			setViewMode('ocr');
 		});
 	};
@@ -112,7 +116,11 @@ const App: Component = () => {
 						<div class="drag-overlay-icon">
 							<Upload size={48} />
 						</div>
-						<div class="drag-overlay-text">Drop images here to analyze</div>
+						<div class="drag-overlay-text">
+							{viewMode() === 'regions' ?
+								'Drop a screenshot to guide your regions'
+							:	'Drop images here to analyze'}
+						</div>
 					</div>
 				</div>
 			)}
@@ -130,7 +138,7 @@ const App: Component = () => {
 					<Insights onOpenRecord={handleOpenRecord} />
 				</Match>
 				<Match when={viewMode() === 'regions'}>
-					<RegionProfileManager previewImage={uploadBatch()?.images[0] ?? null} />
+					<RegionProfileManager previewImage={regionPreview()} />
 				</Match>
 			</Switch>
 		</div>

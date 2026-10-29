@@ -1,0 +1,16 @@
+@use '../theme' as *;
+
+@layer ui {
+	select {
+		// Modified field: translucent orange background
+		&.modified {
+			background-color: rgba(255, 152, 0, 0.2);
+		}
+
+		// Just saved field: green background that fades out (keyframes in RecordFieldInput)
+		&.just-saved {
+			background-color: rgba(104, 163, 106, 0.4);
+			animation: fade-to-normal 2s ease-out forwards;
+		}
+	}
+}

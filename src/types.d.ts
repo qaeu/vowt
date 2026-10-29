@@ -136,6 +136,8 @@ export interface PlayerGame {
 	/** Match date, or the record's creation time if the date is unreadable */
 	date: Date;
 	createdAt: Date;
+	/** True only when a valid time of day was read, so `date` is not just midnight */
+	hasTime: boolean;
 	result: GameResult;
 	team: 'blue' | 'red';
 	/** Game length in seconds, null if unreadable */
@@ -153,6 +155,10 @@ export interface PlayerGame {
 	teamAvg: Record<StatKey, number | null>;
 	/** Mean stats of the opposing team */
 	enemyAvg: Record<StatKey, number | null>;
+	/** Display names of teammates' heroes (excluding yours), one per player; blanks dropped */
+	allyHeroes: string[];
+	/** Display names of the opposing team's heroes, one per player; blanks dropped */
+	enemyHeroes: string[];
 }
 
 export interface FilteredGames {
@@ -229,6 +235,24 @@ export interface LobbyComparisonRow {
 	you: number | null;
 	team: number | null;
 	enemy: number | null;
+	/** Games where your total was above your team's average; ties are in neither side */
+	gamesAbove: number;
+	gamesBelow: number;
+	/** Win percentage 0-100 over decided games on that side; null if none were decided */
+	winRateAbove: number | null;
+	winRateBelow: number | null;
+}
+
+/** Lobby comparison rows for the games played in one role */
+export interface RoleLobbyComparison {
+	role: OverFastHeroRole | 'unknown';
+	rows: LobbyComparisonRow[];
+}
+
+/** Median deaths per 10 minutes of the games played in one role */
+export interface RoleDeathsMedian {
+	role: OverFastHeroRole | 'unknown';
+	medianDeaths10: number;
 }
 
 export interface RecordStatsRow {
@@ -266,30 +290,114 @@ interface WinRateBucket {
 	winRate: number;
 }
 
-/** Rule-based observation; the UI owns the wording. Rates are percentages 0-100 */
+/** How much sample size backs a finding (by the smaller group's decided games) */
+export type FindingConfidence = 'low' | 'medium' | 'high';
+
+/**
+ * Rule-based observation; the UI owns the wording. Rates are percentages 0-100 and
+ * `rest` means all other games with a readable result
+ */
 export type InsightFinding =
 	| {
 			kind: 'deathsSplit';
-			medianDeaths: number;
+			confidence: FindingConfidence;
+			/** Per-role medians that low/high deaths are split at */
+			medians: RoleDeathsMedian[];
 			lowDeaths: WinRateBucket;
 			highDeaths: WinRateBucket;
 	  }
 	| {
 			kind: 'bestHero';
+			confidence: FindingConfidence;
 			hero: string;
 			games: number;
 			winRate: number;
-			overallWinRate: number;
+			restWinRate: number;
+			restGames: number;
 	  }
 	| {
 			kind: 'weakestMode';
+			confidence: FindingConfidence;
 			mode: string;
 			games: number;
 			winRate: number;
-			overallWinRate: number;
+			restWinRate: number;
+			restGames: number;
 			worstMap:
 				(Omit<RecordStatsRow, 'winRate'> & { map: string; winRate: number }) | null;
+	  }
+	| {
+			kind: 'sessionFatigue';
+			confidence: FindingConfidence;
+			/** Games 1-3 of sessions */
+			early: WinRateBucket;
+			/** Game 4 onwards */
+			late: WinRateBucket;
+	  }
+	| {
+			kind: 'tilt';
+			confidence: FindingConfidence;
+			/** The game after a win, in the same session */
+			afterWin: WinRateBucket;
+			/** The game after a loss, in the same session */
+			afterLoss: WinRateBucket;
 	  };
+
+/** Stats compared with and without a hero in the game: deaths, damage, healing */
+export type MatchupStat = 'd' | 'dmg' | 'h';
+
+/** Your role-adjusted per-10-minute stat with a hero in the game minus without */
+export interface MatchupStatDelta {
+	stat: MatchupStat;
+	/** Mean residual (present) minus mean residual (absent); null with too few games */
+	delta: number | null;
+	/** Whether |Welch t| reaches the matchup threshold */
+	significant: boolean;
+}
+
+/**
+ * How your games go with a hero on your team (ally) or the other team (enemy)
+ * Counts are games where that side's heroes were read; win rates are over decided games
+ */
+export interface HeroMatchupRow {
+	hero: string;
+	side: 'ally' | 'enemy';
+	/** Games with the hero on that side */
+	present: number;
+	/** Games without it (with at least one other hero read on that side) */
+	absent: number;
+	/** Win percentages 0-100 over decided games; 0 for a side with none decided */
+	winRate: { present: number; absent: number };
+	statDeltas: MatchupStatDelta[];
+	/** Whether the win-rate gap is significant */
+	significant: boolean;
+	confidence: FindingConfidence;
+}
+
+/** Results by position in a session; the label is 1-4 or '5+' */
+export interface GameNumberRow extends RecordStatsRow {
+	label: string;
+}
+
+/**
+ * Play sessions, built only from games with a readable time of day
+ * A session is a run of games with no gap over SESSION_BREAK_MINUTES between them.
+ */
+export interface SessionStats {
+	/** Always five buckets (1, 2, 3, 4, 5+); empty ones have 0 games */
+	byGameNumber: GameNumberRow[];
+	/** The next game in the same session after a win (draws and unknowns excluded) */
+	afterWin: RecordStatsRow;
+	/** The next game in the same session after a loss */
+	afterLoss: RecordStatsRow;
+	sessionCount: number;
+	/** Games per session; null when there are no sessions */
+	averageLength: number | null;
+	/** Games with a readable time, used for the sessions */
+	timedGames: number;
+	/** Games left out because no time of day was read */
+	untimedGames: number;
+}
 
 export interface InsightsSummary {
 	filters: InsightsFilters;
@@ -302,11 +410,14 @@ export interface InsightsSummary {
 	trend: Record<TrendMetric, WeeklyTrendPoint[]>;
 	recentForm: RecentForm;
 	heroPool: HeroPoolRow[];
-	lobby: LobbyComparisonRow[];
+	lobby: RoleLobbyComparison[];
 	maps: MapStatsRow[];
 	modes: ModeStatsRow[];
 	personalBests: PersonalBests;
 	findings: InsightFinding[];
+	sessions: SessionStats;
+	/** Ally synergies and enemy counters, by impact */
+	matchups: HeroMatchupRow[];
 }
 
 export interface ExportedInsightsSummary extends ExportFileBase {
@@ -321,6 +432,12 @@ export interface ExportedInsightsSummary extends ExportFileBase {
  * shapes touching the edges; 'number' keeps every non-noise shape
  */
 export type TextCleanupMode = 'name' | 'number';
+
+/** Region names offered together, e.g. one player's regions */
+export interface RegionNameGroup {
+	label: string;
+	names: string[];
+}
 
 export interface TextRegion {
 	name: string;
@@ -418,6 +535,13 @@ export interface ExportedProfile extends ExportFileBase {
 export interface ImageHash {
 	name: string;
 	hash: string;
+	/** When a user correction saved this hash; absent for bundled and older hashes */
+	learnedAt?: Date;
+}
+
+/** A hash learned for a profile, with the hash set it belongs to */
+export interface LearnedHash extends ImageHash {
+	hashSetId: string;
 }
 
 export interface ImageHashSet {
