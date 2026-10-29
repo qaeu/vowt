@@ -322,6 +322,12 @@ export interface ExportedInsightsSummary extends ExportFileBase {
  */
 export type TextCleanupMode = 'name' | 'number';
 
+/** Region names offered together, e.g. one player's regions */
+export interface RegionNameGroup {
+	label: string;
+	names: string[];
+}
+
 export interface TextRegion {
 	name: string;
 	x: number;

@@ -212,6 +212,48 @@ describe('RegionInspector', () => {
 		});
 	});
 
+	describe('Duplicate names', () => {
+		const duplicateRegions = () => [
+			mockRegions[0],
+			{ ...mockRegions[1], name: 'player_name' },
+			mockRegions[2],
+		];
+		const items = () =>
+			Array.from(document.querySelectorAll<HTMLElement>('.region-inspector__item'));
+		const isFlagged = (el: HTMLElement) =>
+			el.classList.contains('region-inspector__item--duplicate');
+
+		it('should not flag regions with unique names', () => {
+			renderInspector();
+			expect(items().some(isFlagged)).toBe(false);
+			expect(screen.queryByText('Duplicate')).toBeNull();
+		});
+
+		it('should flag every region sharing a name', () => {
+			renderInspector({ regions: duplicateRegions() });
+
+			expect(items().map(isFlagged)).toEqual([true, true, false]);
+			expect(screen.getAllByText('Duplicate')).toHaveLength(2);
+		});
+
+		it('should flag both regions mid-swap and clear once the swap is done', () => {
+			const regions = [
+				{ ...mockRegions[0], name: 'result' },
+				{ ...mockRegions[1], name: 'date' },
+			];
+			renderInspector({ selectedId: 'mock-0', regions });
+			const nameSelect = () => field('Name') as unknown as HTMLSelectElement;
+
+			fireEvent.change(nameSelect(), { target: { value: 'date' } });
+			expect(items().map(isFlagged)).toEqual([true, true]);
+
+			fireEvent.click(items()[1]);
+			fireEvent.change(nameSelect(), { target: { value: 'result' } });
+			expect(items().some(isFlagged)).toBe(false);
+			expect(listNames()).toEqual(['date', 'result']);
+		});
+	});
+
 	describe('Selected region fields', () => {
 		it('should prompt for a selection when nothing is selected', () => {
 			renderInspector();
@@ -247,22 +289,86 @@ describe('RegionInspector', () => {
 			it('should update only the edited field of the selected region', () => {
 				renderInspector({ selectedId: 'mock-0' });
 
-				fireEvent.input(field('Name'), { target: { value: 'new_name' } });
+				fireEvent.change(field('Name'), { target: { value: 'blue_player1_name' } });
 
 				const updated = onChange.mock.lastCall![0];
-				expect(updated[0]).toEqual({ ...mockRegions[0], name: 'new_name' });
+				expect(updated[0]).toEqual({ ...mockRegions[0], name: 'blue_player1_name' });
 				expect(updated[1]).toBe(mockRegions[1]);
 				expect(updated[2]).toBe(mockRegions[2]);
 			});
 
 			it('should keep the input mounted while typing', () => {
 				renderInspector({ selectedId: 'mock-0' });
-				const input = field('Name');
+				const input = field('Characters');
 
 				fireEvent.input(input, { target: { value: 'a' } });
 				fireEvent.input(input, { target: { value: 'ab' } });
 
-				expect(field('Name')).toBe(input);
+				expect(field('Characters')).toBe(input);
+			});
+
+			describe('name dropdown', () => {
+				const nameSelect = () => field('Name') as unknown as HTMLSelectElement;
+				const nameOption = (name: string) =>
+					Array.from(nameSelect().options).find((o) => o.value === name);
+				const optgroupLabels = () =>
+					Array.from(nameSelect().querySelectorAll('optgroup')).map((g) => g.label);
+
+				it('should offer the region names read by stats extraction, grouped', () => {
+					renderInspector({ selectedId: 'mock-0' });
+
+					expect(optgroupLabels()).toEqual([
+						'Other',
+						...[1, 2, 3, 4, 5].map((i) => `Blue player ${i}`),
+						...[1, 2, 3, 4, 5].map((i) => `Red player ${i}`),
+						'Match info',
+					]);
+					expect(nameOption('red_player5_mit')).toBeTruthy();
+					expect(nameOption('final_score')).toBeTruthy();
+				});
+
+				it('should keep an unrecognised current name selectable under Other', () => {
+					renderInspector({ selectedId: 'mock-0' });
+
+					const other = nameSelect().querySelector('optgroup[label="Other"]');
+					expect(
+						Array.from(other!.querySelectorAll('option')).map((o) => o.value)
+					).toEqual(['player_name']);
+					expect(nameSelect().value).toBe('player_name');
+				});
+
+				it('should keep the saved name under Other after picking a known name', () => {
+					renderInspector({ selectedId: 'mock-0' });
+
+					fireEvent.change(nameSelect(), { target: { value: 'date' } });
+
+					expect(nameSelect().value).toBe('date');
+					expect(nameOption('player_name')).toBeTruthy();
+				});
+
+				it('should omit Other when the name is recognised', () => {
+					const regions = [{ ...mockRegions[0], name: 'result' }, mockRegions[1]];
+					renderInspector({ selectedId: 'mock-0', regions });
+
+					expect(optgroupLabels()).not.toContain('Other');
+					expect(nameSelect().value).toBe('result');
+				});
+
+				it('should allow names used by other regions so names can be swapped', () => {
+					const regions = [
+						{ ...mockRegions[0], name: 'result' },
+						{ ...mockRegions[1], name: 'date' },
+					];
+					renderInspector({ selectedId: 'mock-0', regions });
+
+					expect(nameOption('date')!.disabled).toBe(false);
+					fireEvent.change(nameSelect(), { target: { value: 'date' } });
+
+					expect(onChange.mock.lastCall![0].map((r: DrawnRegion) => r.name)).toEqual([
+						'date',
+						'date',
+					]);
+				});
 			});
 
 			it('should store positions as numbers', () => {
@@ -323,7 +429,7 @@ describe('RegionInspector', () => {
 		it('should mark an edited field as modified', () => {
 			renderInspector({ selectedId: 'mock-0' });
 
-			fireEvent.input(field('Name'), { target: { value: 'new_name' } });
+			fireEvent.change(field('Name'), { target: { value: 'blue_player1_name' } });
 
 			expect(field('Name').classList.contains('modified')).toBe(true);
 		});
@@ -334,9 +440,11 @@ describe('RegionInspector', () => {
 				'region-inspector__item--changed'
 			);
 
-			fireEvent.input(field('Name'), { target: { value: 'new_name' } });
+			fireEvent.change(field('Name'), { target: { value: 'blue_player1_name' } });
 
-			expect(listItem('new_name').classList).toContain('region-inspector__item--changed');
+			expect(listItem('blue_player1_name').classList).toContain(
+				'region-inspector__item--changed'
+			);
 			expect(screen.getByText('Changed')).toBeTruthy();
 			expect(listItem('score_blue').classList).not.toContain(
 				'region-inspector__item--changed'
@@ -379,7 +487,7 @@ describe('RegionInspector', () => {
 
 			it('should flash saved fields and clear the modified state', () => {
 				const { current, setSaved } = renderInspector({ selectedId: 'mock-0' });
-				fireEvent.input(field('Name'), { target: { value: 'new_name' } });
+				fireEvent.change(field('Name'), { target: { value: 'blue_player1_name' } });
 
 				setSaved(current());
 
@@ -396,7 +504,7 @@ describe('RegionInspector', () => {
 		describe('discarding', () => {
 			it('should reset edited fields when the regions return to the saved ones', () => {
 				const { setCurrent } = renderInspector({ selectedId: 'mock-0' });
-				fireEvent.input(field('Name'), { target: { value: 'new_name' } });
+				fireEvent.change(field('Name'), { target: { value: 'blue_player1_name' } });
 
 				setCurrent(mockRegions);
 

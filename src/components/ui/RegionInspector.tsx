@@ -17,7 +17,9 @@ import { Search, Trash2 } from 'lucide-solid';
 
 import type { TextRegion, DrawnRegion } from '#types';
 import RecordFieldInput from '#c/ui/RecordFieldInput';
+import RecordFieldSelect from '#c/ui/RecordFieldSelect';
 import { isSameRegion } from '#utils/regionEditor';
+import { REGION_NAME_GROUPS } from '#utils/postprocess';
 
 interface RegionInspectorProps {
 	profileId: string;
@@ -36,7 +38,7 @@ interface RegisteredField {
 }
 
 interface TextFieldSpec {
-	key: 'name' | 'charSet' | 'imgHashSet' | 'group';
+	key: 'charSet' | 'imgHashSet' | 'group';
 	label: string;
 	listId?: string;
 }
@@ -102,6 +104,19 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 	const savedById = createMemo(
 		() => new Map(props.savedRegions.map((r) => [r.id, r] as const))
 	);
+
+	// Names held by more than one region; their OCR results would overwrite each other
+	const duplicateNames = createMemo(() => {
+		const seen = new Set<string>();
+		const duplicates = new Set<string>();
+		for (const { name } of props.currentRegions) {
+			if (seen.has(name)) duplicates.add(name);
+			seen.add(name);
+		}
+		return duplicates;
+	});
+
+	const isDuplicate = (region: DrawnRegion) => duplicateNames().has(region.name);
 
 	const isChanged = (region: DrawnRegion) => {
 		const saved = savedById().get(region.id);
@@ -251,9 +266,7 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 					staticListId={spec.listId}
 					initialValue={region[spec.key] ?? ''}
 					baseline={() => baselineRegion()[spec.key] ?? ''}
-					onInput={(value) =>
-						updateField(spec.key, spec.key === 'name' ? value : value || undefined)
-					}
+					onInput={(value) => updateField(spec.key, value || undefined)}
 					initialIsJustSaved={isFieldJustSaved(fieldId(region.id, spec.key))}
 					staticRegisterField={registerField}
 				/>
@@ -284,7 +297,18 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 
 		return (
 			<div class="region-inspector__fields">
-				{textField({ key: 'name', label: 'Name' })}
+				<div class="region-inspector__field">
+					<label for={fieldId(region.id, 'name')}>Name</label>
+					<RecordFieldSelect
+						staticId={fieldId(region.id, 'name')}
+						groups={REGION_NAME_GROUPS}
+						initialValue={region.name}
+						baseline={() => baselineRegion().name}
+						onChange={(value) => updateField('name', value)}
+						initialIsJustSaved={isFieldJustSaved(fieldId(region.id, 'name'))}
+						staticRegisterField={registerField}
+					/>
+				</div>
 
 				<div class="region-inspector__row region-inspector__row--position">
 					<For each={POSITION_FIELDS}>{numberField}</For>
@@ -356,7 +380,10 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 										<button
 											class="region-inspector__item"
 											data-region-id={region.id}
-											classList={{ 'region-inspector__item--changed': isChanged(region) }}
+											classList={{
+												'region-inspector__item--changed': isChanged(region),
+												'region-inspector__item--duplicate': isDuplicate(region),
+											}}
 											aria-pressed={props.selectedId === region.id}
 											onClick={() => props.onSelect(region.id)}
 										>
@@ -366,6 +393,14 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 											</span>
 											<Show when={region.group}>
 												<span class="region-inspector__item-group">{region.group}</span>
+											</Show>
+											<Show when={isDuplicate(region)}>
+												<span
+													class="region-inspector__duplicate"
+													title="Another region has this name"
+												>
+													Duplicate
+												</span>
 											</Show>
 											<Show when={isChanged(region)}>
 												<span class="region-inspector__changed" title="Unsaved changes">

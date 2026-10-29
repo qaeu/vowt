@@ -8,10 +8,39 @@ import type {
 	PlayerStats,
 	GameRecord,
 	RecognitionResult,
+	RegionNameGroup,
 } from '#types';
 import { PLAYER_STATS_NUMBER_FIELD_NAMES } from '#utils/storage';
 import { getHeroDisplayName, matchMapName } from '#utils/gameData';
 import { correctPlayerNames } from '#utils/playerNames';
+
+/** Region names read for the match info */
+export const MATCH_INFO_REGION_NAMES = [
+	'result',
+	'final_score',
+	'date',
+	'game_mode',
+	'game_length',
+	'ingame_infoline',
+] as const;
+
+/** Fields read for each player, as `<team>_player<n>_<field>` regions */
+export const PLAYER_REGION_FIELDS = [
+	'hero',
+	'name',
+	...PLAYER_STATS_NUMBER_FIELD_NAMES,
+] as const;
+
+/** Every region name the stats extraction reads, grouped by player and match info */
+export const REGION_NAME_GROUPS: RegionNameGroup[] = [
+	...(['blue', 'red'] as const).flatMap((team) =>
+		Array.from({ length: 5 }, (_, i) => ({
+			label: `${team === 'blue' ? 'Blue' : 'Red'} player ${i + 1}`,
+			names: PLAYER_REGION_FIELDS.map((field) => `${team}_player${i + 1}_${field}`),
+		}))
+	),
+	{ label: 'Match info', names: [...MATCH_INFO_REGION_NAMES] },
+];
 
 /** Formatted OCR results */
 interface FormattedResults {

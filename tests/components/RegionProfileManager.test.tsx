@@ -564,7 +564,7 @@ describe('RegionProfileManager', () => {
 			options.onRegionSelect?.('profile2-1');
 
 			await waitFor(() => {
-				expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+				expect((screen.getByLabelText('Name') as HTMLSelectElement).value).toBe(
 					'red_score'
 				);
 			});
@@ -595,7 +595,7 @@ describe('RegionProfileManager', () => {
 			draw({ x: 10, y: 300, width: 40, height: 20 }, 'drawn-5');
 
 			await waitFor(() => {
-				expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+				expect((screen.getByLabelText('Name') as HTMLSelectElement).value).toBe(
 					'region_0'
 				);
 			});
@@ -628,7 +628,7 @@ describe('RegionProfileManager', () => {
 
 			options.onRegionSelect?.('profile2-0');
 			const name = await screen.findByDisplayValue('blue_score');
-			fireEvent.input(name, { target: { value: 'blue_final' } });
+			fireEvent.change(name, { target: { value: 'final_score' } });
 
 			expect(footer()?.textContent).toContain('2 unsaved changes to profile2');
 		});
@@ -676,11 +676,11 @@ describe('RegionProfileManager', () => {
 			options.onRegionSelect?.('profile2-0');
 
 			const name = await screen.findByDisplayValue('blue_score');
-			fireEvent.input(name, { target: { value: 'blue_final' } });
+			fireEvent.change(name, { target: { value: 'final_score' } });
 			fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
 			await waitFor(() => {
-				expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+				expect((screen.getByLabelText('Name') as HTMLSelectElement).value).toBe(
 					'blue_score'
 				);
 			});
