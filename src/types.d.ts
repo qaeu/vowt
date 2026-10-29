@@ -155,6 +155,10 @@ export interface PlayerGame {
 	teamAvg: Record<StatKey, number | null>;
 	/** Mean stats of the opposing team */
 	enemyAvg: Record<StatKey, number | null>;
+	/** Display names of teammates' heroes (excluding yours), one per player; blanks dropped */
+	allyHeroes: string[];
+	/** Display names of the opposing team's heroes, one per player; blanks dropped */
+	enemyHeroes: string[];
 }
 
 export interface FilteredGames {
@@ -339,6 +343,37 @@ export type InsightFinding =
 			afterLoss: WinRateBucket;
 	  };
 
+/** Stats compared with and without a hero in the game: deaths, damage, healing */
+export type MatchupStat = 'd' | 'dmg' | 'h';
+
+/** Your role-adjusted per-10-minute stat with a hero in the game minus without */
+export interface MatchupStatDelta {
+	stat: MatchupStat;
+	/** Mean residual (present) minus mean residual (absent); null with too few games */
+	delta: number | null;
+	/** Whether |Welch t| reaches the matchup threshold */
+	significant: boolean;
+}
+
+/**
+ * How your games go with a hero on your team (ally) or the other team (enemy)
+ * Counts are games where that side's heroes were read; win rates are over decided games
+ */
+export interface HeroMatchupRow {
+	hero: string;
+	side: 'ally' | 'enemy';
+	/** Games with the hero on that side */
+	present: number;
+	/** Games without it (with at least one other hero read on that side) */
+	absent: number;
+	/** Win percentages 0-100 over decided games; 0 for a side with none decided */
+	winRate: { present: number; absent: number };
+	statDeltas: MatchupStatDelta[];
+	/** Whether the win-rate gap is significant */
+	significant: boolean;
+	confidence: FindingConfidence;
+}
+
 /** Results by position in a session; the label is 1-4 or '5+' */
 export interface GameNumberRow extends RecordStatsRow {
 	label: string;
@@ -381,6 +416,8 @@ export interface InsightsSummary {
 	personalBests: PersonalBests;
 	findings: InsightFinding[];
 	sessions: SessionStats;
+	/** Ally synergies and enemy counters, by impact */
+	matchups: HeroMatchupRow[];
 }
 
 export interface ExportedInsightsSummary extends ExportFileBase {

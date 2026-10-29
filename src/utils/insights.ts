@@ -16,9 +16,12 @@ import type {
 	InsightsSummary,
 	FilteredGames,
 	GameNumberRow,
+	HeroMatchupRow,
 	HeroPoolRow,
 	LobbyComparisonRow,
 	MapStatsRow,
+	MatchupStat,
+	MatchupStatDelta,
 	ModeStatsRow,
 	OverFastHero,
 	PersonalBest,
@@ -82,6 +85,9 @@ export const UNKNOWN_NAME = 'UNKNOWN';
 /** Minimum games on each side of the team-average split to show its win rates */
 export const MIN_TEAM_SPLIT_GAMES = 5;
 
+/** Minimum games with and without a hero (on one side) for its matchup to be tested */
+export const MIN_MATCHUP_GAMES = 5;
+
 /** Stats compared against the lobby, in display order */
 export const LOBBY_STATS = ['e', 'a', 'd', 'h', 'dmg'] as const;
 
@@ -98,6 +104,11 @@ const SECONDS_PER_10_MINUTES = 600;
 const ROLE_ORDER: PlayerGame['role'][] = ['tank', 'damage', 'support', 'unknown'];
 /** z for a two-sided 90% interval */
 const Z_90 = 1.645;
+/** |Welch t| for a significant matchup stat delta; stricter since many heroes are tested */
+const MATCHUP_T = 1.96;
+/** Stats compared in matchups, in display order */
+const MATCHUP_STATS: MatchupStat[] = ['d', 'dmg', 'h'];
+const MATCHUP_SIDES: HeroMatchupRow['side'][] = ['ally', 'enemy'];
 
 type DecidedResult = Exclude<GameResult, 'unknown'>;
 type PlayerRecord = Pick<GameRecord, 'players' | 'matchInfo' | 'createdAt'>;
@@ -458,6 +469,54 @@ function _afterResult(sessions: PlayerGame[][]): {
 	return { afterWin, afterLoss };
 }
 
+/** Sample variance (n - 1); needs at least two values */
+function _variance(values: number[], mean: number): number {
+	return values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1);
+}
+
+/**
+ * Welch's t statistic for the difference in means (a minus b)
+ * @returns null with fewer than two values in either group, or when both groups have
+ * (numerically) no spread, since the statistic is then undefined
+ */
+function _welchT(a: number[], b: number[]): number | null {
+	if (a.length < 2 || b.length < 2) return null;
+	const m1 = _mean(a)!;
+	const m2 = _mean(b)!;
+	const se = Math.sqrt(_variance(a, m1) / a.length + _variance(b, m2) / b.length);
+	// Rounding can leave a tiny spread in identical values; treat it as none
+	const scale = Math.max(1, Math.abs(m1), Math.abs(m2));
+	return se > scale * 1e-9 ? (m1 - m2) / se : null;
+}
+
+/** Compares residuals with and without a hero; needs MIN_MATCHUP_GAMES on each side */
+function _compareResiduals(
+	stat: MatchupStat,
+	present: number[],
+	absent: number[]
+): MatchupStatDelta {
+	if (Math.min(present.length, absent.length) < MIN_MATCHUP_GAMES) {
+		return { stat, delta: null, significant: false };
+	}
+	const t = _welchT(present, absent);
+	return {
+		stat,
+		delta: _mean(present)! - _mean(absent)!,
+		significant: t !== null && Math.abs(t) >= MATCHUP_T,
+	};
+}
+
+/** Impact used to rank matchups: win-rate gap weighted by how often the hero appears */
+function _matchupImpact(row: HeroMatchupRow): number {
+	const share = row.present / (row.present + row.absent);
+	return Math.abs(row.winRate.present - row.winRate.absent) * share;
+}
+
+/** Hero display name of a player, or null if none was read */
+function _heroName(raw: string | undefined, heroes: OverFastHero[]): string | null {
+	return raw?.trim() ? getHeroDisplayName(raw, heroes).trim() || null : null;
+}
+
 // Exported functions
 
 /**
@@ -484,6 +543,7 @@ export function getPlayerNameCounts(
  * Turns records into per-game rows from the tracked player's point of view
  * Records the player does not appear in are skipped. If a name appears twice in a
  * record, the first is used. A result read as VICTORY/DEFEAT is inverted for red.
+ * Ally and enemy heroes are display names, resolved like yours, with blanks dropped.
  * @param records - Saved game records
  * @param player - Tracked player name (trimmed, case-insensitive)
  * @param heroes - OverFast heroes, used to look up roles; may be empty
@@ -502,10 +562,15 @@ export function toPlayerGames(
 		const me = record.players.find((p) => normaliseName(p.name) === target);
 		if (!me) continue;
 
-		const heroName = me.hero?.trim() ? getHeroDisplayName(me.hero, heroes) : null;
-		const hero = heroName ? heroName.trim() : null;
+		const hero = _heroName(me.hero, heroes);
 		const matched = hero ? heroes.find((h) => h.name === hero) : undefined;
 		const others = record.players.filter((p) => p !== me);
+		const allies = others.filter((p) => p.team === me.team);
+		const enemies = others.filter((p) => p.team !== me.team);
+		const heroNames = (players: GameRecord['players']) =>
+			players
+				.map((p) => _heroName(p.hero, heroes))
+				.filter((name): name is string => name !== null);
 		const result = parseResult(record.matchInfo.result);
 		const dateTime = _parseMatchDateTime(record);
 
@@ -522,8 +587,10 @@ export function toPlayerGames(
 			hero,
 			role: matched?.role ?? 'unknown',
 			stats: _avgStats([me]),
-			teamAvg: _avgStats(others.filter((p) => p.team === me.team)),
-			enemyAvg: _avgStats(others.filter((p) => p.team !== me.team)),
+			teamAvg: _avgStats(allies),
+			enemyAvg: _avgStats(enemies),
+			allyHeroes: heroNames(allies),
+			enemyHeroes: heroNames(enemies),
 		});
 	}
 	return _sorted(games);
@@ -1002,6 +1069,86 @@ export function buildSessionStats(games: PlayerGame[]): SessionStats {
 }
 
 /**
+ * Finds heroes whose presence on your team (ally) or the other team (enemy) goes with a
+ * different win rate or different personal stats
+ * Each side is tested separately and only over games where at least one hero was read
+ * on that side, so an unread team does not count as "absent". A hero listed twice in a
+ * game counts once. A hero is tested when it is present in at least MIN_MATCHUP_GAMES of
+ * those games and absent from at least MIN_MATCHUP_GAMES; `present`/`absent` count all
+ * such games, including those with an unreadable result.
+ * - Win rate: present vs absent over decided games (see _compareRates), which sets
+ *   `significant` and `confidence`.
+ * - Stats (deaths, damage and healing per 10 minutes): each game's value minus your mean
+ *   for its role over all given games, so a hero that only shows up in one role's games
+ *   does not pick up that role's typical numbers. Games without a length or the stat are
+ *   skipped. The delta is the mean residual present minus absent; it needs
+ *   MIN_MATCHUP_GAMES usable games each side and is significant when |Welch t| >= 1.96.
+ * Rows with neither a significant win rate nor a significant stat delta are dropped.
+ * @param games - Games to analyse
+ * @returns Rows by impact (|win-rate gap| x share of games with the hero, descending),
+ * then hero name, then side (ally first)
+ */
+export function buildHeroMatchups(games: PlayerGame[]): HeroMatchupRow[] {
+	const baselines = new Map(
+		_byRole(games).map(([role, roleGames]) => [
+			role,
+			new Map(
+				MATCHUP_STATS.map((stat) => [
+					stat,
+					_mean(roleGames.map((g) => _gamePer10(g, g.stats[stat]))),
+				])
+			),
+		])
+	);
+	const residuals = (pool: PlayerGame[], stat: MatchupStat): number[] =>
+		pool.flatMap((g) => {
+			const value = _gamePer10(g, g.stats[stat]);
+			const baseline = baselines.get(g.role)?.get(stat) ?? null;
+			return value === null || baseline === null ? [] : [value - baseline];
+		});
+
+	const rows: HeroMatchupRow[] = [];
+	for (const side of MATCHUP_SIDES) {
+		const listed = games
+			.map((game) => ({
+				game,
+				heroes: new Set(side === 'ally' ? game.allyHeroes : game.enemyHeroes),
+			}))
+			.filter((x) => x.heroes.size > 0);
+		const names = new Set(listed.flatMap((x) => [...x.heroes]));
+
+		for (const hero of names) {
+			const present = listed.filter((x) => x.heroes.has(hero)).map((x) => x.game);
+			const absent = listed.filter((x) => !x.heroes.has(hero)).map((x) => x.game);
+			if (Math.min(present.length, absent.length) < MIN_MATCHUP_GAMES) continue;
+
+			const rates = _compareRates(present, absent);
+			const statDeltas = MATCHUP_STATS.map((stat) =>
+				_compareResiduals(stat, residuals(present, stat), residuals(absent, stat))
+			);
+			if (!rates.significant && !statDeltas.some((d) => d.significant)) continue;
+
+			rows.push({
+				hero,
+				side,
+				present: present.length,
+				absent: absent.length,
+				winRate: { present: rates.aRate, absent: rates.bRate },
+				statDeltas,
+				significant: rates.significant,
+				confidence: rates.confidence,
+			});
+		}
+	}
+	return rows.sort(
+		(a, b) =>
+			_matchupImpact(b) - _matchupImpact(a)
+			|| a.hero.localeCompare(b.hero)
+			|| MATCHUP_SIDES.indexOf(a.side) - MATCHUP_SIDES.indexOf(b.side)
+	);
+}
+
+/**
  * Computes every Insights section for the given filters
  * @param records - Saved game records
  * @param filters - Active filters
@@ -1037,5 +1184,6 @@ export function buildInsightsSummary(
 		personalBests: buildPersonalBests(current),
 		findings: buildFindings(current),
 		sessions: buildSessionStats(current),
+		matchups: buildHeroMatchups(current),
 	};
 }

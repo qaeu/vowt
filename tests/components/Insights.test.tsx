@@ -48,6 +48,10 @@ interface RecordOptions {
 	withBob?: boolean;
 	/** Adds a blue teammate with 5 eliminations, 5 assists, 5 deaths, 3000 damage */
 	withMate?: boolean;
+	/** Teammate's hero; defaults to Tracer */
+	mateHero?: string;
+	/** Enemy FOE's hero; defaults to Winston */
+	foeHero?: string;
 }
 
 const makeRecord = (o: RecordOptions): GameRecord => ({
@@ -73,7 +77,7 @@ const makeRecord = (o: RecordOptions): GameRecord => ({
 			dmg: '4000',
 			h: '0',
 			mit: '0',
-			hero: 'Winston',
+			hero: o.foeHero ?? 'Winston',
 		},
 		...(o.withMate ?
 			[
@@ -86,7 +90,7 @@ const makeRecord = (o: RecordOptions): GameRecord => ({
 					dmg: '3000',
 					h: '0',
 					mit: '0',
-					hero: 'Tracer',
+					hero: o.mateHero ?? 'Tracer',
 				},
 			]
 		:	[]),
@@ -717,6 +721,76 @@ describe('Insights', () => {
 			expect(container.querySelectorAll('.insights-lobby__split')).toHaveLength(0);
 			// The stat rows themselves stay
 			expect(screen.getAllByText('Eliminations').length).toBeGreaterThan(0);
+		});
+	});
+
+	describe('synergies and counters', () => {
+		/**
+		 * 40 games: Mercy on your team in games 0-19, Widowmaker against you in even games.
+		 * You win Mercy games without Widowmaker, lose Widowmaker games without Mercy and
+		 * win half of the rest, so with Mercy you win 75% vs 25% and with Widowmaker 25% vs
+		 * 75%. Widowmaker games have 8.5 deaths on average vs 4.5.
+		 */
+		const matchupRecords = (): GameRecord[] =>
+			Array.from({ length: 40 }, (_, i) => {
+				const mercy = i < 20;
+				const widow = i % 2 === 0;
+				const won =
+					mercy && widow ? i < 10
+					: mercy ? true
+					: widow ? false
+					: i < 30;
+				return makeRecord({
+					id: `m${i}`,
+					result: won ? 'VICTORY' : 'DEFEAT',
+					withMate: true,
+					mateHero: mercy ? 'Mercy' : 'Lucio',
+					foeHero: widow ? 'Widowmaker' : 'Winston',
+					deaths:
+						widow ?
+							i % 4 === 0 ?
+								'8'
+							:	'9'
+						: i % 4 === 1 ? '4'
+						: '5',
+				});
+			});
+
+		it('should list allies who help and enemies who hurt, with the hint', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(matchupRecords());
+			renderInsights();
+
+			expect(screen.getByRole('heading', { name: 'Synergies & counters' })).toBeDefined();
+			const allies = screen.getByRole('list', { name: 'Allies who help you' });
+			const enemies = screen.getByRole('list', { name: 'Enemies who hurt you' });
+			expect(
+				[...allies.querySelectorAll('.insights-matchup__text')].map((p) => p.textContent)
+			).toEqual(['Ally Mercy: you win 75% vs 25%.']);
+			expect(
+				[...enemies.querySelectorAll('.insights-matchup__text')].map((p) => p.textContent)
+			).toEqual(['Enemy Widowmaker: you win 25% vs 75%; your deaths/10 rise by 4.0.']);
+			expect(
+				screen.getByText(/Based on the hero each player finished on\./)
+			).toBeDefined();
+		});
+
+		it('should show a confidence badge on each item', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(matchupRecords());
+			renderInsights();
+
+			const enemies = screen.getByRole('list', { name: 'Enemies who hurt you' });
+			const badge = enemies.querySelector('.insights-finding__confidence');
+			expect(badge?.textContent).toBe('Medium confidence');
+			expect(badge?.classList.contains('insights-finding__confidence--medium')).toBe(
+				true
+			);
+		});
+
+		it('should hide the section when no matchup stands out', () => {
+			renderInsights();
+
+			expect(screen.queryByRole('heading', { name: 'Synergies & counters' })).toBeNull();
+			expect(screen.queryByText(/Based on the hero each player finished on/)).toBeNull();
 		});
 	});
 

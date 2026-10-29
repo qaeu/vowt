@@ -19,11 +19,14 @@ import {
 import type {
 	GameRecord,
 	FindingConfidence,
+	HeroMatchupRow,
 	InsightFinding,
 	InsightsFilters,
 	InsightsHeadline,
 	InsightsPeriod,
 	LobbyComparisonRow,
+	MatchupStat,
+	MatchupStatDelta,
 	PersonalBest,
 	PersonalBests,
 	RoleDeathsMedian,
@@ -52,6 +55,13 @@ interface ChipGroupProps {
 	value: string;
 	options: { value: string; text: string }[];
 	onSelect: (value: string) => void;
+}
+
+interface MatchupListProps {
+	title: string;
+	rows: HeroMatchupRow[];
+	/** True for heroes who help you, false for heroes who hurt you */
+	helps: boolean;
 }
 
 interface HeadlineCardConfig {
@@ -92,6 +102,8 @@ const NO_VALUE = '—';
 const UP_ARROW = '▲';
 const DOWN_ARROW = '▼';
 const MAPS_COLLAPSED_COUNT = 8;
+/** Allies and enemies listed in Synergies & counters, each */
+const MATCHUPS_SHOWN = 3;
 
 const _formatNumber = (value: number | null, digits = 0): string =>
 	value === null ? NO_VALUE : (
@@ -253,6 +265,58 @@ const ROLE_LABELS: Record<RoleDeathsMedian['role'], string> = {
 	unknown: 'Unknown role',
 };
 
+/** Wording and format of each matchup stat; `plural` picks "rise" over "rises" */
+const MATCHUP_STATS: Record<
+	MatchupStat,
+	{ label: string; digits: number; lowerIsBetter: boolean; plural: boolean }
+> = {
+	d: { label: 'deaths/10', digits: 1, lowerIsBetter: true, plural: true },
+	dmg: { label: 'damage/10', digits: 0, lowerIsBetter: false, plural: false },
+	h: { label: 'healing/10', digits: 0, lowerIsBetter: false, plural: false },
+};
+
+/** Whether a significant stat delta is good or bad for you; null if not significant */
+const _deltaTone = (d: MatchupStatDelta): 'good' | 'bad' | null =>
+	!d.significant || !d.delta ? null
+	: d.delta > 0 !== MATCHUP_STATS[d.stat].lowerIsBetter ? 'good'
+	: 'bad';
+
+/**
+ * Whether a hero's presence helps (or, with `helps` false, hurts) you: by the win-rate
+ * gap when it is significant, otherwise by a significant stat delta
+ */
+const _matchupMatches = (row: HeroMatchupRow, helps: boolean): boolean => {
+	if (row.significant) {
+		const gap = row.winRate.present - row.winRate.absent;
+		return helps ? gap > 0 : gap < 0;
+	}
+	return row.statDeltas.some((d) => _deltaTone(d) === (helps ? 'good' : 'bad'));
+};
+
+/** e.g. "your deaths/10 rise by 2.1" for a delta with a value */
+const _statChangeText = (d: MatchupStatDelta): string => {
+	const { label, digits, plural } = MATCHUP_STATS[d.stat];
+	const verb = (d.delta! > 0 ? 'rise' : 'fall') + (plural ? '' : 's');
+	return `your ${label} ${verb} by ${_formatNumber(Math.abs(d.delta!), digits)}`;
+};
+
+/** e.g. "Enemy Widowmaker: you win 31% vs 52%; your deaths/10 rise by 2.1." */
+const _matchupText = (row: HeroMatchupRow, helps: boolean): string => {
+	const wanted = helps ? 'good' : 'bad';
+	const [stat] = row.statDeltas
+		.filter((d) => _deltaTone(d) !== null)
+		.sort(
+			(a, b) =>
+				Number(_deltaTone(b) === wanted) - Number(_deltaTone(a) === wanted)
+				|| Math.abs(b.delta!) - Math.abs(a.delta!)
+		);
+	return (
+		`${row.side === 'ally' ? 'Ally' : 'Enemy'} ${row.hero}: you win `
+		+ `${_formatPercent(row.winRate.present)} vs ${_formatPercent(row.winRate.absent)}`
+		+ `${stat ? `; ${_statChangeText(stat)}` : ''}.`
+	);
+};
+
 const _formatMedians = (medians: RoleDeathsMedian[]): string =>
 	medians.map((m) => `${ROLE_LABELS[m.role]} ${m.medianDeaths10.toFixed(1)}`).join(', ');
 
@@ -328,6 +392,26 @@ const ChipGroup: Component<ChipGroupProps> = (props) => (
 	</div>
 );
 
+const MatchupList: Component<MatchupListProps> = (props) => (
+	<div class="insights-matchups__group">
+		<h3 class="insights-matchups__title">{props.title}</h3>
+		<ul class="insights-matchups__list" aria-label={props.title}>
+			<For each={props.rows}>
+				{(row) => (
+					<li class={`insights-matchup insights-matchup--${row.side}`}>
+						<p class="insights-matchup__text">{_matchupText(row, props.helps)}</p>
+						<span
+							class={`insights-finding__confidence insights-finding__confidence--${row.confidence}`}
+						>
+							{CONFIDENCE_LABELS[row.confidence]}
+						</span>
+					</li>
+				)}
+			</For>
+		</ul>
+	</div>
+);
+
 const Insights: Component<InsightsProps> = (props) => {
 	const records: GameRecord[] = Store.loadGameRecords();
 	const heroes = loadOverFastData()?.heroes ?? [];
@@ -370,6 +454,15 @@ const Insights: Component<InsightsProps> = (props) => {
 		{ value: 'all', text: 'All' },
 		...summary().availableModes.map((m) => ({ value: m, text: _titleCase(m) })),
 	];
+
+	const matchups = createMemo(() => {
+		const pick = (side: HeroMatchupRow['side'], helps: boolean) =>
+			summary()
+				.matchups.filter((r) => r.side === side && _matchupMatches(r, helps))
+				.slice(0, MATCHUPS_SHOWN);
+		return { allies: pick('ally', true), enemies: pick('enemy', false) };
+	});
+	const hasMatchups = () => matchups().allies.length > 0 || matchups().enemies.length > 0;
 
 	const recordsById = createMemo(() => new Map(records.map((r) => [r.id, r])));
 
@@ -804,6 +897,35 @@ const Insights: Component<InsightsProps> = (props) => {
 							</p>
 						</section>
 					</div>
+
+					<Show when={hasMatchups()}>
+						<div class="insights-row">
+							<section class="insights-panel" aria-labelledby="matchups-h">
+								<h2 id="matchups-h">Synergies &amp; counters</h2>
+								<div class="insights-matchups">
+									<Show when={matchups().allies.length > 0}>
+										<MatchupList
+											title="Allies who help you"
+											rows={matchups().allies}
+											helps
+										/>
+									</Show>
+									<Show when={matchups().enemies.length > 0}>
+										<MatchupList
+											title="Enemies who hurt you"
+											rows={matchups().enemies}
+											helps={false}
+										/>
+									</Show>
+								</div>
+								<p class="insights-note">
+									Win rate with the hero in the game vs without; stats are compared with
+									your usual numbers for the role you played. Based on the hero each
+									player finished on.
+								</p>
+							</section>
+						</div>
+					</Show>
 
 					<div class="insights-row">
 						<section class="insights-panel" aria-labelledby="maps-h">
