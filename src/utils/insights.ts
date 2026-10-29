@@ -8,6 +8,7 @@
 import type {
 	GameRecord,
 	GameResult,
+	FindingConfidence,
 	InsightFinding,
 	InsightsFilters,
 	InsightsHeadline,
@@ -38,14 +39,20 @@ export const MIN_FINDING_GAMES = 5;
 /** Minimum win-rate gap (points) between low- and high-death games */
 export const MIN_DEATHS_GAP = 10;
 
-/** Minimum win-rate gap (points) between the best hero and overall */
+/** Minimum win-rate gap (points) between the best hero and your other games */
 export const MIN_HERO_GAP = 5;
 
-/** Minimum win-rate gap (points) between the weakest mode and overall */
+/** Minimum win-rate gap (points) between the weakest mode and your other games */
 export const MIN_MODE_GAP = 10;
 
 /** Minimum games on a map for it to be named as a mode's worst map */
 export const MIN_WORST_MAP_GAMES = 3;
+
+/** Decided games in the smaller group at which confidence becomes medium */
+export const MEDIUM_CONFIDENCE_GAMES = 10;
+
+/** Decided games in the smaller group at which confidence becomes high */
+export const HIGH_CONFIDENCE_GAMES = 25;
 
 /** Default minimum games for a map to appear in the map stats */
 export const DEFAULT_MIN_MAP_GAMES = 4;
@@ -66,9 +73,34 @@ const STAT_KEYS: StatKey[] = ['e', 'a', 'd', 'dmg', 'h', 'mit'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PERIOD_DAYS = { last30: 30, last90: 90 } as const;
 const SECONDS_PER_10_MINUTES = 600;
+/** z for a two-sided 90% interval */
+const Z_90 = 1.645;
 
 type DecidedResult = Exclude<GameResult, 'unknown'>;
 type PlayerRecord = Pick<GameRecord, 'players' | 'matchInfo' | 'createdAt'>;
+
+interface WilsonInterval {
+	low: number;
+	high: number;
+}
+
+interface RateComparison {
+	/** Win percentages 0-100 over decided games; 0 for an empty group */
+	aRate: number;
+	bRate: number;
+	/** Decided games in each group */
+	aGames: number;
+	bGames: number;
+	/** Whether the difference interval excludes 0 */
+	significant: boolean;
+	confidence: FindingConfidence;
+}
+
+interface ParsedMatchDate {
+	date: Date;
+	/** True only when a valid time of day was read from the date text */
+	hasTime: boolean;
+}
 
 const RESULT_BY_TEXT: Record<string, DecidedResult> = {
 	VICTORY: 'win',
@@ -88,27 +120,13 @@ export function parseResult(text: string): GameResult {
 
 /**
  * Parses the match date of a record
- * @param record - Record with `matchInfo.date` as `MM/DD/YYYY` (extra text is ignored)
- * @returns Local midnight of that date, or the record's createdAt if unparseable
+ * @param record - Record with `matchInfo.date` as `MM/DD/YYYY`, optionally followed by
+ * a 24-hour `HH:MM` (other text is ignored)
+ * @returns The date and time in local time (midnight without a valid time), or the
+ * record's createdAt if the date is unparseable
  */
 export function parseMatchDate(record: PlayerRecord): Date {
-	const match = /(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4}|\d{2})(?!\d)/.exec(
-		record.matchInfo.date ?? ''
-	);
-	if (match) {
-		const month = Number(match[1]);
-		const day = Number(match[2]);
-		const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
-		const date = new Date(year, month - 1, day);
-		if (
-			date.getFullYear() === year
-			&& date.getMonth() === month - 1
-			&& date.getDate() === day
-		) {
-			return date;
-		}
-	}
-	return new Date(record.createdAt);
+	return _parseMatchDateTime(record).date;
 }
 
 /**
@@ -138,6 +156,34 @@ export function parseStat(text: string): number | null {
 }
 
 // Local helpers
+
+/** Like parseMatchDate, but also reports whether a valid time was read */
+function _parseMatchDateTime(record: PlayerRecord): ParsedMatchDate {
+	const text = record.matchInfo.date ?? '';
+	const match = /(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4}|\d{2})(?!\d)/.exec(text);
+	if (match) {
+		const month = Number(match[1]);
+		const day = Number(match[2]);
+		const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
+		const midnight = new Date(year, month - 1, day);
+		if (
+			midnight.getFullYear() === year
+			&& midnight.getMonth() === month - 1
+			&& midnight.getDate() === day
+		) {
+			const time = /^[\s,@-]*(\d{1,2}):(\d{2})(?!\d)/.exec(
+				text.slice(match.index + match[0].length)
+			);
+			const hours = time ? Number(time[1]) : 0;
+			const minutes = time ? Number(time[2]) : 0;
+			if (time && hours < 24 && minutes < 60) {
+				return { date: new Date(year, month - 1, day, hours, minutes), hasTime: true };
+			}
+			return { date: midnight, hasTime: false };
+		}
+	}
+	return { date: new Date(record.createdAt), hasTime: false };
+}
 
 function _mean(values: (number | null)[]): number | null {
 	const valid = values.filter((v): v is number => v !== null);
@@ -211,6 +257,60 @@ function _countResults(games: PlayerGame[]): Omit<RecordStatsRow, 'games'> & {
 function _recordStats(games: PlayerGame[]): RecordStatsRow {
 	const { wins, losses, draws, winRate } = _countResults(games);
 	return { games: games.length, wins, losses, draws, winRate };
+}
+
+/**
+ * Wilson score interval for a proportion
+ * @param wins - Successes
+ * @param n - Trials; 0 gives the uninformative interval 0 to 1
+ * @param z - Standard normal quantile for the confidence level
+ * @returns Bounds as proportions 0-1
+ */
+function _wilson(wins: number, n: number, z: number): WilsonInterval {
+	if (n <= 0) return { low: 0, high: 1 };
+	const p = wins / n;
+	const z2 = z * z;
+	const denominator = 1 + z2 / n;
+	const centre = (p + z2 / (2 * n)) / denominator;
+	const half = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / denominator;
+	return { low: Math.max(0, centre - half), high: Math.min(1, centre + half) };
+}
+
+/** Confidence tier from the decided games in the smaller group */
+function _confidence(smallerGames: number): FindingConfidence {
+	return (
+		smallerGames >= HIGH_CONFIDENCE_GAMES ? 'high'
+		: smallerGames >= MEDIUM_CONFIDENCE_GAMES ? 'medium'
+		: 'low'
+	);
+}
+
+/**
+ * Compares the win rates of two groups of games
+ * Draws count as decided non-wins, as in the win rate elsewhere. Significance is a
+ * Newcombe hybrid-score interval for the difference (a minus b) built from 90% Wilson
+ * intervals; it is significant when the interval excludes 0. Groups with fewer than
+ * MIN_FINDING_GAMES decided games are never significant.
+ */
+function _compareRates(a: PlayerGame[], b: PlayerGame[]): RateComparison {
+	const { wins: aWins, decided: aGames } = _countResults(a);
+	const { wins: bWins, decided: bGames } = _countResults(b);
+	const p1 = aGames ? aWins / aGames : 0;
+	const p2 = bGames ? bWins / bGames : 0;
+	const { low: l1, high: u1 } = _wilson(aWins, aGames, Z_90);
+	const { low: l2, high: u2 } = _wilson(bWins, bGames, Z_90);
+	const diff = p1 - p2;
+	const lower = diff - Math.sqrt((p1 - l1) ** 2 + (u2 - p2) ** 2);
+	const upper = diff + Math.sqrt((u1 - p1) ** 2 + (p2 - l2) ** 2);
+	const enough = Math.min(aGames, bGames) >= MIN_FINDING_GAMES;
+	return {
+		aRate: p1 * 100,
+		bRate: p2 * 100,
+		aGames,
+		bGames,
+		significant: enough && (lower > 0 || upper < 0),
+		confidence: _confidence(Math.min(aGames, bGames)),
+	};
 }
 
 /** Win percentage over games with a readable result; null if there are none */
@@ -330,10 +430,12 @@ export function toPlayerGames(
 		const matched = hero ? heroes.find((h) => h.name === hero) : undefined;
 		const others = record.players.filter((p) => p !== me);
 		const result = parseResult(record.matchInfo.result);
+		const dateTime = _parseMatchDateTime(record);
 
 		games.push({
 			recordId: record.id,
-			date: parseMatchDate(record),
+			date: dateTime.date,
+			hasTime: dateTime.hasTime,
 			createdAt: new Date(record.createdAt),
 			result: me.team === 'red' ? _invert(result) : result,
 			team: me.team,
@@ -618,9 +720,11 @@ export function buildPersonalBests(games: PlayerGame[]): PersonalBests {
 /**
  * Reports notable patterns; each rule needs MIN_FINDING_GAMES in every bucket
  * - deathsSplit: win rate at or below the median deaths vs above it (MIN_DEATHS_GAP)
- * - bestHero: best win rate among heroes vs overall (MIN_HERO_GAP)
- * - weakestMode: lowest win rate among modes vs overall (MIN_MODE_GAP), with its worst map
- * Win rates are over games with a readable result.
+ * - bestHero: best win rate among heroes vs all other games (MIN_HERO_GAP)
+ * - weakestMode: lowest win rate among modes vs all other games (MIN_MODE_GAP), with
+ *   its worst map
+ * Win rates are over games with a readable result. A finding also needs its gap to be
+ * statistically significant (see _compareRates), which sets its confidence.
  * @param games - Games to analyse
  * @returns Zero or more findings, in the order above
  */
@@ -628,7 +732,6 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 	const findings: InsightFinding[] = [];
 	const decided = games.filter((g) => g.result !== 'unknown');
 	if (decided.length < MIN_FINDING_GAMES) return findings;
-	const overallWinRate = _winRate(decided)!;
 
 	const withDeaths = decided.filter((g) => g.stats.d !== null);
 	if (withDeaths.length) {
@@ -636,14 +739,14 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 		const low = withDeaths.filter((g) => g.stats.d! <= medianDeaths);
 		const high = withDeaths.filter((g) => g.stats.d! > medianDeaths);
 		if (low.length >= MIN_FINDING_GAMES && high.length >= MIN_FINDING_GAMES) {
-			const lowRate = _winRate(low)!;
-			const highRate = _winRate(high)!;
-			if (lowRate - highRate >= MIN_DEATHS_GAP) {
+			const { aRate, bRate, significant, confidence } = _compareRates(low, high);
+			if (aRate - bRate >= MIN_DEATHS_GAP && significant) {
 				findings.push({
 					kind: 'deathsSplit',
+					confidence,
 					medianDeaths,
-					lowDeaths: { games: low.length, winRate: lowRate },
-					highDeaths: { games: high.length, winRate: highRate },
+					lowDeaths: { games: low.length, winRate: aRate },
+					highDeaths: { games: high.length, winRate: bRate },
 				});
 			}
 		}
@@ -653,14 +756,33 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 		.filter(([, heroGames]) => heroGames.length >= MIN_FINDING_GAMES)
 		.map(([hero, heroGames]) => ({
 			hero,
-			games: heroGames.length,
+			heroGames,
 			winRate: _winRate(heroGames)!,
 		}))
 		.sort(
-			(a, b) => b.winRate - a.winRate || b.games - a.games || a.hero.localeCompare(b.hero)
+			(a, b) =>
+				b.winRate - a.winRate
+				|| b.heroGames.length - a.heroGames.length
+				|| a.hero.localeCompare(b.hero)
 		);
-	if (heroes.length && heroes[0].winRate - overallWinRate >= MIN_HERO_GAP) {
-		findings.push({ kind: 'bestHero', ...heroes[0], overallWinRate });
+	if (heroes.length) {
+		const { hero, heroGames } = heroes[0];
+		const rest = decided.filter((g) => g.hero !== hero);
+		const { aRate, bRate, bGames, significant, confidence } = _compareRates(
+			heroGames,
+			rest
+		);
+		if (aRate - bRate >= MIN_HERO_GAP && significant) {
+			findings.push({
+				kind: 'bestHero',
+				confidence,
+				hero,
+				games: heroGames.length,
+				winRate: aRate,
+				restWinRate: bRate,
+				restGames: bGames,
+			});
+		}
 	}
 
 	const modes = [..._groupBy(decided, (g) => g.mode)]
@@ -672,25 +794,35 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 				|| b.modeGames.length - a.modeGames.length
 				|| a.mode.localeCompare(b.mode)
 		);
-	if (modes.length && overallWinRate - modes[0].winRate >= MIN_MODE_GAP) {
-		const { mode, modeGames, winRate } = modes[0];
-		const worstMap = [..._groupBy(modeGames, (g) => g.map)]
-			.filter(([, mapGames]) => mapGames.length >= MIN_WORST_MAP_GAMES)
-			.map(([map, mapGames]) => {
-				const { games, wins, losses, draws } = _recordStats(mapGames);
-				return { map, games, wins, losses, draws, winRate: _winRate(mapGames)! };
-			})
-			.sort(
-				(a, b) => a.winRate - b.winRate || b.games - a.games || a.map.localeCompare(b.map)
-			)[0];
-		findings.push({
-			kind: 'weakestMode',
-			mode,
-			games: modeGames.length,
-			winRate,
-			overallWinRate,
-			worstMap: worstMap ?? null,
-		});
+	if (modes.length) {
+		const { mode, modeGames } = modes[0];
+		const rest = decided.filter((g) => g.mode !== mode);
+		const { aRate, bRate, bGames, significant, confidence } = _compareRates(
+			modeGames,
+			rest
+		);
+		if (bRate - aRate >= MIN_MODE_GAP && significant) {
+			const worstMap = [..._groupBy(modeGames, (g) => g.map)]
+				.filter(([, mapGames]) => mapGames.length >= MIN_WORST_MAP_GAMES)
+				.map(([map, mapGames]) => {
+					const { games, wins, losses, draws } = _recordStats(mapGames);
+					return { map, games, wins, losses, draws, winRate: _winRate(mapGames)! };
+				})
+				.sort(
+					(a, b) =>
+						a.winRate - b.winRate || b.games - a.games || a.map.localeCompare(b.map)
+				)[0];
+			findings.push({
+				kind: 'weakestMode',
+				confidence,
+				mode,
+				games: modeGames.length,
+				winRate: aRate,
+				restWinRate: bRate,
+				restGames: bGames,
+				worstMap: worstMap ?? null,
+			});
+		}
 	}
 
 	return findings;

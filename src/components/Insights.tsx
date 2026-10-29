@@ -10,6 +10,7 @@ import { Download, RotateCcw, Skull, Star, TriangleAlert } from 'lucide-solid';
 
 import type {
 	GameRecord,
+	FindingConfidence,
 	InsightFinding,
 	InsightsFilters,
 	InsightsHeadline,
@@ -218,6 +219,12 @@ const _downloadJson = (data: string, filename: string) => {
 	URL.revokeObjectURL(url);
 };
 
+const CONFIDENCE_LABELS: Record<FindingConfidence, string> = {
+	low: 'Low confidence',
+	medium: 'Medium confidence',
+	high: 'High confidence',
+};
+
 const FINDING_ICONS: Record<InsightFinding['kind'], LucideIcon> = {
 	deathsSplit: Skull,
 	bestHero: Star,
@@ -235,15 +242,16 @@ const _findingContent = (finding: InsightFinding): { title: string; text: string
 					+ `${Math.round(finding.highDeaths.winRate)}% with more.`,
 			};
 		case 'bestHero': {
-			const gap = Math.round(finding.winRate - finding.overallWinRate);
+			const gap = Math.round(finding.winRate - finding.restWinRate);
 			return {
 				title: `${finding.hero} is your best pick`,
 				text:
 					`${Math.round(finding.winRate)}% over ${finding.games} games, `
-					+ `${gap} points above your overall rate.`,
+					+ `${gap} points above your other games.`,
 			};
 		}
 		case 'weakestMode': {
+			const gap = Math.round(finding.restWinRate - finding.winRate);
 			const map = finding.worstMap;
 			const mapText =
 				map ?
@@ -251,7 +259,9 @@ const _findingContent = (finding: InsightFinding): { title: string; text: string
 				:	'';
 			return {
 				title: `${_titleCase(finding.mode)} is holding you back`,
-				text: `${Math.round(finding.winRate)}% across ${finding.games} games${mapText}.`,
+				text:
+					`${Math.round(finding.winRate)}% across ${finding.games} games, `
+					+ `${gap} points below your other games${mapText}.`,
 			};
 		}
 	}
@@ -601,11 +611,18 @@ const Insights: Component<InsightsProps> = (props) => {
 														size={20}
 													/>
 												</span>
-												<p>
-													<strong>{content().title}</strong>
-													<br />
-													{content().text}
-												</p>
+												<div class="insights-finding__body">
+													<p>
+														<strong>{content().title}</strong>
+														<br />
+														{content().text}
+													</p>
+													<span
+														class={`insights-finding__confidence insights-finding__confidence--${finding.confidence}`}
+													>
+														{CONFIDENCE_LABELS[finding.confidence]}
+													</span>
+												</div>
 											</li>
 										);
 									}}

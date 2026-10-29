@@ -95,6 +95,7 @@ const game = (o: Partial<PlayerGame> = {}): PlayerGame => ({
 	recordId: 'g',
 	date: new Date(2025, 5, 10),
 	createdAt: new Date(2025, 5, 10),
+	hasTime: false,
 	result: 'win',
 	team: 'blue',
 	lengthSeconds: 600,
@@ -152,13 +153,37 @@ describe('insights', () => {
 				expect(parseMatchDate(dated('03/07/2025'))).toEqual(new Date(2025, 2, 7));
 			});
 
-			it('ignores extra time text', () => {
-				expect(parseMatchDate(dated('03/07/2025 14:32'))).toEqual(new Date(2025, 2, 7));
-				expect(parseMatchDate(dated('3-7-2025'))).toEqual(new Date(2025, 2, 7));
+			it('reads the time after the date', () => {
+				expect(parseMatchDate(dated('03/07/2025 14:32'))).toEqual(
+					new Date(2025, 2, 7, 14, 32)
+				);
+				expect(parseMatchDate(dated('09/15/25 - 02:49'))).toEqual(
+					new Date(2025, 8, 15, 2, 49)
+				);
+				expect(parseMatchDate(dated('9/15/2025 2:05'))).toEqual(
+					new Date(2025, 8, 15, 2, 5)
+				);
 			});
+
+			it('uses midnight when the time is missing', () => {
+				expect(parseMatchDate(dated('3-7-2025'))).toEqual(new Date(2025, 2, 7));
+				expect(parseMatchDate(dated('03/07/2025 later'))).toEqual(new Date(2025, 2, 7));
+			});
+
+			it.each(['25:10', '10:75', '24:00'])(
+				'uses midnight for the invalid time %j',
+				(time) => {
+					expect(parseMatchDate(dated(`03/07/2025 - ${time}`))).toEqual(
+						new Date(2025, 2, 7)
+					);
+				}
+			);
 
 			it('accepts two-digit years', () => {
 				expect(parseMatchDate(dated('03/07/25'))).toEqual(new Date(2025, 2, 7));
+				expect(parseMatchDate(dated('03/07/25 - 08:15'))).toEqual(
+					new Date(2025, 2, 7, 8, 15)
+				);
 			});
 
 			it.each(['', 'yesterday', '13/40/2025', '02/30/2025', '12/2025'])(
@@ -250,6 +275,16 @@ describe('insights', () => {
 			});
 			expect(g.date).toEqual(new Date(2025, 5, 10));
 			expect(g.stats).toEqual({ e: 10, a: 5, d: 5, dmg: 6000, h: 0, mit: 0 });
+		});
+
+		it('flags hasTime only when a valid time was parsed', () => {
+			const hasTime = (date: string) =>
+				toPlayerGames([rec({ date })], 'alice', HEROES)[0].hasTime;
+			expect(hasTime('09/15/25 - 02:49')).toBe(true);
+			expect(hasTime('09/15/25')).toBe(false);
+			expect(hasTime('09/15/25 - 25:10')).toBe(false);
+			expect(hasTime('09/15/25 - 10:75')).toBe(false);
+			expect(hasTime('nonsense 10:15')).toBe(false);
 		});
 
 		it('averages teammates and enemies separately, excluding the player', () => {
@@ -917,6 +952,7 @@ describe('insights', () => {
 				expect(findings).toContainEqual({
 					kind: 'deathsSplit',
 					medianDeaths: 6,
+					confidence: 'low',
 					lowDeaths: { games: 5, winRate: 100 },
 					highDeaths: { games: 5, winRate: 0 },
 				});
@@ -962,11 +998,46 @@ describe('insights', () => {
 				const findings = buildFindings([...mk('Ana', 5, 0), ...mk('Tracer', 0, 5)]);
 				expect(findings).toContainEqual({
 					kind: 'bestHero',
+					confidence: 'low',
 					hero: 'Ana',
 					games: 5,
 					winRate: 100,
-					overallWinRate: 50,
+					restWinRate: 0,
+					restGames: 5,
 				});
+			});
+
+			it('compares against the other games, not overall', () => {
+				// Ana 25-0 (100%), Tracer 20-5 (80%): overall is 45/55 = 82%.
+				// The gap is 18 points vs overall but 20 vs the rest.
+				const findings = buildFindings([...mk('Ana', 25, 0), ...mk('Tracer', 20, 5)]);
+				const f = findings.find((x) => x.kind === 'bestHero');
+				expect(f).toMatchObject({ restWinRate: 80, restGames: 25 });
+			});
+
+			it('excludes the hero itself from the comparison', () => {
+				// Ana 5-0 vs overall 5/10 would be 50 points; rest is 0%
+				const f = buildFindings([...mk('Ana', 5, 0), ...mk('Tracer', 0, 5)]).find(
+					(x) => x.kind === 'bestHero'
+				);
+				expect(f).toMatchObject({ winRate: 100, restWinRate: 0, restGames: 5 });
+			});
+
+			it('does not fire when only the overall gap is large enough', () => {
+				// Ana 7-3 (70%) vs Tracer 5-5 (50%) rest: gap 20 vs rest, 10 vs overall,
+				// but not significant at this size
+				const findings = buildFindings([...mk('Ana', 7, 3), ...mk('Tracer', 5, 5)]);
+				expect(findings.map((f) => f.kind)).not.toContain('bestHero');
+			});
+
+			it('needs the gap to be significant: same gap, small vs large n', () => {
+				const gap = (scale: number) =>
+					buildFindings([
+						...mk('Ana', 7 * scale, 3 * scale),
+						...mk('Tracer', 5 * scale, 5 * scale),
+					]).map((f) => f.kind);
+				expect(gap(1)).not.toContain('bestHero');
+				expect(gap(5)).toContain('bestHero');
 			});
 
 			it('needs the minimum games', () => {
@@ -993,12 +1064,33 @@ describe('insights', () => {
 				const f = findings.find((x) => x.kind === 'weakestMode');
 				expect(f).toEqual({
 					kind: 'weakestMode',
+					confidence: 'low',
 					mode: 'CONTROL',
 					games: 5,
 					winRate: 40,
-					overallWinRate: 70,
+					restWinRate: 100,
+					restGames: 5,
 					worstMap: { map: 'B', games: 3, wins: 0, losses: 3, draws: 0, winRate: 0 },
 				});
+			});
+
+			it('compares against the other modes, not overall', () => {
+				// CONTROL 0-5 vs PUSH 20-5 (80%): overall 20/30 = 67%
+				const f = buildFindings([
+					...mk('PUSH', 'A', 20, 5),
+					...mk('CONTROL', 'B', 0, 5),
+				]).find((x) => x.kind === 'weakestMode');
+				expect(f).toMatchObject({ winRate: 0, restWinRate: 80, restGames: 25 });
+			});
+
+			it('needs the gap to be significant: same gap, small vs large n', () => {
+				const gap = (scale: number) =>
+					buildFindings([
+						...mk('PUSH', 'A', 7 * scale, 3 * scale),
+						...mk('CONTROL', 'B', 5 * scale, 5 * scale),
+					]).map((f) => f.kind);
+				expect(gap(1)).not.toContain('weakestMode');
+				expect(gap(5)).toContain('weakestMode');
 			});
 
 			it('has a null worst map when no map has enough games', () => {
@@ -1026,6 +1118,47 @@ describe('insights', () => {
 				]);
 				expect(findings.map((f) => f.kind)).not.toContain('weakestMode');
 			});
+		});
+	});
+
+	describe('buildFindings confidence', () => {
+		/** Hero 'Ana' wins every game, 'Tracer' (the rest) loses all of them */
+		const tier = (n: number) =>
+			buildFindings([
+				...games(n, () => ({ hero: 'Ana', result: 'win' as const })),
+				...games(n, () => ({ hero: 'Tracer', result: 'loss' as const })),
+			]).find((f) => f.kind === 'bestHero')?.confidence;
+
+		it.each([
+			[5, 'low'],
+			[9, 'low'],
+			[10, 'medium'],
+			[24, 'medium'],
+			[25, 'high'],
+		])('uses the smaller group size %i for a %s tier', (n, expected) => {
+			expect(tier(n)).toBe(expected);
+		});
+
+		it('uses the smaller of the two groups', () => {
+			const findings = buildFindings([
+				...games(30, () => ({ hero: 'Ana', result: 'win' as const })),
+				...games(6, () => ({ hero: 'Tracer', result: 'loss' as const })),
+			]);
+			expect(findings.find((f) => f.kind === 'bestHero')?.confidence).toBe('low');
+		});
+
+		it('gives every finding a confidence', () => {
+			const low = games(10, () => ({
+				result: 'win' as const,
+				...{ stats: { e: 0, a: 0, d: 1, dmg: 0, h: 0, mit: 0 } },
+			}));
+			const high = games(10, () => ({
+				result: 'loss' as const,
+				stats: { e: 0, a: 0, d: 9, dmg: 0, h: 0, mit: 0 },
+			}));
+			const findings = buildFindings([...low, ...high]);
+			expect(findings.length).toBeGreaterThan(0);
+			for (const f of findings) expect(f.confidence).toBe('medium');
 		});
 	});
 

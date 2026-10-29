@@ -294,6 +294,28 @@ describe('Insights', () => {
 			).toBeDefined();
 		});
 
+		it('should show a confidence badge on each finding', () => {
+			const records = [
+				...Array.from({ length: 6 }, (_, i) =>
+					makeRecord({ id: `low${i}`, deaths: '2', date: `06/0${i + 1}/2025` })
+				),
+				...Array.from({ length: 6 }, (_, i) =>
+					makeRecord({
+						id: `high${i}`,
+						deaths: '9',
+						result: 'DEFEAT',
+						date: `06/1${i}/2025`,
+					})
+				),
+			];
+			vi.mocked(Store.loadGameRecords).mockReturnValue(records);
+			const { container } = renderInsights();
+
+			const badge = container.querySelector('.insights-finding__confidence');
+			expect(badge?.textContent).toBe('Low confidence');
+			expect(badge?.classList.contains('insights-finding__confidence--low')).toBe(true);
+		});
+
 		it('should omit the findings section when there are none', () => {
 			renderInsights();
 

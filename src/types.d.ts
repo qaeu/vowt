@@ -136,6 +136,8 @@ export interface PlayerGame {
 	/** Match date, or the record's creation time if the date is unreadable */
 	date: Date;
 	createdAt: Date;
+	/** True only when a valid time of day was read, so `date` is not just midnight */
+	hasTime: boolean;
 	result: GameResult;
 	team: 'blue' | 'red';
 	/** Game length in seconds, null if unreadable */
@@ -266,27 +268,38 @@ interface WinRateBucket {
 	winRate: number;
 }
 
-/** Rule-based observation; the UI owns the wording. Rates are percentages 0-100 */
+/** How much sample size backs a finding (by the smaller group's decided games) */
+export type FindingConfidence = 'low' | 'medium' | 'high';
+
+/**
+ * Rule-based observation; the UI owns the wording. Rates are percentages 0-100 and
+ * `rest` means all other games with a readable result
+ */
 export type InsightFinding =
 	| {
 			kind: 'deathsSplit';
+			confidence: FindingConfidence;
 			medianDeaths: number;
 			lowDeaths: WinRateBucket;
 			highDeaths: WinRateBucket;
 	  }
 	| {
 			kind: 'bestHero';
+			confidence: FindingConfidence;
 			hero: string;
 			games: number;
 			winRate: number;
-			overallWinRate: number;
+			restWinRate: number;
+			restGames: number;
 	  }
 	| {
 			kind: 'weakestMode';
+			confidence: FindingConfidence;
 			mode: string;
 			games: number;
 			winRate: number;
-			overallWinRate: number;
+			restWinRate: number;
+			restGames: number;
 			worstMap:
 				(Omit<RecordStatsRow, 'winRate'> & { map: string; winRate: number }) | null;
 	  };
