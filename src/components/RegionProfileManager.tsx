@@ -16,7 +16,7 @@ import {
 import { Portal } from 'solid-js/web';
 import { Menu } from '@ark-ui/solid/menu';
 import { Tabs } from '@ark-ui/solid/tabs';
-import { Check, Ellipsis, MousePointer2, SquareDashed } from 'lucide-solid';
+import { Check, Ellipsis, MousePointer2, SquareDashed, Trash2 } from 'lucide-solid';
 
 import type {
 	TextRegion,
@@ -25,6 +25,7 @@ import type {
 	AlignmentGroup,
 	AlignmentDrawTarget,
 	GrayImage,
+	LearnedHash,
 } from '#types';
 import type { RegionEditorMode } from '#utils/regionEditor';
 import Screen from '#c/ui/Screen';
@@ -34,6 +35,7 @@ import RegionInspector from '#c/ui/RegionInspector';
 import AlignmentGroupsEditor from '#c/ui/AlignmentGroupsEditor';
 import * as Profiles from '#utils/regionProfiles';
 import { startRegionEditor, drawRegions, isSameRegion } from '#utils/regionEditor';
+import { templateToDataURL } from '#utils/imageRecognition';
 import {
 	ALIGN_SCALE,
 	createAnchor,
@@ -91,6 +93,9 @@ const countRegionChanges = (current: DrawnRegion[], saved: DrawnRegion[]) => {
 const plural = (count: number, word: string, suffix = 's') =>
 	`${count} ${word}${count === 1 ? '' : suffix}`;
 
+const formatLearnedAt = (date: Date) =>
+	date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
 const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	const initialProfileList = Profiles.listProfiles();
 	const { id: initialActiveProfileId, description: initialActiveProfileDesc } =
@@ -119,10 +124,11 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 	// Bumped when stored hashes change, since they're read from storage
 	const [hashesVersion, setHashesVersion] = createSignal(0);
 
-	const learnedHashCount = createMemo(() => {
+	const learnedHashes = createMemo(() => {
 		hashesVersion();
-		return Profiles.countProfileHashes(editingProfileId());
+		return Profiles.listProfileHashes(editingProfileId());
 	});
+	const learnedHashCount = () => learnedHashes().length;
 
 	const regionCounts = createMemo(() => {
 		const counts: Record<string, number> = {};
@@ -697,6 +703,12 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 		});
 	};
 
+	const handleRemoveHash = (profileId: string, learned: LearnedHash) => {
+		if (!Profiles.removeProfileHash(profileId, learned.hashSetId, learned.hash)) return;
+		setHashesVersion((v) => v + 1);
+		toast('Learned hash deleted', `Portrait hash for '${learned.name}' removed.`);
+	};
+
 	const handleMenuSelect = (action: MenuAction) => {
 		switch (action) {
 			case 'clear-regions':
@@ -938,6 +950,55 @@ const RegionProfileManager: Component<RegionProfileManagerProps> = (props) => {
 								>
 									Clear Learned Hashes
 								</button>
+
+								<Show when={learnedHashCount() > 0}>
+									<ul class="learned-portraits__list" aria-label="Learned hashes">
+										<For each={learnedHashes()}>
+											{(learned) => {
+												const preview = templateToDataURL(learned.hash);
+												return (
+													<li class="learned-hash">
+														<Show
+															when={preview}
+															fallback={<span class="learned-hash__preview" />}
+														>
+															{(src) => (
+																<img class="learned-hash__preview" src={src()} alt="" />
+															)}
+														</Show>
+														<div class="learned-hash__details">
+															<span class="learned-hash__name">{learned.name}</span>
+															<span class="learned-hash__meta">
+																<Show
+																	when={learned.learnedAt}
+																	fallback="Learned date unknown"
+																>
+																	{(learnedAt) => (
+																		<time datetime={learnedAt().toISOString()}>
+																			{formatLearnedAt(learnedAt())}
+																		</time>
+																	)}
+																</Show>
+																{' · '}
+																{learned.hashSetId}
+															</span>
+														</div>
+														<button
+															class="learned-hash__delete"
+															aria-label={`Delete learned hash for ${learned.name}`}
+															title="Delete"
+															onClick={() =>
+																handleRemoveHash(editingProfileId(), learned)
+															}
+														>
+															<Trash2 size={16} />
+														</button>
+													</li>
+												);
+											}}
+										</For>
+									</ul>
+								</Show>
 							</div>
 						</Tabs.Content>
 					</Tabs.Root>

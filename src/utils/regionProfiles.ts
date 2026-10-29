@@ -7,6 +7,7 @@ import type {
 	ExportedProfile,
 	ImageHash,
 	ImageHashSet,
+	LearnedHash,
 } from '#types';
 import { DEFAULT_PROFILES } from '#data/profiles';
 
@@ -36,7 +37,7 @@ const STORAGE_KEY = 'vowt_region_profiles';
 const SCHEMA_VERSION = 2;
 /** Schema versions before this stored dHashes, which can't be used as templates */
 const FIRST_TEMPLATE_SCHEMA_VERSION = 2;
-const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt'];
+const DATE_FIELD_NAMES = ['createdAt', 'updatedAt', 'exportedAt', 'learnedAt'];
 
 /**
  * Converts region coordinates from source image dimensions to reference resolution.
@@ -305,6 +306,7 @@ export function getProfileHashSets(profileId: string): ImageHashSet[] | null {
 /**
  * Adds learned hashes to one of a profile's hash sets, creating the set if needed
  * A hash already stored under another name is renamed, so corrections take priority
+ * Added and renamed hashes are stamped with the time they were learned
  * @param profileId - The profile ID
  * @param hashSetId - The hash set ID to add to
  * @param hashes - Hashes to add
@@ -339,10 +341,11 @@ export function addProfileHashes(
 	for (const { name, hash } of hashes) {
 		const existing = hashSet.hashes.find((h) => h.hash === hash);
 		if (!existing) {
-			hashSet.hashes.push({ name, hash });
+			hashSet.hashes.push({ name, hash, learnedAt: now });
 			changed++;
 		} else if (existing.name !== name) {
 			existing.name = name;
+			existing.learnedAt = now;
 			changed++;
 		}
 	}
@@ -364,6 +367,46 @@ export function countProfileHashes(profileId: string): number {
 		(total, hs) => total + hs.hashes.length,
 		0
 	);
+}
+
+/**
+ * Lists the hashes stored across a profile's hash sets, newest first
+ * Hashes without a learned time (saved before it was recorded) come last
+ * @param profileId - The profile ID
+ * @returns The hashes with their hash set IDs, empty if the profile doesn't exist
+ */
+export function listProfileHashes(profileId: string): LearnedHash[] {
+	const learnedTime = (h: LearnedHash) => h.learnedAt?.getTime() ?? -Infinity;
+	return (getProfileHashSets(profileId) || [])
+		.flatMap((hs) => hs.hashes.map((h) => ({ ...h, hashSetId: hs.id })))
+		.sort((a, b) => learnedTime(b) - learnedTime(a));
+}
+
+/**
+ * Removes one hash from a profile's hash set, dropping the set if it becomes empty
+ * @param profileId - The profile ID
+ * @param hashSetId - The hash set ID
+ * @param hash - The hash to remove
+ * @returns Whether a hash was removed
+ */
+export function removeProfileHash(
+	profileId: string,
+	hashSetId: string,
+	hash: string
+): boolean {
+	const stored = _loadStorage();
+	const profile = stored.profiles.find((p) => p.id === profileId);
+	const hashSet = profile?.hashSets?.find((hs) => hs.id === hashSetId);
+	const index = hashSet?.hashes.findIndex((h) => h.hash === hash) ?? -1;
+	if (!profile || !hashSet || index < 0) return false;
+
+	hashSet.hashes.splice(index, 1);
+	hashSet.updatedAt = new Date();
+	if (hashSet.hashes.length === 0) {
+		profile.hashSets = profile.hashSets.filter((hs) => hs !== hashSet);
+	}
+	_saveProfiles(stored.profiles, stored.activeProfileId);
+	return true;
 }
 
 /**

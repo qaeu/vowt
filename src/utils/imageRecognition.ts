@@ -197,6 +197,44 @@ function _decodeTemplate(hash: string): Float32Array | null {
 }
 
 /**
+ * Decodes a template into RGBA pixels, e.g. to show what a learned hash looks like
+ * @param hash - Base64 template string
+ * @returns A TEMPLATE_SIZE square image, or null if the hash isn't a template
+ */
+export function templateToImage(hash: string): RgbaImage | null {
+	const values = _decodeTemplate(hash);
+	if (!values) return null;
+
+	const data = new Uint8ClampedArray(TEMPLATE_SIZE ** 2 * 4);
+	for (let i = 0; i < TEMPLATE_SIZE ** 2; i++) {
+		data.set([values[i * 3], values[i * 3 + 1], values[i * 3 + 2], 255], i * 4);
+	}
+	return { width: TEMPLATE_SIZE, height: TEMPLATE_SIZE, data };
+}
+
+/**
+ * Renders a template as a PNG data URL
+ * @param hash - Base64 template string
+ * @returns The data URL, or null if the hash isn't a template or canvas is unavailable
+ */
+export function templateToDataURL(hash: string): string | null {
+	const image = templateToImage(hash);
+	if (!image) return null;
+
+	try {
+		const canvas = document.createElement('canvas');
+		canvas.width = image.width;
+		canvas.height = image.height;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return null;
+		ctx.putImageData(new ImageData(image.data, image.width, image.height), 0, 0);
+		return canvas.toDataURL('image/png');
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Combines hash sets that share an ID so that later sets extend earlier ones
  * Hashes keep their input order, so earlier sets win ties during recognition
  * @param hashSets - Hash sets to combine, highest priority first

@@ -418,6 +418,13 @@ export interface ExportedProfile extends ExportFileBase {
 export interface ImageHash {
 	name: string;
 	hash: string;
+	/** When a user correction saved this hash; absent for bundled and older hashes */
+	learnedAt?: Date;
+}
+
+/** A hash learned for a profile, with the hash set it belongs to */
+export interface LearnedHash extends ImageHash {
+	hashSetId: string;
 }
 
 export interface ImageHashSet {

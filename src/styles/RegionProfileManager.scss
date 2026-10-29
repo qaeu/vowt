@@ -259,6 +259,53 @@
 				font-size: 13px;
 				color: get($neutrals, 'fg-light');
 			}
+
+			&__list {
+				display: flex;
+				flex-direction: column;
+				margin: 15px 0 0;
+				padding: 0;
+				list-style: none;
+				border-top: 1px solid get($neutrals, 'sep');
+			}
+		}
+
+		.learned-hash {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 8px 0;
+			border-bottom: 1px solid get($neutrals, 'sep');
+
+			&__preview {
+				flex: 0 0 32px;
+				width: 32px;
+				height: 32px;
+				border-radius: 4px;
+				background-color: get($greys, 'bg-dark');
+				image-rendering: pixelated;
+			}
+
+			&__details {
+				display: flex;
+				flex-direction: column;
+				flex: 1;
+				min-width: 0;
+			}
+
+			&__name {
+				font-weight: 600;
+			}
+
+			&__meta {
+				font-size: 12px;
+				color: get($neutrals, 'fg-light');
+				overflow-wrap: anywhere;
+			}
+
+			&__delete {
+				@include button-small($errors);
+			}
 		}
 
 		// Unsaved changes

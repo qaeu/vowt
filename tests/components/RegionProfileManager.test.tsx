@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@solidjs/testing-library';
 
-import type { DrawnRegion, TextRegion } from '#types';
+import type { DrawnRegion, LearnedHash, TextRegion } from '#types';
 import type { RegionEditorOptions } from '#utils/regionEditor';
 
 import RegionProfileManager from '#c/RegionProfileManager';
@@ -24,7 +24,8 @@ vi.mock('#utils/regionProfiles', () => ({
 	importProfile: vi.fn(),
 	getActiveProfileAlignment: vi.fn(),
 	getProfileAlignment: vi.fn(),
-	countProfileHashes: vi.fn(),
+	listProfileHashes: vi.fn(),
+	removeProfileHash: vi.fn(),
 	clearProfileHashes: vi.fn(),
 	REFERENCE_WIDTH: 2560,
 	REFERENCE_HEIGHT: 1440,
@@ -49,6 +50,15 @@ vi.mock('#utils/regionEditor', async (importOriginal) => ({
 type RegionCallback = (region: DrawnRegion) => void;
 
 const PREVIEW = 'data:image/png;base64,test';
+
+/** Learned hashes with distinct names, as many as requested */
+const makeLearnedHashes = (count: number): LearnedHash[] =>
+	Array.from({ length: count }, (_, i) => ({
+		name: `hero-${i}`,
+		hash: `hash-${i}`,
+		hashSetId: 'hero-portrait',
+		learnedAt: new Date(2026, 9, 29 - i, 14, 30),
+	}));
 
 const dialogContent = () =>
 	document.querySelector<HTMLElement>('[data-scope="dialog"][data-part="content"]')!;
@@ -128,7 +138,7 @@ describe('RegionProfileManager', () => {
 		vi.mocked(regionEditor.startRegionEditor).mockResolvedValue(undefined);
 		vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([]);
 		vi.mocked(regionProfiles.getProfileAlignment).mockReturnValue([]);
-		vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
+		vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([]);
 	});
 
 	afterEach(() => {
@@ -310,7 +320,7 @@ describe('RegionProfileManager', () => {
 			vi.mocked(regionProfiles.getActiveProfileAlignment).mockReturnValue([
 				{ name: 'blue' },
 			]);
-			vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(3);
+			vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(makeLearnedHashes(3));
 			render(() => <RegionProfileManager previewImage={null} />);
 
 			expect(screen.getByRole('tab', { name: 'Regions (0)' })).toBeDefined();
@@ -345,11 +355,11 @@ describe('RegionProfileManager', () => {
 
 		describe('Learned portraits', () => {
 			it('should show the learned hash count for the editing profile', () => {
-				vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(3);
+				vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(makeLearnedHashes(3));
 				render(() => <RegionProfileManager previewImage={null} />);
 
 				expect(screen.getByText(/3 learned hashes/)).toBeDefined();
-				expect(regionProfiles.countProfileHashes).toHaveBeenCalledWith('profile2');
+				expect(regionProfiles.listProfileHashes).toHaveBeenCalledWith('profile2');
 			});
 
 			it('should disable Clear Learned Hashes when there are none', async () => {
@@ -363,16 +373,100 @@ describe('RegionProfileManager', () => {
 			});
 
 			it('should clear learned hashes after confirming', async () => {
-				vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(2);
+				vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(makeLearnedHashes(2));
 				render(() => <RegionProfileManager previewImage={null} />);
 				await openTab(/Learned portraits/);
 
 				fireEvent.click(screen.getByRole('button', { name: 'Clear Learned Hashes' }));
-				vi.mocked(regionProfiles.countProfileHashes).mockReturnValue(0);
+				vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([]);
 				fireEvent.click(await screen.findByRole('button', { name: 'Clear Hashes' }));
 
 				expect(regionProfiles.clearProfileHashes).toHaveBeenCalledWith('profile2');
 				await waitFor(() => expect(screen.getByText(/0 learned hashes/)).toBeDefined());
+			});
+
+			describe('List', () => {
+				const listItems = () =>
+					within(screen.getByRole('list', { name: 'Learned hashes' })).getAllByRole(
+						'listitem'
+					);
+
+				it('should not show a list when there are no learned hashes', async () => {
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					expect(screen.queryByRole('list', { name: 'Learned hashes' })).toBeNull();
+				});
+
+				it('should list each learned hash with its name, time and hash set', async () => {
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(
+						makeLearnedHashes(2)
+					);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					const items = listItems();
+					expect(items).toHaveLength(2);
+					expect(items[0].textContent).toContain('hero-0');
+					expect(items[0].textContent).toContain('hero-portrait');
+					const time = items[0].querySelector('time')!;
+					expect(time.textContent).toBe('Oct 29, 2026, 2:30 PM');
+					expect(time.getAttribute('datetime')).toBe(
+						new Date(2026, 9, 29, 14, 30).toISOString()
+					);
+					expect(items[1].textContent).toContain('hero-1');
+				});
+
+				it('should say when a learned time is unknown', async () => {
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([
+						{ name: 'ana', hash: 'hash-0', hashSetId: 'hero-portrait' },
+					]);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					expect(listItems()[0].textContent).toContain('Learned date unknown');
+					expect(listItems()[0].querySelector('time')).toBeNull();
+				});
+
+				it('should delete a single learned hash', async () => {
+					const hashes = makeLearnedHashes(2);
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(hashes);
+					vi.mocked(regionProfiles.removeProfileHash).mockReturnValue(true);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue([hashes[0]]);
+					fireEvent.click(
+						screen.getByRole('button', { name: 'Delete learned hash for hero-1' })
+					);
+
+					expect(regionProfiles.removeProfileHash).toHaveBeenCalledWith(
+						'profile2',
+						'hero-portrait',
+						'hash-1'
+					);
+					await waitFor(() => expect(listItems()).toHaveLength(1));
+					expect(
+						screen.getByRole('tab', { name: 'Learned portraits (1)' })
+					).toBeDefined();
+				});
+
+				it('should leave the list unchanged when nothing was removed', async () => {
+					vi.mocked(regionProfiles.listProfileHashes).mockReturnValue(
+						makeLearnedHashes(1)
+					);
+					vi.mocked(regionProfiles.removeProfileHash).mockReturnValue(false);
+					render(() => <RegionProfileManager previewImage={null} />);
+					await openTab(/Learned portraits/);
+					const calls = vi.mocked(regionProfiles.listProfileHashes).mock.calls.length;
+
+					fireEvent.click(
+						screen.getByRole('button', { name: 'Delete learned hash for hero-0' })
+					);
+
+					expect(regionProfiles.listProfileHashes).toHaveBeenCalledTimes(calls);
+					expect(listItems()).toHaveLength(1);
+				});
 			});
 		});
 	});
