@@ -115,6 +115,56 @@ describe('RegionInspector', () => {
 			expect(onSelect).toHaveBeenCalledWith('mock-2');
 		});
 
+		describe('scrolling to the selection', () => {
+			const list = () => screen.getByRole('list', { name: 'Regions' });
+
+			/** Lays the list out as a 100px viewport over 40px items, scrolled to the top */
+			const mockLayout = () => {
+				vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+					this: Element
+				) {
+					if (this.matches('.region-inspector__list')) {
+						return { top: 0, bottom: 100 } as DOMRect;
+					}
+					const items = Array.from(list().querySelectorAll('[data-region-id]'));
+					const top = items.indexOf(this) * 40 - list().scrollTop;
+					return { top, bottom: top + 40 } as DOMRect;
+				});
+			};
+
+			afterEach(() => {
+				vi.restoreAllMocks();
+			});
+
+			it('should scroll down to a region selected below the visible list', () => {
+				const { setSelectedId } = renderInspector();
+				mockLayout();
+
+				setSelectedId('mock-2');
+
+				expect(list().scrollTop).toBe(20);
+			});
+
+			it('should scroll up to a region selected above the visible list', () => {
+				const { setSelectedId } = renderInspector();
+				mockLayout();
+				list().scrollTop = 60;
+
+				setSelectedId('mock-0');
+
+				expect(list().scrollTop).toBe(0);
+			});
+
+			it('should not scroll when the selected region is visible', () => {
+				const { setSelectedId } = renderInspector();
+				mockLayout();
+
+				setSelectedId('mock-1');
+
+				expect(list().scrollTop).toBe(0);
+			});
+		});
+
 		it('should suggest alignment group names', () => {
 			renderInspector();
 			const options = document.querySelectorAll('#region-inspector-groups option');

@@ -306,6 +306,35 @@ describe('regionEditor', () => {
 			drag(0, 0, 50, 50);
 			expect(onComplete).not.toHaveBeenCalled();
 		});
+
+		describe('abort signal', () => {
+			it('should stop listening and resolve when aborted', async () => {
+				const controller = new AbortController();
+				const onComplete = vi.fn();
+				const { done } = await start(onComplete, { signal: controller.signal });
+
+				controller.abort();
+				await expect(done).resolves.toBeUndefined();
+
+				drag(0, 0, 50, 50);
+				expect(onComplete).not.toHaveBeenCalled();
+			});
+
+			it('should not start when aborted while the image loads', async () => {
+				const controller = new AbortController();
+				const onComplete = vi.fn();
+				const done = startRegionEditor(canvas, 'image.png', onComplete, {
+					signal: controller.signal,
+				});
+				controller.abort();
+
+				await expect(done).resolves.toBeUndefined();
+				expect(ctx.drawImage).not.toHaveBeenCalled();
+
+				drag(0, 0, 50, 50);
+				expect(onComplete).not.toHaveBeenCalled();
+			});
+		});
 	});
 
 	describe('drawRegions', () => {

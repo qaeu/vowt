@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@solidjs/testing-library';
+import { createSignal } from 'solid-js';
 
 import type { DrawnRegion, LearnedHash, TextRegion } from '#types';
 import type { RegionEditorOptions } from '#utils/regionEditor';
@@ -8,6 +9,7 @@ import RegionProfileManager from '#c/RegionProfileManager';
 import * as regionProfiles from '#utils/regionProfiles';
 import * as regionEditor from '#utils/regionEditor';
 import * as regionAlignment from '#utils/regionAlignment';
+import * as storage from '#utils/storage';
 
 // Mock the region profiles utility
 vi.mock('#utils/regionProfiles', () => ({
@@ -45,6 +47,12 @@ vi.mock('#utils/regionEditor', async (importOriginal) => ({
 	...(await importOriginal<typeof import('#utils/regionEditor')>()),
 	startRegionEditor: vi.fn(),
 	drawRegions: vi.fn(),
+}));
+
+// Mock the file picker; keep the rest of storage
+vi.mock('#utils/storage', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#utils/storage')>()),
+	triggerUploadDialog: vi.fn(),
 }));
 
 type RegionCallback = (region: DrawnRegion) => void;
@@ -718,6 +726,134 @@ describe('RegionProfileManager', () => {
 					'profile2'
 				);
 				expect(footer()).toBeNull();
+			});
+		});
+	});
+
+	describe('Screenshot preview', () => {
+		const SECOND_PREVIEW = 'data:image/png;base64,second';
+
+		/** Mocks Image so each source loads at its own size, or fails if it has none */
+		const mockImageSizes = (sizes: Record<string, [number, number]>) => {
+			vi.spyOn(globalThis, 'Image').mockImplementation(function () {
+				const image = {
+					onload: null as (() => void) | null,
+					onerror: null as (() => void) | null,
+					width: 0,
+					height: 0,
+					set src(value: string) {
+						const size = sizes[value];
+						setTimeout(() => {
+							if (!size) return image.onerror?.();
+							[image.width, image.height] = size;
+							image.onload?.();
+						}, 0);
+					},
+				};
+				return image as unknown as HTMLImageElement;
+			});
+		};
+
+		const editorCalls = () => vi.mocked(regionEditor.startRegionEditor).mock.calls;
+
+		it('should prompt for a screenshot until one is loaded', () => {
+			render(() => <RegionProfileManager previewImage={null} />);
+
+			expect(screen.getByText(/Drop a scoreboard screenshot/)).toBeDefined();
+			expect(screen.getByRole('button', { name: 'Choose Screenshot' })).toBeDefined();
+			expect(document.querySelector('.canvas-wrapper--empty')).not.toBeNull();
+			expect(regionEditor.startRegionEditor).not.toHaveBeenCalled();
+		});
+
+		it('should load a screenshot dropped after the screen opened', async () => {
+			mockImageSizes({ [PREVIEW]: [1280, 720] });
+			const [preview, setPreview] = createSignal<string | null>(null);
+			render(() => <RegionProfileManager previewImage={preview()} />);
+
+			setPreview(PREVIEW);
+
+			await waitFor(() => expect(editorCalls()).toHaveLength(1));
+			expect(editorCalls()[0][1]).toBe(PREVIEW);
+			expect(screen.queryByText(/Drop a scoreboard screenshot/)).toBeNull();
+			expect(screen.getByRole('button', { name: 'Change Screenshot' })).toBeDefined();
+		});
+
+		it('should load a screenshot chosen from the file picker', async () => {
+			mockImageSizes({ [PREVIEW]: [1280, 720] });
+			vi.mocked(storage.triggerUploadDialog).mockImplementation((callback) =>
+				callback([PREVIEW, SECOND_PREVIEW])
+			);
+			render(() => <RegionProfileManager previewImage={null} />);
+
+			fireEvent.click(screen.getByRole('button', { name: 'Choose Screenshot' }));
+
+			await waitFor(() => expect(editorCalls()).toHaveLength(1));
+			expect(editorCalls()[0][1]).toBe(PREVIEW);
+		});
+
+		describe('replacing the screenshot', () => {
+			const renderWithPreview = async () => {
+				vi.mocked(regionProfiles.getActiveProfile).mockReturnValue(storedRegions);
+				mockImageSizes({ [PREVIEW]: [1280, 720], [SECOND_PREVIEW]: [2560, 1440] });
+				const [preview, setPreview] = createSignal<string | null>(PREVIEW);
+				render(() => <RegionProfileManager previewImage={preview()} />);
+				await waitFor(() => expect(editorCalls()).toHaveLength(1));
+				return setPreview;
+			};
+
+			const regionsList = () => within(screen.getByRole('list', { name: 'Regions' }));
+
+			it('should restart the editor on the new screenshot', async () => {
+				const setPreview = await renderWithPreview();
+				const firstSignal = editorCalls()[0][3]?.signal;
+
+				setPreview(SECOND_PREVIEW);
+
+				await waitFor(() => expect(editorCalls()).toHaveLength(2));
+				expect(editorCalls()[1][1]).toBe(SECOND_PREVIEW);
+				expect(firstSignal?.aborted).toBe(true);
+				expect(editorCalls()[1][3]?.signal?.aborted).toBe(false);
+			});
+
+			it('should rescale regions to the new screenshot without unsaved changes', async () => {
+				const setPreview = await renderWithPreview();
+
+				setPreview(SECOND_PREVIEW);
+
+				await waitFor(() =>
+					expect(regionsList().getByText('200×80 at (20, 20)')).toBeDefined()
+				);
+				expect(footer()).toBeNull();
+			});
+
+			it('should keep unsaved regions, rescaled to the new screenshot', async () => {
+				const setPreview = await renderWithPreview();
+				editorCalls()[0][2]({
+					id: 'drawn-0',
+					name: 'region_0',
+					x: 10,
+					y: 300,
+					width: 40,
+					height: 20,
+					colour: '#f00',
+				});
+
+				setPreview(SECOND_PREVIEW);
+
+				await waitFor(() =>
+					expect(regionsList().getByText('80×40 at (20, 600)')).toBeDefined()
+				);
+				expect(footer()?.textContent).toContain('1 unsaved change');
+			});
+
+			it('should show an error and keep the current screenshot if one fails to load', async () => {
+				const setPreview = await renderWithPreview();
+
+				setPreview('data:image/png;base64,broken');
+
+				expect(await screen.findByText("Couldn't load screenshot")).toBeDefined();
+				expect(editorCalls()).toHaveLength(1);
+				expect(editorCalls()[0][3]?.signal?.aborted).toBe(false);
 			});
 		});
 	});

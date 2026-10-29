@@ -161,6 +161,26 @@ describe('App', () => {
 			document.dispatchEvent(event);
 		};
 
+		const dragOver = () => {
+			const event = new Event('dragover', { bubbles: true, cancelable: true });
+			Object.defineProperty(event, 'dataTransfer', {
+				value: { items: [{ kind: 'file', type: 'image/png' }] },
+			});
+			document.dispatchEvent(event);
+		};
+
+		it('should explain where dragged images will go', async () => {
+			render(() => <App />);
+
+			dragOver();
+			expect(await screen.findByText('Drop images here to analyze')).toBeDefined();
+
+			fireEvent.click(screen.getByRole('button', { name: /Region profiles/ }));
+			expect(
+				await screen.findByText('Drop a screenshot to guide your regions')
+			).toBeDefined();
+		});
+
 		it('should send every dropped image to the OCR view', async () => {
 			render(() => <App />);
 			const text = new File(['text'], 'notes.txt', { type: 'text/plain' });
@@ -187,6 +207,7 @@ describe('App', () => {
 			drop([png('a.png')]);
 			await screen.findByTestId('ocr-batch');
 			fireEvent.click(screen.getByRole('button', { name: /Region profiles/ }));
+			expect(screen.getByTestId('region-preview').textContent).toBe(toDataURL('a.png'));
 
 			drop([png('b.png'), png('c.png')]);
 

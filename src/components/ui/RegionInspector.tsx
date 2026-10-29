@@ -88,6 +88,7 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 
 	// The selected region as its inputs last reported it
 	let working: DrawnRegion | undefined;
+	let listRef: HTMLUListElement | undefined;
 	let justSavedTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
 	onCleanup(() => clearTimeout(justSavedTimeoutId));
@@ -171,6 +172,29 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 				setFieldsVersion((v) => v + 1);
 			}
 		})
+	);
+
+	// Bring the selected region into view in the list, e.g. after a click on the canvas.
+	// Only the list scrolls, so the page stays where it is.
+	createEffect(
+		on(
+			() => props.selectedId,
+			(id) => {
+				if (!id || !listRef) return;
+				const item = Array.from(
+					listRef.querySelectorAll<HTMLElement>('[data-region-id]')
+				).find((el) => el.dataset.regionId === id);
+				if (!item) return;
+
+				const listRect = listRef.getBoundingClientRect();
+				const itemRect = item.getBoundingClientRect();
+				if (itemRect.top < listRect.top) {
+					listRef.scrollTop -= listRect.top - itemRect.top;
+				} else if (itemRect.bottom > listRect.bottom) {
+					listRef.scrollTop += itemRect.bottom - listRect.bottom;
+				}
+			}
+		)
 	);
 
 	// On save, flash the fields that were modified; on profile change, start fresh
@@ -325,12 +349,13 @@ const RegionInspector: Component<RegionInspectorProps> = (props) => {
 							<p class="region-inspector__empty">No regions match '{query().trim()}'.</p>
 						}
 					>
-						<ul class="region-inspector__list" aria-label="Regions">
+						<ul ref={listRef} class="region-inspector__list" aria-label="Regions">
 							<For each={filteredRegions()}>
 								{(region) => (
 									<li>
 										<button
 											class="region-inspector__item"
+											data-region-id={region.id}
 											classList={{ 'region-inspector__item--changed': isChanged(region) }}
 											aria-pressed={props.selectedId === region.id}
 											onClick={() => props.onSelect(region.id)}
