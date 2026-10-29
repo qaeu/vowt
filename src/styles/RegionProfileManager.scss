@@ -95,7 +95,7 @@
 		}
 
 		.profile-card {
-			@include card($background);
+			@include card($surface);
 			border: 1px solid get($neutrals, 'sep');
 			display: flex;
 			flex-wrap: wrap;
@@ -130,9 +130,7 @@
 			}
 
 			&__more {
-				display: inline-flex;
-				align-items: center;
-				padding: 7px 10px;
+				@include icon-button;
 			}
 		}
 
@@ -248,7 +246,7 @@
 		// Learned portraits
 
 		.learned-portraits {
-			@include card($background);
+			@include card($surface);
 			border: 1px solid get($neutrals, 'sep');
 
 			&__count {
@@ -282,7 +280,7 @@
 
 	// The profile menu is portalled outside the screen
 	.profile-menu {
-		@include card($background);
+		@include card($surface);
 		@include shadow;
 		display: flex;
 		flex-direction: column;
@@ -292,6 +290,10 @@
 		border: 1px solid get($neutrals, 'sep');
 		outline: none;
 		z-index: 100;
+
+		&[hidden] {
+			display: none;
+		}
 
 		[data-part='item'] {
 			padding: 8px 10px;

@@ -73,6 +73,11 @@ const clickMenuItem = async (name: RegExp) => {
 	fireEvent.click(await screen.findByRole('menuitem', { name }));
 };
 
+const isMenuClosed = () => {
+	const content = document.querySelector<HTMLElement>('.more-actions-menu')!;
+	return content.hasAttribute('hidden') || content.dataset.state === 'closed';
+};
+
 const dialogContent = () =>
 	document.querySelector<HTMLElement>('[data-scope="dialog"][data-part="content"]')!;
 
@@ -243,6 +248,27 @@ describe('GameRecordsTable', () => {
 				);
 
 				expect(gameStorage.clearAllGameRecords).not.toHaveBeenCalled();
+			});
+
+			it('should have an icon-only trigger labelled More actions', () => {
+				renderTable();
+				const trigger = screen.getByRole('button', { name: 'More actions' });
+				expect(trigger.textContent).toBe('');
+				expect(trigger.querySelector('svg')).toBeTruthy();
+			});
+
+			it('should hide the menu content after an item is selected', async () => {
+				renderTable();
+				await clickMenuItem(/Delete all records/);
+				await waitFor(() => expect(isMenuClosed()).toBe(true));
+			});
+
+			it('should hide the menu content when Escape is pressed', async () => {
+				renderTable();
+				await openMoreMenu();
+				expect(isMenuClosed()).toBe(false);
+				fireEvent.keyDown(await screen.findByRole('menu'), { key: 'Escape' });
+				await waitFor(() => expect(isMenuClosed()).toBe(true));
 			});
 
 			it('should disable Delete all records when there are no records', async () => {

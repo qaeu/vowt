@@ -6,9 +6,16 @@
 		position: sticky;
 		top: 0;
 		z-index: 20;
-		padding: 10px 20px;
-		background-color: $background;
-		border-bottom: 1px solid get($neutrals, 'sep');
+		box-sizing: border-box;
+		min-height: 64px;
+		padding: 0 max(20px, calc((100% - 1200px) / 2));
+
+		@media (max-width: 720px) {
+			padding-block: 8px;
+			gap: 8px 12px;
+		}
+		background-color: $surface;
+		border-bottom: 1px solid get($neutrals, 'sep-light');
 
 		button {
 			display: inline-flex;
@@ -29,14 +36,37 @@
 			flex: 1;
 		}
 
+		&__nav {
+			align-self: stretch;
+		}
+
+		// Flat tab with an underline marking the current page
 		&__nav-item {
-			border-color: transparent;
+			box-sizing: border-box;
+			align-self: stretch;
+			min-height: 36px;
+			padding: 0 12px;
+			border: 0;
+			border-bottom: 2px solid transparent;
+			border-radius: 0;
+			background: none;
 			box-shadow: none;
+			filter: none;
+			backdrop-filter: none;
+			color: get($neutrals, 'fg-light');
+			font-size: 14px;
+			font-weight: 500;
+			letter-spacing: normal;
+
+			&:hover:not(:disabled) {
+				border-color: transparent;
+				color: $foreground;
+			}
 
 			&[aria-current='page'] {
-				@include shadow-inset;
-				background-color: get($neutrals, 'highlight');
-				border-color: get($neutrals, 'base');
+				box-shadow: none;
+				background: none;
+				border-bottom-color: $primary;
 				color: $foreground;
 				font-weight: 600;
 			}

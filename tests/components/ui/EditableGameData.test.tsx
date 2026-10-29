@@ -413,7 +413,7 @@ describe('EditableGameData', () => {
 
 			const { container } = renderComponent();
 			const datalists = container.querySelectorAll('datalist');
-			expect(datalists).toHaveLength(2);
+			expect(datalists).toHaveLength(3);
 
 			const heroInput = container.querySelector(
 				'input[id="blue-player-0-hero"]'
@@ -445,13 +445,50 @@ describe('EditableGameData', () => {
 			expect(container.querySelector(`datalist[id="${[...listIds][0]}"]`)).toBeTruthy();
 		});
 
-		it('should render empty datalists when nothing is stored', () => {
+		const listOptions = (container: HTMLElement, inputId: string) => {
+			const input = container.querySelector(`input[id="${inputId}"]`)!;
+			const listId = input.getAttribute('list');
+			expect(listId).toBeTruthy();
+			const list = container.querySelector(`datalist[id="${listId}"]`);
+			expect(list).toBeTruthy();
+			return Array.from((list as HTMLDataListElement).options).map((o) => o.value);
+		};
+
+		it('should fall back to the recognisable heroes when no OverFast data is stored', () => {
 			const { container } = renderComponent();
-			const datalists = container.querySelectorAll('datalist');
-			expect(datalists).toHaveLength(2);
-			datalists.forEach((list) => {
-				expect(list.querySelectorAll('option')).toHaveLength(0);
+			const heroes = listOptions(container, 'blue-player-0-hero');
+			expect(heroes.length).toBeGreaterThan(0);
+			expect(heroes).toContain('ana');
+		});
+
+		it('should render empty map and name datalists when nothing is stored', () => {
+			const { container } = renderComponent();
+			expect(listOptions(container, 'matchinfo-map')).toHaveLength(0);
+			expect(listOptions(container, 'blue-player-0-name')).toHaveLength(0);
+		});
+
+		it('should offer player names that appear in several saved records', () => {
+			const record = (id: string) => ({
+				id,
+				players: [{ ...mockPlayers[0], name: 'Regular' }],
+				matchInfo: mockMatchInfo,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 			});
+			localStorage.setItem(
+				'vowt_game_records',
+				JSON.stringify({ schemaVersion: 2, records: [record('a'), record('b')] })
+			);
+
+			const { container } = renderComponent();
+			const names = listOptions(container, 'blue-player-0-name');
+			expect(names).toEqual(['REGULAR']);
+			const nameLists = new Set(
+				Array.from(container.querySelectorAll('input[id$="-name"]')).map((i) =>
+					i.getAttribute('list')
+				)
+			);
+			expect(nameLists.size).toBe(1);
 		});
 	});
 });

@@ -80,7 +80,7 @@
 			gap: 10px;
 			width: 100%;
 			padding: 6px;
-			background-color: $background;
+			background-color: $surface;
 			border: 2px solid transparent;
 			border-radius: 6px;
 			color: $foreground;
@@ -132,7 +132,7 @@
 		}
 
 		.image-viewer {
-			@include card($background);
+			@include card($surface);
 
 			&__toolbar {
 				@include toolbar;
@@ -253,7 +253,7 @@
 		}
 
 		.ocr-output-box {
-			@include card($background);
+			@include card($surface);
 
 			margin-bottom: 0;
 

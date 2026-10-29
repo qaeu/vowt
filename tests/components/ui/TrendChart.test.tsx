@@ -33,7 +33,6 @@ describe('TrendChart', () => {
 
 			expect(container.querySelectorAll('circle')).toHaveLength(3);
 			expect(container.querySelectorAll('path.trend-chart__line')).toHaveLength(1);
-			expect(container.querySelectorAll('path.trend-chart__area')).toHaveLength(1);
 		});
 
 		it('should draw a games bar per week', () => {
@@ -102,7 +101,6 @@ describe('TrendChart', () => {
 			const gap = container.querySelector('path.trend-chart__line--gap');
 			expect(solid?.getAttribute('d')?.match(/M/g)).toHaveLength(2);
 			expect(gap?.getAttribute('d')?.match(/M/g)).toHaveLength(1);
-			expect(container.querySelectorAll('path.trend-chart__area')).toHaveLength(1);
 			expect(container.querySelectorAll('circle')).toHaveLength(4);
 		});
 

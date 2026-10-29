@@ -13,7 +13,7 @@
 
 		&__list-panel,
 		&__detail {
-			@include card($background);
+			@include card($surface);
 			border: 1px solid get($neutrals, 'sep');
 			padding: 12px;
 			margin-bottom: 0;

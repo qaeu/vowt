@@ -4,13 +4,12 @@
 	[data-scope='toast'] {
 		&[data-part='root'] {
 			@include shadow-tall();
-			@include background-light-glow();
-			background-color: oklch(from get($greys, 'bg') l c h / 0.66);
-			border: 1px solid get($neutrals, 'sep');
+			box-sizing: border-box;
+			background-color: oklch(from $surface l c h / 0.94);
+			border: 1px solid get($neutrals, 'sep-light');
 			border-radius: 6px;
-			backdrop-filter: blur(8px);
 			color: $foreground;
-			padding: 16px 20px;
+			padding: 14px 48px 14px 16px;
 			width: 360px;
 			overflow-wrap: anywhere;
 			translate: var(--x) var(--y);
@@ -54,11 +53,6 @@
 				background-color: oklch(from get($errors, 'bg-dark') l c h / 0.2);
 			}
 
-			&[data-type='info'] {
-				border-color: oklch(from get($neutrals, 'bg-dark') l c h / 0.5);
-				background-color: oklch(from get($neutrals, 'bg-dark') l c h / 0.2);
-			}
-
 			&[data-type='warning'] {
 				border-color: oklch(from get($warnings, 'bg-dark') l c h / 0.5);
 				background-color: oklch(from get($warnings, 'bg-dark') l c h / 0.2);
@@ -71,35 +65,57 @@
 		}
 
 		&[data-part='close-trigger'] {
-			@include button-small();
+			// Reset the global button styling (glow, blur, drop-shadow) for a flat icon
 			position: absolute;
-			right: 16px;
-			top: 14px;
+			top: 12px;
+			right: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-sizing: border-box;
+			width: 32px;
+			height: 32px;
+			min-height: 0;
+			padding: 0;
+			border: 1px solid transparent;
 			border-radius: 4px;
-			font-size: 16px;
+			background: none;
+			box-shadow: none;
+			filter: none;
+			backdrop-filter: none;
+			color: get($neutrals, 'fg-light');
+			letter-spacing: normal;
+			cursor: pointer;
+
+			&:hover:not(:disabled) {
+				border-color: get($primaries, 'sep-dark');
+				color: get($primaries, 'base-dark');
+				background: none;
+			}
 
 			& svg {
-				width: 1em;
-				height: 1em;
+				flex: none;
+				width: 16px;
+				height: 16px;
 			}
 		}
 
 		&[data-part='title'] {
-			margin: 0 0 8px 0;
-			font-size: 16px;
+			margin: 0 0 4px 0;
+			font-size: 15px;
 			font-weight: 600;
+			letter-spacing: normal;
+			color: $foreground;
 			display: flex;
 			align-items: center;
 			gap: 8px;
-			padding-right: 24px;
 		}
 
 		&[data-part='description'] {
 			margin: 0;
 			color: get($neutrals, 'fg-light');
 			font-size: 14px;
-			line-height: 1.5;
-			padding-right: 24px;
+			line-height: 1.45;
 		}
 	}
 }

@@ -4,7 +4,7 @@
 	.trend-chart {
 		display: block;
 		width: 100%;
-		height: auto;
+		height: 220px;
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -16,7 +16,7 @@
 	}
 
 	.trend-chart__grid {
-		stroke: get($greys, 'sep-light');
+		stroke: get($neutrals, 'highlight');
 		stroke-width: 1px;
 	}
 
@@ -28,17 +28,13 @@
 
 	.trend-chart__axis-label {
 		fill: get($neutrals, 'fg-light');
+		font-family: 'Fira Mono', monospace;
 		font-size: 11px;
 	}
 
 	.trend-chart__bar {
 		fill: get($greys, 'sep');
-		opacity: 0.7;
-	}
-
-	.trend-chart__area {
-		fill: get($primaries, 'fade-less');
-		stroke: none;
+		opacity: 0.35;
 	}
 
 	.trend-chart__line {
@@ -57,7 +53,7 @@
 
 	.trend-chart__point {
 		fill: get($primaries, 'base');
-		stroke: $background;
+		stroke: $surface;
 		stroke-width: 1.5px;
 	}
 }

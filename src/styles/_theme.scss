@@ -56,7 +56,10 @@ $foreground: get($neutrals, 'fg');
 
 // Background - Container and surface colours
 $greys: _colourset('mauve');
-$background: get($greys, 'bg');
+$surface: get($greys, 'bg');
+$page-background: get($neutrals, 'bg');
+// Kept as an alias of $surface for existing call sites
+$background: $surface;
 
 // Semantic colours
 $successes: _colourset('teal');
@@ -81,7 +84,7 @@ $toggle-animation-dur: 240ms;
 $shadow-base: $black;
 $shadow-light: var(--mauve-10);
 
-@function calc-shadow($light-colour: $background-light) {
+@function calc-shadow($light-colour: $surface) {
 	$light-lch: oklch(from $light-colour l c h);
 	@return oklch(from color.complement($light-lch) 0.05 c h);
 }
@@ -157,13 +160,14 @@ $shadow-light: var(--mauve-10);
 // Container mixin for main content areas
 @mixin container {
 	padding: 20px;
-	max-width: 1400px;
+	max-width: 1240px;
 	margin: 0 auto;
 }
 
 // Card/box styling with shadow and rounded corners
-@mixin card($bg-colour: $background) {
+@mixin card($bg-colour: $surface) {
 	@include shadow-short;
+	border: 1px solid get($neutrals, 'sep-light');
 	padding: 20px;
 	margin-bottom: 30px;
 	background-color: $bg-colour;
@@ -320,6 +324,41 @@ $shadow-light: var(--mauve-10);
 	}
 }
 
+// Text input and select styling
+@mixin input-control {
+	box-sizing: border-box;
+	height: 38px;
+	padding: 0 12px;
+	border: 1px solid get($greys, 'sep');
+	border-radius: 4px;
+	background-color: $surface;
+	color: $foreground;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+
+	&:hover {
+		border-color: get($greys, 'sep-dark');
+	}
+
+	&:focus-visible {
+		outline: 2px solid $primary;
+		outline-offset: 1px;
+	}
+}
+
+// Square icon-only button (36x36) built on the standard button
+@mixin icon-button($colourset: $primaries) {
+	@include button($colourset);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	flex: 0 0 36px;
+}
+
 // Badge styling
 @mixin badge($accent-color) {
 	@include shadow-inset();
@@ -338,7 +377,7 @@ $shadow-light: var(--mauve-10);
 }
 
 // Pre/code block styling
-@mixin code-block($bg: $background, $border-color: get($greys, 'sep')) {
+@mixin code-block($bg: $surface, $border-color: get($greys, 'sep')) {
 	background-color: $bg;
 	padding: 15px;
 	border-radius: 4px;

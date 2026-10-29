@@ -2,63 +2,80 @@
 @use 'theme' as *;
 
 @layer override {
-	#game-records-screen #more-actions {
-		@include button;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 14px;
+	#game-records-screen .more-actions-trigger {
+		@include icon-button;
 	}
 }
 
 @layer screen {
-	#game-records-screen {
-		@include container;
+	// The more-actions menu is portalled outside the screen
+	.more-actions-menu {
+		@include shadow;
+		display: flex;
+		flex-direction: column;
+		min-width: 200px;
+		padding: 4px;
+		z-index: 50;
+		background-color: $surface;
+		border: 1px solid get($neutrals, 'sep');
+		border-radius: 6px;
 
-		.more-actions-menu {
-			@include shadow;
-			display: flex;
-			flex-direction: column;
-			min-width: 200px;
-			padding: 4px;
-			z-index: 30;
-			background-color: $background;
-			border: 1px solid get($neutrals, 'sep');
-			border-radius: 6px;
+		&[hidden] {
+			display: none;
+		}
 
-			&__item {
-				padding: 8px 12px;
-				border-radius: 4px;
-				font-size: 14px;
-				cursor: pointer;
+		&__item {
+			padding: 8px 12px;
+			border-radius: 4px;
+			font-size: 14px;
+			cursor: pointer;
 
-				&[data-highlighted] {
-					background-color: get($neutrals, 'highlight');
-				}
+			&[data-highlighted] {
+				background-color: get($neutrals, 'highlight');
+			}
 
-				&[data-disabled] {
-					opacity: 0.5;
-					cursor: default;
-				}
+			&[data-disabled] {
+				opacity: 0.5;
+				cursor: default;
+			}
 
-				&--danger {
-					color: get($errors, 'fg-light');
-				}
+			&--danger {
+				color: get($errors, 'fg-light');
 			}
 		}
+	}
+
+	#game-records-screen {
+		@include container;
 
 		.records-toolbar {
 			@include toolbar(10px);
 			margin-bottom: 20px;
 
 			&__search {
+				@include input-control;
 				display: flex;
 				align-items: center;
-				gap: 6px;
+				gap: 8px;
 				flex: 1 1 260px;
+				max-width: 480px;
+				color: get($neutrals, 'fg-light');
+
+				&:focus-within {
+					outline: 2px solid $primary;
+					outline-offset: 1px;
+				}
 
 				input {
 					flex: 1;
+					min-width: 0;
+					height: 100%;
+					padding: 0;
+					border: 0;
+					background: transparent;
+					outline: none;
+					font-family: inherit;
+					font-size: 14px;
 				}
 			}
 
@@ -66,10 +83,18 @@
 				display: flex;
 				gap: 6px;
 			}
+
+			&__mode {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-size: 14px;
+				color: get($neutrals, 'fg-light');
+			}
 		}
 
 		.empty-state {
-			@include card($background);
+			@include card($surface);
 
 			display: flex;
 			flex-direction: column;
@@ -86,7 +111,7 @@
 		}
 
 		.records-table-wrapper {
-			@include card(get($neutrals, 'bg-light'));
+			@include card;
 			padding: 0;
 			contain: paint;
 			overflow-x: auto;
@@ -101,12 +126,15 @@
 				grid-column: 1 / -1;
 				display: grid;
 				grid-template-columns: subgrid;
-				background-color: get($greys, 'base');
-				color: $white;
+				border-bottom: 1px solid get($neutrals, 'sep-light');
+				color: get($neutrals, 'fg-light');
+				font-size: 12px;
+				font-weight: 600;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
 
 				> div {
 					padding: 12px;
-					font-weight: bold;
 				}
 			}
 
@@ -121,7 +149,7 @@
 				}
 
 				&.expanded {
-					background-color: $background;
+					background-color: $surface;
 
 					.record-cell--chevron svg {
 						transform: rotate(180deg);
@@ -167,7 +195,7 @@
 		}
 
 		.result-badge {
-			@include badge($background);
+			@include badge($surface);
 
 			&:not(.empty)::after {
 				content: '';
@@ -216,7 +244,7 @@
 		}
 
 		.expanded-details {
-			background-color: $background;
+			background-color: $surface;
 			overflow: hidden;
 			opacity: 0;
 			transition: opacity $toggle-animation-dur cubic-bezier(0.2, 1, 0.75, 1);

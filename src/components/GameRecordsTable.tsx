@@ -1,5 +1,6 @@
 import type { Component } from 'solid-js';
 import { createSignal, createMemo, onMount, For, Show, batch } from 'solid-js';
+import { Portal } from 'solid-js/web';
 import { Menu } from '@ark-ui/solid/menu';
 import { ChevronDown, Ellipsis, Search } from 'lucide-solid';
 
@@ -320,27 +321,29 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 	const moreActions = (
 		<Menu.Root positioning={{ placement: 'bottom-end' }} onSelect={handleMenuSelect}>
-			<Menu.Trigger id="more-actions">
-				<Ellipsis size={16} /> More actions
+			<Menu.Trigger class="more-actions-trigger" aria-label="More actions">
+				<Ellipsis size={16} />
 			</Menu.Trigger>
-			<Menu.Positioner>
-				<Menu.Content class="more-actions-menu">
-					<Menu.Item
-						value="update-game-data"
-						class="more-actions-menu__item"
-						disabled={isUpdatingGameData()}
-					>
-						Update game data
-					</Menu.Item>
-					<Menu.Item
-						value="delete-all-records"
-						class="more-actions-menu__item more-actions-menu__item--danger"
-						disabled={records().length === 0}
-					>
-						Delete all records…
-					</Menu.Item>
-				</Menu.Content>
-			</Menu.Positioner>
+			<Portal>
+				<Menu.Positioner>
+					<Menu.Content class="more-actions-menu">
+						<Menu.Item
+							value="update-game-data"
+							class="more-actions-menu__item"
+							disabled={isUpdatingGameData()}
+						>
+							Update game data
+						</Menu.Item>
+						<Menu.Item
+							value="delete-all-records"
+							class="more-actions-menu__item more-actions-menu__item--danger"
+							disabled={records().length === 0}
+						>
+							Delete all records…
+						</Menu.Item>
+					</Menu.Content>
+				</Menu.Positioner>
+			</Portal>
 		</Menu.Root>
 	);
 
@@ -361,16 +364,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 
 			<Show when={records().length > 0}>
 				<div class="records-toolbar">
-					<div class="records-toolbar__search">
-						<Search size={16} />
+					<label class="records-toolbar__search">
+						<Search size={16} aria-hidden="true" />
+						<span class="visually-hidden">Search records</span>
 						<input
 							type="search"
-							aria-label="Search records"
-							placeholder="Search map, mode, hero or player"
+							placeholder="Search map, hero or player"
 							value={searchQuery()}
 							onInput={(e) => setSearchQuery(e.currentTarget.value)}
 						/>
-					</div>
+					</label>
 					<div class="records-toolbar__results" role="group" aria-label="Result">
 						<For each={RESULT_FILTERS}>
 							{(filter) => (
@@ -384,14 +387,16 @@ const GameRecordsTable: Component<GameRecordsTableProps> = (props) => {
 							)}
 						</For>
 					</div>
-					<select
-						aria-label="Mode"
-						value={modeFilter()}
-						onChange={(e) => setModeFilter(e.currentTarget.value)}
-					>
-						<option value="all">All modes</option>
-						<For each={modes()}>{(mode) => <option value={mode}>{mode}</option>}</For>
-					</select>
+					<label class="records-toolbar__mode">
+						Mode
+						<select
+							value={modeFilter()}
+							onChange={(e) => setModeFilter(e.currentTarget.value)}
+						>
+							<option value="all">All modes</option>
+							<For each={modes()}>{(mode) => <option value={mode}>{mode}</option>}</For>
+						</select>
+					</label>
 				</div>
 
 				<Show

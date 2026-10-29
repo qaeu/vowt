@@ -1,5 +1,5 @@
 /**
- * Weekly trend line with area, optional reference line and games-per-week bars
+ * Weekly trend line with point markers, optional reference line and games-per-week bars
  */
 
 import type { Component } from 'solid-js';
@@ -25,7 +25,7 @@ interface WeekLabel {
 }
 
 const WIDTH = 640;
-const HEIGHT = 240;
+const HEIGHT = 220;
 const PAD = { left: 48, right: 12, top: 12, bottom: 34 };
 const PLOT_WIDTH = WIDTH - PAD.left - PAD.right;
 const PLOT_HEIGHT = HEIGHT - PAD.top - PAD.bottom;
@@ -74,12 +74,6 @@ const TrendChart: Component<TrendChartProps> = (props) => {
 			.filter(({ from, to }) => to.index - from.index > 1 === bridged)
 			.map(({ from, to }) => `M${from.x} ${from.y} L${to.x} ${to.y}`)
 			.join(' ');
-
-	const areaPath = () => {
-		const ps = plotted();
-		const line = ps.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ');
-		return `${line} L${ps[ps.length - 1].x} ${BASELINE} L${ps[0].x} ${BASELINE} Z`;
-	};
 
 	const ticks = createMemo(() => {
 		const [min, max] = domain();
@@ -172,9 +166,6 @@ const TrendChart: Component<TrendChartProps> = (props) => {
 						/>
 					)}
 				</For>
-				<Show when={plotted().length > 1}>
-					<path class="trend-chart__area" d={areaPath()} />
-				</Show>
 				<Show when={segmentPath(false)}>
 					{(d) => <path class="trend-chart__line" d={d()} />}
 				</Show>

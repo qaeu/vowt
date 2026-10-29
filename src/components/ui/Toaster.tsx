@@ -32,7 +32,7 @@ const Toaster: Component<ToasterProps> = (props) => {
 					</Toast.Title>
 					<Toast.Description>{toast().description}</Toast.Description>
 					<Toast.CloseTrigger>
-						<X size={18} />
+						<X size={16} />
 					</Toast.CloseTrigger>
 				</Toast.Root>
 			)}
