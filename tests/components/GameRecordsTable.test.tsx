@@ -337,6 +337,105 @@ describe('GameRecordsTable', () => {
 		});
 	});
 
+	describe('sorting', () => {
+		const makeRecord = (id: string, matchInfo: Partial<MatchInfo>): GameRecord => ({
+			...mockRecords[0],
+			id,
+			matchInfo: { ...mockRecords[0].matchInfo, ...matchInfo },
+		});
+		const rowIds = () =>
+			[...document.querySelectorAll('.record-group')].map((el) =>
+				el.id.replace('record-', '')
+			);
+		const sortBy = (name: string) =>
+			fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
+
+		const records = [
+			makeRecord('a', {
+				date: '10/20/2025',
+				result: 'DEFEAT',
+				final_score: { blue: '1', red: '3' },
+				game_mode: 'PUSH',
+				map: 'Colosseo',
+				game_length: '12:00',
+			}),
+			makeRecord('b', {
+				date: '10/22/2025',
+				result: 'VICTORY',
+				final_score: { blue: '3', red: '0' },
+				game_mode: 'CONTROL',
+				map: 'Busan',
+				game_length: '08:15',
+			}),
+			makeRecord('c', {
+				date: '10/21/2025',
+				result: 'DRAW',
+				final_score: { blue: '2', red: '2' },
+				game_mode: 'ESCORT',
+				map: '',
+				game_length: '',
+			}),
+		];
+
+		beforeEach(() => {
+			vi.mocked(gameStorage.loadGameRecords).mockReturnValue(records);
+		});
+
+		it('should keep storage order until a column is sorted', () => {
+			renderTable();
+			expect(rowIds()).toEqual(['a', 'b', 'c']);
+		});
+
+		it.each([
+			['Played', ['b', 'c', 'a']],
+			['Result', ['b', 'c', 'a']],
+			['Score', ['b', 'c', 'a']],
+			['Mode', ['b', 'c', 'a']],
+			['Map', ['b', 'a', 'c']],
+			['Length', ['a', 'b', 'c']],
+		])('should sort by %s in its default direction', (name, expected) => {
+			renderTable();
+			sortBy(name);
+			expect(rowIds()).toEqual(expected);
+		});
+
+		it('should reverse on the second click and reset on the third', () => {
+			renderTable();
+			sortBy('Played');
+			sortBy('Played');
+			expect(rowIds()).toEqual(['a', 'c', 'b']);
+			sortBy('Played');
+			expect(rowIds()).toEqual(['a', 'b', 'c']);
+		});
+
+		it('should keep blanks last in both directions', () => {
+			renderTable();
+			sortBy('Map');
+			expect(rowIds().at(-1)).toBe('c');
+			sortBy('Map');
+			expect(rowIds()).toEqual(['a', 'b', 'c']);
+		});
+
+		it('should announce the sort direction on the active column', () => {
+			renderTable();
+			sortBy('Played');
+			expect(
+				screen.getByRole('button', { name: 'Played (sorted descending)' })
+			).toBeDefined();
+			sortBy('Played');
+			expect(
+				screen.getByRole('button', { name: 'Played (sorted ascending)' })
+			).toBeDefined();
+		});
+
+		it('should sort only the filtered records', () => {
+			renderTable();
+			fireEvent.click(screen.getByRole('button', { name: 'Victories' }));
+			sortBy('Played');
+			expect(rowIds()).toEqual(['b']);
+		});
+	});
+
 	describe('row expansion', () => {
 		const getRowButton = (resultText: string) =>
 			screen.getByText(resultText).closest('button')!;

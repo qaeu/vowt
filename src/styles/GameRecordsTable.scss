@@ -134,7 +134,38 @@
 				text-transform: uppercase;
 
 				> div {
-					padding: 12px;
+					display: flex;
+				}
+			}
+
+			.records-header__sort {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				width: 100%;
+				padding: 12px;
+				border: none;
+				border-radius: 0;
+				background: none;
+				box-shadow: none;
+				filter: none;
+				backdrop-filter: none;
+				font: inherit;
+				letter-spacing: inherit;
+				text-align: left;
+				text-transform: inherit;
+				color: inherit;
+				cursor: pointer;
+				user-select: none;
+
+				&:hover,
+				&--active {
+					color: get($neutrals, 'fg');
+				}
+
+				&:focus-visible {
+					outline: 2px solid $primary;
+					outline-offset: -2px;
 				}
 			}
 
