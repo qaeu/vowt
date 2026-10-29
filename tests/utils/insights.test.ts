@@ -191,7 +191,11 @@ describe('insights', () => {
 				expect(parseStat(' 12345 ')).toBe(12345);
 			});
 
-			it.each(['', 'abc', '1O', '-3', '1.5', '1,000'])('returns null for %j', (text) => {
+			it.each(['', '   '])('counts blank %j as 0', (text) => {
+				expect(parseStat(text)).toBe(0);
+			});
+
+			it.each(['abc', '1O', '-3', '1.5', '1,000'])('returns null for %j', (text) => {
 				expect(parseStat(text)).toBeNull();
 			});
 		});
@@ -292,14 +296,14 @@ describe('insights', () => {
 			expect(toPlayerGames([rec()], 'alice', [])[0].role).toBe('unknown');
 		});
 
-		it('nulls unreadable length and stats and labels empty mode/map', () => {
+		it('nulls unreadable length and stats, zeroes blank stats and labels empty mode/map', () => {
 			const [g] = toPlayerGames(
 				[rec({ length: 'x', mode: ' ', map: '', me: { e: '', dmg: 'abc' } })],
 				'alice',
 				HEROES
 			);
 			expect(g.lengthSeconds).toBeNull();
-			expect(g.stats.e).toBeNull();
+			expect(g.stats.e).toBe(0);
 			expect(g.stats.dmg).toBeNull();
 			expect(g.stats.a).toBe(5);
 			expect(g.mode).toBe('UNKNOWN');

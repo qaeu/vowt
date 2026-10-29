@@ -128,11 +128,12 @@ export function parseGameLengthSeconds(text: string): number | null {
 }
 
 /**
- * Parses a stat value
+ * Parses a stat value; a blank stat counts as 0
  * @returns A non-negative integer, or null if the text is not all digits
  */
 export function parseStat(text: string): number | null {
 	const trimmed = (text ?? '').trim();
+	if (!trimmed) return 0;
 	return /^\d+$/.test(trimmed) ? Number(trimmed) : null;
 }
 

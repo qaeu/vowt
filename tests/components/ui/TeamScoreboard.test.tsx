@@ -84,6 +84,36 @@ describe('TeamScoreboard', () => {
 			]);
 		});
 
+		it('should show 0 for blank stats', () => {
+			render(() => (
+				<TeamScoreboard
+					players={[
+						{
+							name: 'Dave',
+							team: 'blue',
+							e: '',
+							a: ' ',
+							d: '4',
+							dmg: '',
+							h: '',
+							mit: '9',
+						},
+					]}
+				/>
+			));
+			const blue = screen.getAllByRole('table')[0];
+			const cells = within(blue).getAllByRole('row')[1].querySelectorAll('td').values();
+			expect(Array.from(cells).map((c) => c.textContent)).toEqual([
+				'-',
+				'0',
+				'0',
+				'4',
+				'0',
+				'0',
+				'9',
+			]);
+		});
+
 		it('should render empty tables when there are no players', () => {
 			render(() => <TeamScoreboard players={[]} />);
 			expect(screen.getAllByRole('table')).toHaveLength(2);
