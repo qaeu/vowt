@@ -418,6 +418,22 @@
 			list-style: none;
 		}
 
+		.insights-lobby__group + .insights-lobby__group {
+			margin-top: 18px;
+		}
+
+		.insights-lobby__role {
+			margin: 0 0 8px;
+			font-size: 14px;
+			font-weight: 700;
+		}
+
+		.insights-lobby__split {
+			margin: 4px 0 0;
+			font-size: 12px;
+			color: get($neutrals, 'fg-light');
+		}
+
 		.insights-lobby__stat {
 			display: block;
 			margin-bottom: 4px;

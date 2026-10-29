@@ -25,6 +25,8 @@ import type {
 	PlayerGame,
 	RecentForm,
 	RecordStatsRow,
+	RoleDeathsMedian,
+	RoleLobbyComparison,
 	StatKey,
 	TrendMetric,
 	WeeklyTrendPoint,
@@ -66,6 +68,9 @@ export const DEFAULT_TREND_WEEKS = 12;
 /** Mode and map name used when none was read */
 export const UNKNOWN_NAME = 'UNKNOWN';
 
+/** Minimum games on each side of the team-average split to show its win rates */
+export const MIN_TEAM_SPLIT_GAMES = 5;
+
 /** Stats compared against the lobby, in display order */
 export const LOBBY_STATS = ['e', 'a', 'd', 'h', 'dmg'] as const;
 
@@ -73,6 +78,8 @@ const STAT_KEYS: StatKey[] = ['e', 'a', 'd', 'dmg', 'h', 'mit'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PERIOD_DAYS = { last30: 30, last90: 90 } as const;
 const SECONDS_PER_10_MINUTES = 600;
+/** Role display order for per-role groups */
+const ROLE_ORDER: PlayerGame['role'][] = ['tank', 'damage', 'support', 'unknown'];
 /** z for a two-sided 90% interval */
 const Z_90 = 1.645;
 
@@ -316,6 +323,21 @@ function _compareRates(a: PlayerGame[], b: PlayerGame[]): RateComparison {
 /** Win percentage over games with a readable result; null if there are none */
 function _winRate(games: PlayerGame[]): number | null {
 	return _countResults(games).winRate;
+}
+
+/** One game's value per 10 minutes; null if the value or the game length is missing */
+function _gamePer10(game: PlayerGame, value: number | null): number | null {
+	if (value === null || game.lengthSeconds === null) return null;
+	return (value / game.lengthSeconds) * SECONDS_PER_10_MINUTES;
+}
+
+/** Games grouped by role, only roles with games, in ROLE_ORDER */
+function _byRole(games: PlayerGame[]): [PlayerGame['role'], PlayerGame[]][] {
+	const groups = _groupBy(games, (g) => g.role);
+	return ROLE_ORDER.filter((role) => groups.has(role)).map((role) => [
+		role,
+		groups.get(role)!,
+	]);
 }
 
 /** Sum of a stat per 10 minutes over games with both a valid length and stat */
@@ -632,24 +654,42 @@ export function buildHeroPool(games: PlayerGame[]): HeroPoolRow[] {
 }
 
 /**
- * Compares the player with the team average and enemy average per 10 minutes
- * Only games with a valid length and all three values read are used, so the columns
- * are measured over the same games.
+ * Compares the player with the team average and enemy average per 10 minutes, per role
+ * Only games with a valid length and all three values read are used for the per-10
+ * columns, so they are measured over the same games.
+ * The above/below split compares your stat with your team's average in the same game
+ * (teammates only, excluding you) and needs only those two values: games with either
+ * missing are skipped for that stat, and a tie (exactly equal) counts as neither above
+ * nor below. Win rates are over decided games; null if a side has none. For deaths,
+ * "above" is the worse side.
  * @param games - Games to compare
+ * @returns One group per role that has games (tank, damage, support, unknown)
  */
-export function buildLobbyComparison(games: PlayerGame[]): LobbyComparisonRow[] {
-	return LOBBY_STATS.map((stat) => {
-		const usable = games.filter(
-			(g) =>
-				g.stats[stat] !== null && g.teamAvg[stat] !== null && g.enemyAvg[stat] !== null
-		);
-		return {
-			stat,
-			you: _per10(usable, (g) => g.stats[stat]),
-			team: _per10(usable, (g) => g.teamAvg[stat]),
-			enemy: _per10(usable, (g) => g.enemyAvg[stat]),
-		};
-	});
+export function buildLobbyComparison(games: PlayerGame[]): RoleLobbyComparison[] {
+	return _byRole(games).map(([role, roleGames]) => ({
+		role,
+		rows: LOBBY_STATS.map((stat): LobbyComparisonRow => {
+			const usable = roleGames.filter(
+				(g) =>
+					g.stats[stat] !== null && g.teamAvg[stat] !== null && g.enemyAvg[stat] !== null
+			);
+			const compared = roleGames.filter(
+				(g) => g.stats[stat] !== null && g.teamAvg[stat] !== null
+			);
+			const above = compared.filter((g) => g.stats[stat]! > g.teamAvg[stat]!);
+			const below = compared.filter((g) => g.stats[stat]! < g.teamAvg[stat]!);
+			return {
+				stat,
+				you: _per10(usable, (g) => g.stats[stat]),
+				team: _per10(usable, (g) => g.teamAvg[stat]),
+				enemy: _per10(usable, (g) => g.enemyAvg[stat]),
+				gamesAbove: above.length,
+				gamesBelow: below.length,
+				winRateAbove: _winRate(above),
+				winRateBelow: _winRate(below),
+			};
+		}),
+	}));
 }
 
 /**
@@ -719,7 +759,9 @@ export function buildPersonalBests(games: PlayerGame[]): PersonalBests {
 
 /**
  * Reports notable patterns; each rule needs MIN_FINDING_GAMES in every bucket
- * - deathsSplit: win rate at or below the median deaths vs above it (MIN_DEATHS_GAP)
+ * - deathsSplit: win rate at or below your role's median deaths per 10 minutes vs
+ *   above it (MIN_DEATHS_GAP); games without a length are skipped, and 'unknown' is
+ *   its own role
  * - bestHero: best win rate among heroes vs all other games (MIN_HERO_GAP)
  * - weakestMode: lowest win rate among modes vs all other games (MIN_MODE_GAP), with
  *   its worst map
@@ -733,18 +775,29 @@ export function buildFindings(games: PlayerGame[]): InsightFinding[] {
 	const decided = games.filter((g) => g.result !== 'unknown');
 	if (decided.length < MIN_FINDING_GAMES) return findings;
 
-	const withDeaths = decided.filter((g) => g.stats.d !== null);
+	const withDeaths = decided
+		.map((g) => ({ game: g, deaths10: _gamePer10(g, g.stats.d) }))
+		.filter((x): x is { game: PlayerGame; deaths10: number } => x.deaths10 !== null);
 	if (withDeaths.length) {
-		const medianDeaths = _median(withDeaths.map((g) => g.stats.d!));
-		const low = withDeaths.filter((g) => g.stats.d! <= medianDeaths);
-		const high = withDeaths.filter((g) => g.stats.d! > medianDeaths);
+		const medians: RoleDeathsMedian[] = [];
+		const low: PlayerGame[] = [];
+		const high: PlayerGame[] = [];
+		for (const role of ROLE_ORDER) {
+			const inRole = withDeaths.filter((x) => x.game.role === role);
+			if (!inRole.length) continue;
+			const medianDeaths10 = _median(inRole.map((x) => x.deaths10));
+			medians.push({ role, medianDeaths10 });
+			for (const { game, deaths10 } of inRole) {
+				(deaths10 <= medianDeaths10 ? low : high).push(game);
+			}
+		}
 		if (low.length >= MIN_FINDING_GAMES && high.length >= MIN_FINDING_GAMES) {
 			const { aRate, bRate, significant, confidence } = _compareRates(low, high);
 			if (aRate - bRate >= MIN_DEATHS_GAP && significant) {
 				findings.push({
 					kind: 'deathsSplit',
 					confidence,
-					medianDeaths,
+					medians,
 					lowDeaths: { games: low.length, winRate: aRate },
 					highDeaths: { games: high.length, winRate: bRate },
 				});

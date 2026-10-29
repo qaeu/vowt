@@ -231,6 +231,24 @@ export interface LobbyComparisonRow {
 	you: number | null;
 	team: number | null;
 	enemy: number | null;
+	/** Games where your total was above your team's average; ties are in neither side */
+	gamesAbove: number;
+	gamesBelow: number;
+	/** Win percentage 0-100 over decided games on that side; null if none were decided */
+	winRateAbove: number | null;
+	winRateBelow: number | null;
+}
+
+/** Lobby comparison rows for the games played in one role */
+export interface RoleLobbyComparison {
+	role: OverFastHeroRole | 'unknown';
+	rows: LobbyComparisonRow[];
+}
+
+/** Median deaths per 10 minutes of the games played in one role */
+export interface RoleDeathsMedian {
+	role: OverFastHeroRole | 'unknown';
+	medianDeaths10: number;
 }
 
 export interface RecordStatsRow {
@@ -279,7 +297,8 @@ export type InsightFinding =
 	| {
 			kind: 'deathsSplit';
 			confidence: FindingConfidence;
-			medianDeaths: number;
+			/** Per-role medians that low/high deaths are split at */
+			medians: RoleDeathsMedian[];
 			lowDeaths: WinRateBucket;
 			highDeaths: WinRateBucket;
 	  }
@@ -315,7 +334,7 @@ export interface InsightsSummary {
 	trend: Record<TrendMetric, WeeklyTrendPoint[]>;
 	recentForm: RecentForm;
 	heroPool: HeroPoolRow[];
-	lobby: LobbyComparisonRow[];
+	lobby: RoleLobbyComparison[];
 	maps: MapStatsRow[];
 	modes: ModeStatsRow[];
 	personalBests: PersonalBests;

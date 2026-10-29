@@ -18,6 +18,7 @@ import type {
 	LobbyComparisonRow,
 	PersonalBest,
 	PersonalBests,
+	RoleDeathsMedian,
 	TrendMetric,
 } from '#types';
 import Screen from '#c/ui/Screen';
@@ -26,7 +27,11 @@ import TrendChart from '#c/ui/TrendChart';
 import * as Store from '#utils/storage';
 import { loadOverFastData } from '#utils/overfastApi';
 import { getHeroDisplayName } from '#utils/gameData';
-import { buildInsightsSummary, getPlayerNameCounts } from '#utils/insights';
+import {
+	MIN_TEAM_SPLIT_GAMES,
+	buildInsightsSummary,
+	getPlayerNameCounts,
+} from '#utils/insights';
 import { normaliseName } from '#utils/playerNames';
 
 interface InsightsProps {
@@ -231,6 +236,16 @@ const FINDING_ICONS: Record<InsightFinding['kind'], LucideIcon> = {
 	weakestMode: TriangleAlert,
 };
 
+const ROLE_LABELS: Record<RoleDeathsMedian['role'], string> = {
+	tank: 'Tank',
+	damage: 'Damage',
+	support: 'Support',
+	unknown: 'Unknown role',
+};
+
+const _formatMedians = (medians: RoleDeathsMedian[]): string =>
+	medians.map((m) => `${ROLE_LABELS[m.role]} ${m.medianDeaths10.toFixed(1)}`).join(', ');
+
 const _findingContent = (finding: InsightFinding): { title: string; text: string } => {
 	switch (finding.kind) {
 		case 'deathsSplit':
@@ -238,8 +253,9 @@ const _findingContent = (finding: InsightFinding): { title: string; text: string
 				title: 'Staying alive wins games',
 				text:
 					`You win ${Math.round(finding.lowDeaths.winRate)}% of games with `
-					+ `${finding.medianDeaths} or fewer deaths, but only `
-					+ `${Math.round(finding.highDeaths.winRate)}% with more.`,
+					+ `deaths per 10 minutes at or below your role's typical level, but only `
+					+ `${Math.round(finding.highDeaths.winRate)}% above it. `
+					+ `Typical: ${_formatMedians(finding.medians)}.`,
 			};
 		case 'bestHero': {
 			const gap = Math.round(finding.winRate - finding.restWinRate);
@@ -363,6 +379,9 @@ const Insights: Component<InsightsProps> = (props) => {
 		];
 		return parts.filter(Boolean).join(' · ');
 	};
+
+	const showTeamSplit = (row: LobbyComparisonRow): boolean =>
+		row.gamesAbove >= MIN_TEAM_SPLIT_GAMES && row.gamesBelow >= MIN_TEAM_SPLIT_GAMES;
 
 	const lobbyLabel = (row: LobbyComparisonRow): string =>
 		`${LOBBY_LABELS[row.stat]} per 10 minutes: you ${_formatNumber(row.you, 1)}, `
@@ -705,40 +724,59 @@ const Insights: Component<InsightsProps> = (props) => {
 
 						<section class="insights-panel" aria-labelledby="lobby-h">
 							<h2 id="lobby-h">You vs the lobby</h2>
-							<ul class="insights-lobby">
-								<For each={summary().lobby}>
-									{(row) => {
-										const max = () =>
-											Math.max(row.you ?? 0, row.team ?? 0, row.enemy ?? 0);
-										return (
-											<li class="insights-lobby__row" aria-label={lobbyLabel(row)}>
-												<span class="insights-lobby__stat">{LOBBY_LABELS[row.stat]}</span>
-												<For
-													each={
-														[
-															['You', row.you, 'primary'],
-															['Team avg', row.team, 'neutral'],
-															['Enemy avg', row.enemy, 'error'],
-														] as const
-													}
-												>
-													{([text, value, tone]) => (
-														<div class="insights-lobby__line" aria-hidden="true">
-															<span>{text}</span>
-															<BarMeter
-																segments={[{ value: value ?? 0, tone }]}
-																max={max()}
-															/>
-															<span>{_formatNumber(value, 1)}</span>
-														</div>
-													)}
-												</For>
-											</li>
-										);
-									}}
-								</For>
-							</ul>
-							<p class="insights-note">Per 10 minutes</p>
+							<For each={summary().lobby}>
+								{(group) => (
+									<div class="insights-lobby__group">
+										<h3 class="insights-lobby__role">{ROLE_LABELS[group.role]}</h3>
+										<ul class="insights-lobby">
+											<For each={group.rows}>
+												{(row) => {
+													const max = () =>
+														Math.max(row.you ?? 0, row.team ?? 0, row.enemy ?? 0);
+													return (
+														<li class="insights-lobby__row" aria-label={lobbyLabel(row)}>
+															<span class="insights-lobby__stat">
+																{LOBBY_LABELS[row.stat]}
+															</span>
+															<For
+																each={
+																	[
+																		['You', row.you, 'primary'],
+																		['Team avg', row.team, 'neutral'],
+																		['Enemy avg', row.enemy, 'error'],
+																	] as const
+																}
+															>
+																{([text, value, tone]) => (
+																	<div class="insights-lobby__line" aria-hidden="true">
+																		<span>{text}</span>
+																		<BarMeter
+																			segments={[{ value: value ?? 0, tone }]}
+																			max={max()}
+																		/>
+																		<span>{_formatNumber(value, 1)}</span>
+																	</div>
+																)}
+															</For>
+															<Show when={showTeamSplit(row)}>
+																<p class="insights-lobby__split">
+																	Above team avg: {_formatPercent(row.winRateAbove)} (
+																	{row.gamesAbove}) · Below:{' '}
+																	{_formatPercent(row.winRateBelow)} ({row.gamesBelow})
+																</p>
+															</Show>
+														</li>
+													);
+												}}
+											</For>
+										</ul>
+									</div>
+								)}
+							</For>
+							<p class="insights-note">
+								Per 10 minutes. Above/below: win rate in games where you were above or
+								below your team's average.
+							</p>
 						</section>
 					</div>
 

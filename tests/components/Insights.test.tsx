@@ -46,6 +46,8 @@ interface RecordOptions {
 	kills?: string;
 	deaths?: string;
 	withBob?: boolean;
+	/** Adds a blue teammate with 5 eliminations, 5 assists, 5 deaths, 3000 damage */
+	withMate?: boolean;
 }
 
 const makeRecord = (o: RecordOptions): GameRecord => ({
@@ -73,6 +75,21 @@ const makeRecord = (o: RecordOptions): GameRecord => ({
 			mit: '0',
 			hero: 'Winston',
 		},
+		...(o.withMate ?
+			[
+				{
+					name: 'MATE',
+					team: 'blue' as const,
+					e: '5',
+					a: '5',
+					d: '5',
+					dmg: '3000',
+					h: '0',
+					mit: '0',
+					hero: 'Tracer',
+				},
+			]
+		:	[]),
 		...(o.withBob ?
 			[
 				{
@@ -290,7 +307,9 @@ describe('Insights', () => {
 			expect(screen.getByText('What stands out')).toBeDefined();
 			expect(screen.getByText('Staying alive wins games')).toBeDefined();
 			expect(
-				screen.getByText(/You win 100% of games with 5.5 or fewer deaths, but only 0%/)
+				screen.getByText(
+					/You win 100% of games with deaths per 10 minutes at or below your role's typical level, but only 0% above it\. Typical: Damage 5\.5\./
+				)
 			).toBeDefined();
 		});
 
@@ -526,6 +545,48 @@ describe('Insights', () => {
 			fireEvent.click(best);
 
 			expect(onOpenRecord).toHaveBeenCalledWith('g3');
+		});
+	});
+
+	describe('lobby comparison', () => {
+		/** Tracer games: `damageAbove` above and `damageBelow` below the team on kills */
+		const lobbyRecords = (above: number, below: number): GameRecord[] => [
+			...Array.from({ length: above }, (_, i) =>
+				makeRecord({ id: `a${i}`, kills: '9', withMate: true })
+			),
+			...Array.from({ length: below }, (_, i) =>
+				makeRecord({ id: `b${i}`, kills: '1', result: 'DEFEAT', withMate: true })
+			),
+			makeRecord({ id: 't1', hero: 'Reinhardt', withMate: true }),
+		];
+
+		it('should render one headed group per role with games', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 5));
+			const { container } = renderInsights();
+
+			const headings = [...container.querySelectorAll('.insights-lobby__role')];
+			expect(headings.map((h) => h.textContent)).toEqual(['Tank', 'Damage']);
+			expect(container.querySelectorAll('.insights-lobby__group')).toHaveLength(2);
+		});
+
+		it('should show the above/below line with win rates and counts', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 5));
+			const { container } = renderInsights();
+
+			const lines = [...container.querySelectorAll('.insights-lobby__split')];
+			expect(lines).toHaveLength(1);
+			expect(lines[0].textContent?.replace(/\s+/g, ' ')).toBe(
+				'Above team avg: 100% (5) · Below: 0% (5)'
+			);
+		});
+
+		it('should hide the line when either side has fewer than 5 games', () => {
+			vi.mocked(Store.loadGameRecords).mockReturnValue(lobbyRecords(5, 4));
+			const { container } = renderInsights();
+
+			expect(container.querySelectorAll('.insights-lobby__split')).toHaveLength(0);
+			// The stat rows themselves stay
+			expect(screen.getAllByText('Eliminations').length).toBeGreaterThan(0);
 		});
 	});
 

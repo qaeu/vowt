@@ -9,6 +9,7 @@ import type {
 } from '#types';
 import {
 	MIN_FINDING_GAMES,
+	MIN_TEAM_SPLIT_GAMES,
 	parseResult,
 	parseMatchDate,
 	parseGameLengthSeconds,
@@ -769,40 +770,129 @@ describe('insights', () => {
 	});
 
 	describe('buildLobbyComparison', () => {
-		it('returns null values for no games', () => {
-			const rows = buildLobbyComparison([]);
-			expect(rows.map((r) => r.stat)).toEqual(['e', 'a', 'd', 'h', 'dmg']);
-			expect(
-				rows.every((r) => r.you === null && r.team === null && r.enemy === null)
-			).toBe(true);
+		const statsOf = (e: number | null) => ({ e, a: 0, d: 0, dmg: 0, h: 0, mit: 0 });
+		const rowOf = (groups: ReturnType<typeof buildLobbyComparison>, role: string) =>
+			groups.find((g) => g.role === role)!.rows;
+		const eRow = (g: PlayerGame[]) =>
+			rowOf(buildLobbyComparison(g), 'damage').find((r) => r.stat === 'e')!;
+
+		describe('role grouping', () => {
+			it('returns no groups for no games', () => {
+				expect(buildLobbyComparison([])).toEqual([]);
+			});
+
+			it('lists only roles with games, in a stable order', () => {
+				const groups = buildLobbyComparison([
+					game({ role: 'unknown' }),
+					game({ role: 'support' }),
+					game({ role: 'tank' }),
+					game({ role: 'tank' }),
+				]);
+				expect(groups.map((g) => g.role)).toEqual(['tank', 'support', 'unknown']);
+				expect(groups[0].rows.map((r) => r.stat)).toEqual(['e', 'a', 'd', 'h', 'dmg']);
+			});
+
+			it('computes each role from its own games only', () => {
+				const mk = (role: PlayerGame['role'], e: number) =>
+					game({ role, stats: statsOf(e), teamAvg: statsOf(e), enemyAvg: statsOf(e) });
+				const groups = buildLobbyComparison([mk('tank', 10), mk('damage', 30)]);
+				expect(rowOf(groups, 'tank')[0].you).toBe(10);
+				expect(rowOf(groups, 'damage')[0].you).toBe(30);
+			});
 		});
 
-		it('computes per-10 for you, team and enemy', () => {
-			const g = game({
-				lengthSeconds: 1200,
-				stats: { e: 20, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				teamAvg: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				enemyAvg: { e: 30, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
+		describe('per 10 minutes', () => {
+			it('computes per-10 for you, team and enemy', () => {
+				const g = game({
+					lengthSeconds: 1200,
+					stats: statsOf(20),
+					teamAvg: statsOf(10),
+					enemyAvg: statsOf(30),
+				});
+				expect(eRow([g])).toMatchObject({ stat: 'e', you: 10, team: 5, enemy: 15 });
 			});
-			const row = buildLobbyComparison([g]).find((r) => r.stat === 'e')!;
-			expect(row).toEqual({ stat: 'e', you: 10, team: 5, enemy: 15 });
+
+			it('only uses games where all three values and the length are readable', () => {
+				const full = game({
+					stats: statsOf(10),
+					teamAvg: statsOf(10),
+					enemyAvg: statsOf(10),
+				});
+				const noEnemy = game({ stats: statsOf(999), teamAvg: statsOf(999) });
+				const noLength = { ...full, lengthSeconds: null };
+				expect(eRow([full, noEnemy, noLength])).toMatchObject({
+					you: 10,
+					team: 10,
+					enemy: 10,
+				});
+			});
 		});
 
-		it('only uses games where all three values and the length are readable', () => {
-			const full = game({
-				stats: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				teamAvg: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				enemyAvg: { e: 10, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
+		describe('above/below team average', () => {
+			/** Game with your e vs the team's e and a result */
+			const vs = (
+				you: number | null,
+				team: number | null,
+				result: PlayerGame['result']
+			) => game({ result, stats: statsOf(you), teamAvg: statsOf(team) });
+
+			it('splits win rates by your stat against the team average', () => {
+				const row = eRow([
+					vs(10, 5, 'win'),
+					vs(10, 5, 'win'),
+					vs(10, 5, 'loss'),
+					vs(2, 5, 'loss'),
+					vs(2, 5, 'win'),
+				]);
+				expect(row.gamesAbove).toBe(3);
+				expect(row.winRateAbove).toBeCloseTo(66.67, 1);
+				expect(row.gamesBelow).toBe(2);
+				expect(row.winRateBelow).toBe(50);
 			});
-			const noEnemy = game({
-				stats: { e: 999, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
-				teamAvg: { e: 999, a: 0, d: 0, dmg: 0, h: 0, mit: 0 },
+
+			it('counts exact ties on neither side', () => {
+				const row = eRow([vs(5, 5, 'win'), vs(6, 5, 'win'), vs(4, 5, 'loss')]);
+				expect(row).toMatchObject({ gamesAbove: 1, gamesBelow: 1 });
+				expect(row.winRateAbove).toBe(100);
+				expect(row.winRateBelow).toBe(0);
 			});
-			const noLength = { ...full, lengthSeconds: null };
-			const row = buildLobbyComparison([full, noEnemy, noLength]).find(
-				(r) => r.stat === 'e'
-			)!;
-			expect(row).toEqual({ stat: 'e', you: 10, team: 10, enemy: 10 });
+
+			it('counts games without a decided result in the games but not the rate', () => {
+				const row = eRow([vs(9, 5, 'unknown'), vs(9, 5, 'win'), vs(1, 5, 'unknown')]);
+				expect(row).toMatchObject({ gamesAbove: 2, gamesBelow: 1 });
+				expect(row.winRateAbove).toBe(100);
+				expect(row.winRateBelow).toBeNull();
+			});
+
+			it('skips games with a missing stat or team average', () => {
+				const row = eRow([vs(null, 5, 'win'), vs(9, null, 'win'), vs(9, 5, 'loss')]);
+				expect(row).toMatchObject({ gamesAbove: 1, gamesBelow: 0 });
+				expect(row.winRateAbove).toBe(0);
+				expect(row.winRateBelow).toBeNull();
+			});
+
+			it('does not need the enemy average or the game length', () => {
+				const noLength = game({
+					lengthSeconds: null,
+					stats: statsOf(9),
+					teamAvg: statsOf(5),
+				});
+				const row = eRow([noLength]);
+				expect(row).toMatchObject({ gamesAbove: 1, you: null });
+			});
+
+			it('is empty when no game has both values', () => {
+				expect(eRow([game()])).toMatchObject({
+					gamesAbove: 0,
+					gamesBelow: 0,
+					winRateAbove: null,
+					winRateBelow: null,
+				});
+			});
+
+			it('exports the minimum games for showing the split', () => {
+				expect(MIN_TEAM_SPLIT_GAMES).toBe(5);
+			});
 		});
 	});
 
@@ -951,10 +1041,119 @@ describe('insights', () => {
 				const findings = buildFindings([...low, ...high]);
 				expect(findings).toContainEqual({
 					kind: 'deathsSplit',
-					medianDeaths: 6,
+					medians: [{ role: 'damage', medianDeaths10: 6 }],
 					confidence: 'low',
 					lowDeaths: { games: 5, winRate: 100 },
 					highDeaths: { games: 5, winRate: 0 },
+				});
+			});
+
+			describe('per-role split', () => {
+				const mk = (role: PlayerGame['role'], d: number, result: PlayerGame['result']) =>
+					game({ role, result, ...deaths(d) });
+
+				it('splits at each role median, not the pooled one', () => {
+					// Tanks die a lot (10-12), DPS rarely (2-4); pooled median would put
+					// every tank in "high" and every DPS in "low" regardless of role.
+					// Within role, the lower-death half wins and the other half loses.
+					const tank = [
+						...results(5, 0).map((r) => mk('tank', 10, r)),
+						...results(0, 5).map((r) => mk('tank', 12, r)),
+					];
+					const dps = [
+						...results(5, 0).map((r) => mk('damage', 2, r)),
+						...results(0, 5).map((r) => mk('damage', 4, r)),
+					];
+					const finding = buildFindings([...tank, ...dps]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						medians: [
+							{ role: 'tank', medianDeaths10: 11 },
+							{ role: 'damage', medianDeaths10: 3 },
+						],
+						lowDeaths: { games: 10, winRate: 100 },
+						highDeaths: { games: 10, winRate: 0 },
+					});
+				});
+
+				it('does not fire when only the role mix explains the wins', () => {
+					// Tanks (high deaths) lose, DPS (low deaths) win, but within each role
+					// low and high deaths win equally
+					const tank = [
+						...results(1, 4).map((r) => mk('tank', 10, r)),
+						...results(1, 4).map((r) => mk('tank', 12, r)),
+					];
+					const dps = [
+						...results(4, 1).map((r) => mk('damage', 2, r)),
+						...results(4, 1).map((r) => mk('damage', 4, r)),
+					];
+					expect(buildFindings([...tank, ...dps]).map((f) => f.kind)).not.toContain(
+						'deathsSplit'
+					);
+				});
+
+				it('treats unknown as its own role and orders medians stably', () => {
+					const unknown = [
+						...results(5, 0).map((r) => mk('unknown', 1, r)),
+						...results(0, 5).map((r) => mk('unknown', 9, r)),
+					];
+					const support = [mk('support', 3, 'win'), mk('support', 3, 'loss')];
+					const finding = buildFindings([...unknown, ...support]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						medians: [
+							{ role: 'support', medianDeaths10: 3 },
+							{ role: 'unknown', medianDeaths10: 5 },
+						],
+					});
+				});
+			});
+
+			describe('game length', () => {
+				it('uses deaths per 10 minutes', () => {
+					// 10 deaths in 20 minutes is 5 per 10; 4 deaths in 5 minutes is 8 per 10
+					const slow = results(5, 0).map((result) =>
+						game({ result, lengthSeconds: 1200, ...deaths(10) })
+					);
+					const fast = results(0, 5).map((result) =>
+						game({ result, lengthSeconds: 300, ...deaths(4) })
+					);
+					const finding = buildFindings([...slow, ...fast]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						medians: [{ role: 'damage', medianDeaths10: 6.5 }],
+						lowDeaths: { games: 5, winRate: 100 },
+					});
+				});
+
+				it('skips games without a length', () => {
+					const low = results(5, 0).map((result) => game({ result, ...deaths(2) }));
+					const high = results(0, 5).map((result) => game({ result, ...deaths(10) }));
+					const noLength = results(0, 10).map((result) =>
+						game({ result, lengthSeconds: null, ...deaths(2) })
+					);
+					const finding = buildFindings([...low, ...high, ...noLength]).find(
+						(f) => f.kind === 'deathsSplit'
+					);
+					expect(finding).toMatchObject({
+						lowDeaths: { games: 5, winRate: 100 },
+						highDeaths: { games: 5, winRate: 0 },
+					});
+				});
+
+				it('does not fire when too few games have a length', () => {
+					const all = [
+						...results(5, 0).map((result) =>
+							game({ result, lengthSeconds: null, ...deaths(2) })
+						),
+						...results(0, 5).map((result) =>
+							game({ result, lengthSeconds: null, ...deaths(10) })
+						),
+					];
+					expect(buildFindings(all)).toEqual([]);
 				});
 			});
 
